@@ -72,7 +72,7 @@ class Jurisdiccion(ABC):
         self._razon_social_cliente_input = razon_social_cliente_input
         self.texto_notificacion = texto_notificacion
         # Modificar el headless a False para ver la navegación y a True para que sea invisible en entorno de producción
-        self.browser = await playwright.chromium.launch(headless=True)
+        self.browser = await playwright.chromium.launch(headless=False)
         self.context = await self.browser.new_context()
         self.page = await self.context.new_page()
         self.hay_notificacion = False
@@ -103,11 +103,13 @@ class Jurisdiccion(ABC):
         pass
 
     async def buscar_notificacion(self, page=None ,texto=None):
+        """
+        Si aparece el texto retorna hay_notificacion = true
+        """
         if page is None:
             page = self.page
         if texto is None:
             texto = self.texto_notificacion
-        # Buscar el texto en la página
         notificacion = await page.query_selector(f":has-text('{texto}')")
         self.hay_notificacion = notificacion is not None
         return self.hay_notificacion
@@ -119,7 +121,7 @@ class Jurisdiccion(ABC):
         nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}.png"
         try:
             await page.wait_for_load_state("networkidle")
-            await page.screenshot(path=nombre_archivo)
+            await page.screenshot(path=nombre_archivo, full_page=True)
             self.hay_screenshot = True
         except Exception as e:
             print(f"Error taking screenshot: {e}")
@@ -175,7 +177,7 @@ class Jurisdiccion(ABC):
 
         return self.nombre, self.hay_notificacion, self.hay_screenshot, self.error
 
-    def enviar_correo_errores(self):
+    def enviar_correo_errores(self, error):
         servidor_smtp = "appmail.atrame.deloitte.com"
         puerto_smtp = 25
         remitente = "robot-Tax-AR@deloitte.com"
