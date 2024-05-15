@@ -42,6 +42,7 @@ class Arba(Jurisdiccion):
                 "text=El usuario ingresado y/o la contraseña no son válidos."
             )
             or await self.page.is_visible("text=Servicio ocupado. Capacidad excedida.")
+            or await self.page.is_visible("text=Servicio ocupado")
         ):
             raise LoginError(
                 "Error de login en ARBA, al autorizar al usuario", self.cliente
@@ -73,15 +74,15 @@ async def main():
         fecha_desde = "01052024"
         fecha_hasta = "30052024"
 
-        # cuit_Arba = "30712132554"
-        # clave_fiscal_Arba = "Facebook1819"
-        # cuit_cliente_input = "30712132554"
-        # client = "FACEBOOK ARGENTINA S.R.L"
+        cuit_Arba = "30712132554"
+        clave_fiscal_Arba = "Facebook1819"
+        cuit_cliente_input = "30712132554"
+        client = "FACEBOOK ARGENTINA S.R.L"
 
-        client = "EDGE ARGENTINA S.R.L"
-        cuit_Arba = "30714604356"
-        clave_fiscal_Arba = "Edge2018"
-        cuit_cliente_input = "30714604356"
+        # client = "EDGE ARGENTINA S.R.L"
+        # cuit_Arba = "30714604356"
+        # clave_fiscal_Arba = "Edge2018"
+        # cuit_cliente_input = "30714604356"
         arba = await Arba.create(
             playwright,
             client,

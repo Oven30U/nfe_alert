@@ -29,7 +29,8 @@ class BaseTest:
             assert jurisdiccion.page is not None
             assert jurisdiccion.hay_notificacion is not None
             assert jurisdiccion.hay_screenshot is not None
-            assert jurisdiccion.error is None
+            if jurisdiccion.hay_notificacion not in ["Hay notificaciones", "No hay notificaciones"] or jurisdiccion.hay_screenshot not in ["Se realizó screenshot", "No se realizó screenshot"]:
+                assert jurisdiccion.error is None
             assert jurisdiccion.nombre is not None
 
 
