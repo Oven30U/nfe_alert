@@ -86,8 +86,9 @@ class Cordoba(Jurisdiccion):
             )
             if not await text_renderizando_grilla.is_visible():
                 break
-            await self.page.refresh()
-            await asyncio.sleep(2)
+            await self.page.reload()
+            await self.page.wait_for_load_state("load")
+            # await asyncio.sleep(2)
 
     async def buscar_notificacion(self):
         try:

@@ -180,6 +180,11 @@ class Jurisdiccion(ABC):
                 self.hay_notificacion = (
                     "Hay notificaciones" if notificacion else "No hay notificaciones"
                 )
+            except LoginError as e:
+                # Handle the exception, for example by logging it and returning it
+                logging.error(f"Error during consultar_notificaciones: {e}")
+                self.error = e
+                self.enviar_correo_errores(self.error)
             except Exception as e:
                 self.error = BuscarNotificacionError(
                     "Error al buscar notificación", self.cliente

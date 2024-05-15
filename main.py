@@ -6,7 +6,9 @@ from agip import Agip
 from arba import Arba
 from mendoza import Mendoza
 from cordoba import Cordoba
+from neuquen import Neuquen
 from rio_negro import RioNegro
+
 
 async def main():
     async with async_playwright() as playwright:
@@ -56,6 +58,15 @@ async def main():
             "30052024",
             "30714604356",
         )
+        neuquen = await Neuquen.create(
+            playwright,
+            "EDGE ARGENTINA S.R.L",
+            "30714604356",
+            "Edge2021",
+            "01052024",
+            "30052024",
+            "30714604356",
+        )
         rio_negro = await RioNegro.create(
             playwright,
             "EDGE ARGENTINA S.R.L",
@@ -69,7 +80,15 @@ async def main():
         # Crear tareas para cada método procesar_jurisdiccion
         tareas = [
             asyncio.create_task(instancia.procesar_jurisdiccion())
-            for instancia in [nacional, agip, arba, mendoza, cordoba, rio_negro]
+            for instancia in [
+                nacional,
+                agip,
+                arba,
+                mendoza,
+                cordoba,
+                neuquen,
+                rio_negro,
+            ]
         ]
 
         # Utilizar la lista en asyncio.gather

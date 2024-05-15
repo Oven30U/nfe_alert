@@ -53,7 +53,7 @@ class Mendoza(Jurisdiccion):
         await self.new_page.locator(
             "xpath=(//*[@class='z-datebox'])[2]//input[1]"
         ).fill(self.fecha_hasta)
-        # await self.new_page.check("xpath=(//input[@type='radio'])[2]")  # Sólo sin Leer
+        await self.new_page.check("xpath=(//input[@type='radio'])[2]")  # Sólo sin Leer
         await self.new_page.locator("xpath=//button[text()='Buscar']").click()
 
     async def buscar_notificacion(self):

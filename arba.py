@@ -33,6 +33,7 @@ class Arba(Jurisdiccion):
         await self.page.goto("https://www.arba.gov.ar/Gestionar/PanelAutogestion.asp")
         await self.page.fill("#CUIT", f"{self._cuit}")
         await self.page.fill("#clave_Cuit", f"{self._clave_fiscal}")
+        # await asyncio.sleep(2)
         await self.page.press("#clave_Cuit", "Enter")
         if (
             await self.page.is_visible(
@@ -41,16 +42,13 @@ class Arba(Jurisdiccion):
             or await self.page.is_visible(
                 "text=El usuario ingresado y/o la contraseña no son válidos."
             )
-            or await self.page.is_visible("text=Servicio ocupado. Capacidad excedida.")
             or await self.page.is_visible("text=Servicio ocupado")
         ):
             raise LoginError(
                 "Error de login en ARBA, al autorizar al usuario", self.cliente
             )
-        await self.page.click(
-            "xpath=//span[text()=' Domicilio fiscal electrónico (DFE) ']"
-        )
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.click("xpath=//span[contains(text(), 'DFE')]")
+        await self.page.wait_for_load_state("domcontentloaded")
         if await self.page.is_visible("text=Seleccione un rol", timeout=5000):
             await self.page.select_option(
                 "select[name='rol']", "ContribuyentesGral/Contribuyente"
@@ -60,7 +58,9 @@ class Arba(Jurisdiccion):
         await self.page.click('a[href="#tabs-Todas"]')
 
     async def buscar_notificacion(self):
-        return not await super().buscar_notificacion(self.page, "No se encontraron resultados")
+        return not await super().buscar_notificacion(
+            self.page, "No se encontraron resultados"
+        )
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)

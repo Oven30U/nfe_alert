@@ -44,7 +44,6 @@ class RioNegro(Jurisdiccion):
             'xpath=//select[@id="cuit_opera"]', str(self._cuit_cliente_input)
         )
         await self.page.click("#btn_ingresar")
-        print("Adentro")
 
     async def buscar_notificacion(self):
         cantidad_mensajes = await self.page.locator("#cantidad_msj").inner_text()
