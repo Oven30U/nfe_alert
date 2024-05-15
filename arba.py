@@ -33,7 +33,7 @@ class Arba(Jurisdiccion):
         await self.page.goto("https://www.arba.gov.ar/Gestionar/PanelAutogestion.asp")
         await self.page.fill("#CUIT", f"{self._cuit}")
         await self.page.fill("#clave_Cuit", f"{self._clave_fiscal}")
-        await self.page.click("xpath=//button[@value='Ingresar']")
+        await self.page.press("#clave_Cuit", "Enter")
         if (
             await self.page.is_visible(
                 "text=Ocurrio un error inesperado al autorizar al usuario"
@@ -59,13 +59,13 @@ class Arba(Jurisdiccion):
         await self.page.click('a[href="#tabs-Todas"]')
 
     async def buscar_notificacion(self):
-        await super().buscar_notificacion(self.page, "No se encontraron resultados")
+        return not await super().buscar_notificacion(self.page, "No se encontraron resultados")
 
     async def tomar_screenshot(self):
-        await super().tomar_screenshot(self.page)
+        return await super().tomar_screenshot(self.page)
 
     async def procesar_jurisdiccion(self):
-        await super().procesar_jurisdiccion()
+        return await super().procesar_jurisdiccion()
 
 
 async def main():

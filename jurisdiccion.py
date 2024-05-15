@@ -2,12 +2,13 @@
 Este modulo contiene la clase Jurisdiccion.
 """
 
+from typing import Tuple, Optional, Union
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from abc import ABC, abstractmethod
 from datetime import datetime
-from playwright.async_api import Playwright
+from playwright.async_api import Playwright, Page
 import logging
 import os
 
@@ -44,22 +45,38 @@ class LoginError(LoggedException):
 
 class ConsultarNotificacionesError(LoggedException):
     """Excepción lanzada por errores al consultar notificaciones."""
+
     pass
 
 
 class BuscarNotificacionError(LoggedException):
     """Excepción lanzada por errores al buscar notificaciones."""
+
     pass
 
 
 class TomarScreenshotError(LoggedException):
     """Excepción lanzada por errores al tomar screenshots."""
+
     pass
 
 
 class Jurisdiccion(ABC):
     @classmethod
-    async def create(cls, playwright: Playwright, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None, razon_social_cliente_input=None, texto_notificacion=None):
+    async def create(
+        cls,
+        playwright: Playwright,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+    ):
         self = cls()
         self.nombre = nombre
         self.codigo = codigo
@@ -81,28 +98,39 @@ class Jurisdiccion(ABC):
         self.error = None
         return self
 
-    async def AFIP_login(self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"):
+    async def AFIP_login(
+        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+    ):
         await self.page.goto(URL_AFIP_LOGIN)
         await self.page.get_by_role("spinbutton").click()
         await self.page.get_by_role("spinbutton").fill(self._cuit)
         await self.page.get_by_role("button", name="Siguiente").click()
-        incorrect_login = await self.page.query_selector(":has-text('Número de CUIL/CUIT incorrecto')")
+        incorrect_login = await self.page.query_selector(
+            ":has-text('Número de CUIL/CUIT incorrecto')"
+        )
         if incorrect_login:
             raise LoginError("Login CUIT incorrecto")
         await self.page.get_by_label("TU CLAVE").click()
         await self.page.get_by_label("TU CLAVE").fill(self._clave_fiscal)
         await self.page.get_by_role("button", name="Ingresar").click()
-        await self.page.wait_for_load_state("networkidle")  # add this line
-        incorrect_login = await self.page.query_selector(":has-text('Clave o usuario incorrecto')")
-        if incorrect_login:
-            raise LoginError("Login pass incorrecto")
+        await self.page.wait_for_load_state(
+            "networkidle"
+        )  # esperar que cargue la página, si el link no es AFIP puro, entonces redirige a juridiscción
+        if URL_AFIP_LOGIN == "https://auth.afip.gob.ar/contribuyente_/login.xhtml":
+            incorrect_login = await self.page.query_selector(
+                ":has-text('Clave o usuario incorrecto')"
+            )
+            if incorrect_login:
+                raise LoginError("Login pass incorrecto")
 
     @abstractmethod
     def consultar_notificaciones(self):
         """Metodo utilizado para navegar hasta la sección de notificaciones de la jurisdicción."""
         pass
 
-    async def buscar_notificacion(self, page=None ,texto=None):
+    async def buscar_notificacion(
+        self, page: Optional[Page] = None, texto: Optional[str] = None
+    ) -> bool:
         """
         Si aparece el texto retorna hay_notificacion = true
         """
@@ -114,13 +142,13 @@ class Jurisdiccion(ABC):
         self.hay_notificacion = notificacion is not None
         return self.hay_notificacion
 
-    async def tomar_screenshot(self, page=None):
+    async def tomar_screenshot(self, page: Optional[Page] = None) -> bool:
         """Metodo utilizado para tomar un screenshot de la sección de notificaciones de la jurisdicción."""
         if page is None:
             page = self.page
         nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}.png"
         try:
-            await page.wait_for_load_state("networkidle")
+            await page.wait_for_load_state("domcontentloaded")
             await page.screenshot(path=nombre_archivo, full_page=True)
             self.hay_screenshot = True
         except Exception as e:
@@ -129,7 +157,9 @@ class Jurisdiccion(ABC):
             raise Exception(f"Error taking screenshot: {e}") from e
         return self.hay_screenshot
 
-    async def procesar_jurisdiccion(self):
+    async def procesar_jurisdiccion(
+        self,
+    ) -> Tuple[str, str, str, Optional[Union[LoggedException, None]]]:
         self.error = None
 
         try:
@@ -146,7 +176,10 @@ class Jurisdiccion(ABC):
 
         if not self.error:
             try:
-                self.hay_notificacion = await self.buscar_notificacion()
+                notificacion = await self.buscar_notificacion()
+                self.hay_notificacion = (
+                    "Hay notificaciones" if notificacion else "No hay notificaciones"
+                )
             except Exception as e:
                 self.error = BuscarNotificacionError(
                     "Error al buscar notificación", self.cliente
@@ -156,24 +189,22 @@ class Jurisdiccion(ABC):
 
         if not self.error:
             try:
-                await self.tomar_screenshot()
+                screenshot = await self.tomar_screenshot()
+                self.hay_screenshot = (
+                    "Se realizó Screenshot"
+                    if screenshot
+                    else "No se realizó Screenshot"
+                )
             except Exception as e:
-                self.error = TomarScreenshotError("Error al tomar screenshot", self.cliente)
+                self.error = TomarScreenshotError(
+                    "Error al tomar screenshot", self.cliente
+                )
                 print(e)
                 self.enviar_correo_errores(self.error)
-            else:
-                self.hay_screenshot = True
 
-            self.hay_notificacion = (
-                "Hay notificaciones"
-                if self.hay_notificacion
-                else "No hay notificaciones"
-            )
-            self.hay_screenshot = (
-                "Se realizó Screenshot"
-                if self.hay_screenshot
-                else "No se realizó Screenshot"
-            )
+        if self.error:
+            self.hay_notificacion = "Error al buscar notificación"
+            self.hay_screenshot = "Error al tomar screenshot"
 
         return self.nombre, self.hay_notificacion, self.hay_screenshot, self.error
 
@@ -204,4 +235,3 @@ class Jurisdiccion(ABC):
         # Enviar el correo electrónico
         with smtplib.SMTP(servidor_smtp, puerto_smtp) as server:
             server.send_message(msg)
-

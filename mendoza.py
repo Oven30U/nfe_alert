@@ -39,14 +39,14 @@ class Mendoza(Jurisdiccion):
         await self.page.goto(
             "https://atm.mendoza.gov.ar/portalatm/misTramites/misTramitesLogin.jsp"
         )
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("domcontentloaded")
         await self.page.fill("#cuit", f"{self._cuit}")
         await self.page.fill("#password", f"{self._clave_fiscal}")
         await self.page.locator("#ingresar").click()
         async with self.page.expect_popup() as popup_info:
             await self.page.click("#divDFE")
         self.new_page = await popup_info.value
-        await self.new_page.wait_for_load_state("networkidle")
+        await self.new_page.wait_for_load_state("domcontentloaded")
         await self.new_page.locator(
             "xpath=(//*[@class='z-datebox'])[1]//input[1]"
         ).fill(self.fecha_desde)
@@ -82,7 +82,7 @@ class Mendoza(Jurisdiccion):
         seccion = "notificaciones_con_vencimiento"
         nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
         try:
-            await self.new_page.wait_for_load_state("networkidle")
+            await self.new_page.wait_for_load_state("domcontentloaded")
             await self.new_page.screenshot(path=nombre_archivo, full_page=True)
             self.hay_screenshot_notificaciones = True
         except Exception as e:
@@ -94,7 +94,7 @@ class Mendoza(Jurisdiccion):
         seccion = "intimaciones"
         nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
         try:
-            await self.new_page.wait_for_load_state("networkidle")
+            await self.new_page.wait_for_load_state("domcontentloaded")
             await self.new_page.screenshot(path=nombre_archivo, full_page=True)
             self.hay_screenshot_intimaciones = True
         except Exception as e:
@@ -106,7 +106,7 @@ class Mendoza(Jurisdiccion):
         seccion = "comunicaciones"
         nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
         try:
-            await self.new_page.wait_for_load_state("networkidle")
+            await self.new_page.wait_for_load_state("domcontentloaded")
             await self.new_page.screenshot(path=nombre_archivo, full_page=True)
             self.hay_screenshot_comunicaciones = True
         except Exception as e:
@@ -123,7 +123,7 @@ class Mendoza(Jurisdiccion):
         return self.hay_screenshot
 
     async def procesar_jurisdiccion(self):
-        await super().procesar_jurisdiccion()
+        return await super().procesar_jurisdiccion()
 
 
 async def main():

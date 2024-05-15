@@ -31,13 +31,13 @@ class Nacional(Jurisdiccion):
         await self.new_page.select_option("select[name='filtroEstado']", "No Leída")
 
     async def buscar_notificacion(self):
-        await super().buscar_notificacion(self.new_page, "No hay comunicaciones para mostrar")
+        return not await super().buscar_notificacion(self.new_page, "No hay comunicaciones para mostrar")
 
     async def tomar_screenshot(self):
-        await super().tomar_screenshot(self.new_page)
+        return await super().tomar_screenshot(self.new_page)
 
     async def procesar_jurisdiccion(self):
-        await super().procesar_jurisdiccion()
+        return await super().procesar_jurisdiccion()
 
 
 async def main():

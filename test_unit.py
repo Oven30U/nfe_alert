@@ -95,3 +95,35 @@ class TestMendoza(BaseTest):
             "30052024",
             "30714604356",
         )
+
+
+class TestCordoba(BaseTest):
+    @pytest.mark.asyncio
+    async def test_cordoba(self):
+        from cordoba import Cordoba
+
+        await self.run_test(
+            Cordoba,
+            "EDGE ARGENTINA S.R.L",
+            "20386165476",
+            "Gabriel1994",
+            "01052024",
+            "30052024",
+            "30714604356",
+        )
+
+
+class TestRioNegro(BaseTest):
+    @pytest.mark.asyncio
+    async def test_rio_negro(self):
+        from rio_negro import RioNegro
+
+        await self.run_test(
+            RioNegro,
+            "EDGE ARGENTINA S.R.L",
+            "20386165476",
+            "Gabriel1994",
+            "01052024",
+            "30052024",
+            "30714604356",
+        )
