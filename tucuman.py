@@ -45,42 +45,32 @@ class Tucuman(Jurisdiccion):
                 await radio.check()
                 break
         await self.page.locator("text='Confirmar'").click()
+        await self.page.locator("text='Domicilio Fiscal Electrónico'").click()
+        await self.page.locator("text='Notificaciones'").click()
 
-        await self.page.goto(
-            "https://extranet.rentastucuman.gov.ar/nomina/rentastuc2/intranet/menu_dfe.php"
-        )
-        await self.page.locator("#btn_sit").click()
-        await self.page.get_by_role("textbox", name="Usuario").click()
-        await self.page.get_by_role("textbox", name="Usuario").fill(
-            f"{self._cuit_cliente_input}"
-        )
-        await self.page.get_by_placeholder("Contraseña").click()
-        await self.page.get_by_placeholder("Contraseña").fill(f"{self._clave_fiscal}")
-        await self.page.get_by_role("button", name="Ingresar").click()
-        if (
-            await self.page.locator(
-                "text='Acción prohibida, por favor ingrese nuevamente al sistema.'"
-            ).count()
-        ) > 0:
-            raise LoginError("Login error con mensajde de accion prohibida")
+        # await self.page.goto(
+        #     "https://extranet.rentastucuman.gov.ar/nomina/rentastuc2/intranet/menu_dfe.php"
+        # )
+        # await self.page.locator("#btn_sit").click()
+        # await self.page.get_by_role("textbox", name="Usuario").click()
+        # await self.page.get_by_role("textbox", name="Usuario").fill(
+        #     f"{self._cuit_cliente_input}"
+        # )
+        # await self.page.get_by_placeholder("Contraseña").click()
+        # await self.page.get_by_placeholder("Contraseña").fill(f"{self._clave_fiscal}")
+        # await self.page.get_by_role("button", name="Ingresar").click()
+        # if (
+        #     await self.page.locator(
+        #         "text='Acción prohibida, por favor ingrese nuevamente al sistema.'"
+        #     ).count()
+        # ) > 0:
+        #     raise LoginError("Login error con mensajde de accion prohibida")
 
     async def buscar_notificacion(self):
-        await self.page.wait_for_load_state(
-            "networkidle"
-        )  # necesario para encontrar los elementos
-        cantidad_notificaciones = await self.page.locator("#cant_notif").inner_text()
-        cantidad_comunicaciones = await self.page.locator("#cant_comunic").inner_text()
-        # Extrae solo los números del texto
-        cantidad_notificaciones = re.findall(r"\d+", cantidad_notificaciones)
-        cantidad_comunicaciones = re.findall(r"\d+", cantidad_comunicaciones)
-        if cantidad_notificaciones and cantidad_comunicaciones:
-            total_notificaciones = int(cantidad_notificaciones[0]) + int(
-                cantidad_comunicaciones[0]
-            )
-        else:
-            total_notificaciones = 0
-        self.hay_notificacion = total_notificaciones > 0
-        return self.hay_notificacion
+        return not await super().buscar_notificacion(
+            self.page,
+            texto="En este momento no hay nuevas notificaciones para mostrar.",
+        )
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot()

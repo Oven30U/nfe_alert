@@ -1,6 +1,6 @@
 import asyncio
 from playwright.async_api import Playwright, async_playwright, expect
-from jurisdiccion import Jurisdiccion, LoginError
+from jurisdiccion import Jurisdiccion, LoginError, ConsultarNotificacionesError
 
 
 class Agip(Jurisdiccion):
@@ -30,28 +30,29 @@ class Agip(Jurisdiccion):
         return self
 
     async def consultar_notificaciones(self):
-        await self.page.goto("https://claveciudad.agip.gob.ar/")
-        await self.page.fill('xpath=//*[@id="cuit"]', f"{self._cuit}")
-        await self.page.fill('xpath=//*[@id="clave"]', f"{self._clave_fiscal}")
-        await self.page.click("xpath=//a[normalize-space()='Ingresar']")
-        if await self.page.is_visible("text=Clave/Usuario incorrecto."):
-            raise LoginError("CUIT no registrado", self.cliente)
-        await self.page.select_option(
-            "select[name='cuit_representado']", f"{self._cuit_cliente_input}"
-        )
-        await self.page.click(
-            f"xpath=//*[@onclick='ir_servicio(54,{self._cuit_cliente_input})']"
-        )
-        await self.page.click(
-            "xpath=//*[@class='btnNoLeidas btn btn-default']", timeout=900000
-        )  # 15 min
+        try:
+            await self.page.goto("https://claveciudad.agip.gob.ar/")
+            await self.page.fill('xpath=//*[@id="cuit"]', f"{self._cuit}")
+            await self.page.fill('xpath=//*[@id="clave"]', f"{self._clave_fiscal}")
+            await self.page.click("xpath=//a[normalize-space()='Ingresar']")
+            await self.page.wait_for_load_state("load")
+            if await self.page.is_visible("text=Clave/Usuario incorrecto."):
+                raise LoginError("CUIT no registrado", self.cliente)
+            await self.page.select_option(
+                "select[name='cuit_representado']", f"{self._cuit_cliente_input}"
+            )
+            await self.page.click(
+                f"xpath=//*[@onclick='ir_servicio(54,{self._cuit_cliente_input})']"
+            )
+            await self.page.click(
+                "xpath=//*[@class='btnNoLeidas btn btn-default']", timeout=900000
+            )  # 15 min
+        except Exception as e:
+            raise ConsultarNotificacionesError(
+                f"Error al consultar notificaciones: {str(e)}", self.cliente
+            )
 
     async def buscar_notificacion(self):
-        # hay_notificacion_no_leida = await super().buscar_notificacion(
-        #     self.page, texto="---"
-        # )
-        # self.hay_notificacion = not hay_notificacion_no_leida
-        # return self.hay_notificacion
         return await super().buscar_notificacion(self.page, texto="---")
 
     async def tomar_screenshot(self):

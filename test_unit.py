@@ -334,3 +334,40 @@ class TestRioNegro(BaseTest, ErrorTest):
             self.fecha_hasta,
             self.cuit_cliente_input,
         )
+
+
+class Tucuman(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from tucuman import Tucuman
+
+        self.Jurisdiccion = Tucuman
+        self.client = "EDGE ARGENTINA S.R.L"
+        self.cuit = "20386165476"
+        self.clave_fiscal = "Gabriel1994"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30714604356"
+
+    @pytest.mark.asyncio
+    async def test_tucuman(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+    @pytest.mark.asyncio
+    async def test_tucuman_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )

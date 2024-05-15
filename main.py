@@ -8,6 +8,7 @@ from mendoza import Mendoza
 from cordoba import Cordoba
 from neuquen import Neuquen
 from rio_negro import RioNegro
+from tucuman import Tucuman
 
 
 async def main():
@@ -68,6 +69,15 @@ async def main():
             "30714604356",
         )
         rio_negro = await RioNegro.create(
+            playwright,
+            "EDGE ARGENTINA S.R.L",
+            "20386165476",
+            "Gabriel1994",
+            "01052024",
+            "30052024",
+            "30714604356",
+        )
+        tucuman = await Tucuman.create(
             playwright,
             "EDGE ARGENTINA S.R.L",
             "20386165476",

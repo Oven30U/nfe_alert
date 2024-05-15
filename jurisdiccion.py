@@ -167,6 +167,9 @@ class Jurisdiccion(ABC):
         except LoginError as e:
             self.error = e
             self.enviar_correo_errores(self.error)
+        except ConsultarNotificacionesError as e:
+            self.error = e
+            self.enviar_correo_errores(self.error)
         except Exception as e:
             self.error = ConsultarNotificacionesError(
                 "Error al consultar notificaciones", self.cliente
