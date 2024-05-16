@@ -30,9 +30,12 @@ class Misiones(Jurisdiccion):
     async def consultar_notificaciones(self):
         await self.page.goto("https://extranet.atm.misiones.gob.ar/Extranet/index.php")
         await self.page.locator("xpath=//button[@id='btn_sit']").click()
+        # Utiliza press para evitar captchas
         await self.page.fill("input#log_user_aux", self._cuit)
+        await self.page.press("input#log_user_aux", "Tab")
         await self.page.fill("input#log_pass_aux", self._clave_fiscal)
-        await self.page.click("button#btn_ingresar")
+        await self.page.press("input#log_pass_aux", "Tab")
+        await self.page.press("input#log_pass_aux", "Enter")
         await self.page.wait_for_load_state("networkidle")
         mensaje_login_incorrecto = await self.page.locator(
             "text='El nombre de usuario o la contraseña introducidos no son correctos'"

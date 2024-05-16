@@ -27,7 +27,6 @@ class RioNegro(Jurisdiccion):
             fecha_hasta,
             cuit_cliente_input,
         )
-        # self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def AFIP_login(

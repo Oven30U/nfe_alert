@@ -28,11 +28,7 @@ class Neuquen(Jurisdiccion):
         )
         return self
 
-    # async def AFIP_login(self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"):
-    #     return await super().AFIP_login(URL_AFIP_LOGIN)
-
     async def consultar_notificaciones(self):
-        # await self.AFIP_login()
         await self.page.goto("https://rentasneuquenweb.gob.ar/nqn/Extranet/index.php")
         await self.page.locator("#btn_sit").click()
         await self.page.get_by_role("textbox", name="Usuario").click()
@@ -50,7 +46,9 @@ class Neuquen(Jurisdiccion):
             raise LoginError("Login error con mensajde de accion prohibida")
 
     async def buscar_notificacion(self):
-        await self.page.wait_for_load_state("networkidle")  # necesario para encontrar los elementos
+        await self.page.wait_for_load_state(
+            "networkidle"
+        )  # necesario para encontrar los elementos
         cantidad_notificaciones = await self.page.locator("#cant_notif").inner_text()
         cantidad_comunicaciones = await self.page.locator("#cant_comunic").inner_text()
         # Extrae solo los números del texto

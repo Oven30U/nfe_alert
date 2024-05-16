@@ -1,0 +1,117 @@
+import asyncio
+from datetime import datetime
+from playwright.async_api import Playwright, async_playwright, expect
+from jurisdiccion import Jurisdiccion
+
+
+class EntreRios(Jurisdiccion):
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+    ):
+        self = await super().create(
+            playwright,
+            "EntreRios",
+            "904 CORDOBA",
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+        )
+        return self
+
+    async def AFIP_login(self):
+        return await super().AFIP_login()
+
+    async def formatear_cuit(self, cuit):
+        """
+        Esta función formatea un número de CUIT 20386165476 al formato 20-38616547-6.
+
+        Args:
+        cuit: El número de CUIT a formatear.
+
+        Returns:
+        El número de CUIT formateado.
+        """
+        # Convertir el número de CUIT a una cadena.
+        cuit_str = str(cuit)
+        # Insertar un guión después del segundo dígito.
+        cuit_str = cuit_str[:2] + "-" + cuit_str[2:]
+        # Insertar un guión después del décimo dígito.
+        cuit_str = cuit_str[:11] + "-" + cuit_str[11:]
+        # Devolver el número de CUIT formateado.
+        return cuit_str
+
+    async def consultar_notificaciones(self):
+        await self.AFIP_login()
+        await self.page.fill(
+            "input#buscadorInput", "Servicios Administradora Tributaria de Entre Ríos"
+        )
+        await self.page.click("a.dropdown-item")
+        popup_info = await self.page.wait_for_event("popup")
+        self.new_page = popup_info
+        await self.new_page.wait_for_load_state("networkidle")
+        cuit_contribuyente = await self.formatear_cuit(self._cuit_cliente_input)
+        # await self.page.click(
+        #     f'xpath=//*[@id="textoFiltro"][contains(text(), "{cuit_contribuyente}")]'
+        # )
+        await self.new_page.locator(
+            f"xpath=//*[contains(text(), '{cuit_contribuyente}')]"
+        ).click()
+        await self.new_page.wait_for_load_state("load")
+        await self.new_page.goto(
+            "https://portal.ater.gob.ar/ventanillaVirtual/adhesionVentanilla.aspx"
+        )
+        await self.new_page.wait_for_load_state("load")
+
+    async def buscar_notificacion(self):
+        cantidad_avisos = (await self.new_page.locator("#avisos").inner_text()).strip(
+            "()"
+        )
+        cantidad_notificaciones = (
+            await self.new_page.locator("#notificaciones").inner_text()
+        ).strip("()")
+        total_notificaciones = int(cantidad_avisos) + int(cantidad_notificaciones)
+        self.hay_notificacion = total_notificaciones > 0
+        return self.hay_notificacion
+
+    async def tomar_screenshot(self):
+        return await super().tomar_screenshot(self.new_page)
+
+    async def procesar_jurisdiccion(self):
+        return await super().procesar_jurisdiccion()
+
+
+async def main():
+    async with async_playwright() as playwright:
+        client = "EDGE ARGENTINA S.R.L"
+        fecha_desde = "01052024"
+        fecha_hasta = "30052024"
+        cuit_EntreRios = "20386165476"
+        clave_fiscal_EntreRios = "Gabriel1994"
+        cuit_cliente_input = "30714604356"
+        entre_rios = await EntreRios.create(
+            playwright,
+            client,
+            cuit_EntreRios,
+            clave_fiscal_EntreRios,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+        )
+        await entre_rios.procesar_jurisdiccion()
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
