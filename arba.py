@@ -47,6 +47,7 @@ class Arba(Jurisdiccion):
             raise LoginError(
                 "Error de login en ARBA, al autorizar al usuario", self.cliente
             )
+        await self.page.wait_for_load_state("domcontentloaded")
         await self.page.click("xpath=//span[contains(text(), 'DFE')]")
         await self.page.wait_for_load_state("domcontentloaded")
         if await self.page.is_visible("text=Seleccione un rol", timeout=5000):

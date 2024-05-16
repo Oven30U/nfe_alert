@@ -48,24 +48,6 @@ class Tucuman(Jurisdiccion):
         await self.page.locator("text='Domicilio Fiscal Electrónico'").click()
         await self.page.locator("text='Notificaciones'").click()
 
-        # await self.page.goto(
-        #     "https://extranet.rentastucuman.gov.ar/nomina/rentastuc2/intranet/menu_dfe.php"
-        # )
-        # await self.page.locator("#btn_sit").click()
-        # await self.page.get_by_role("textbox", name="Usuario").click()
-        # await self.page.get_by_role("textbox", name="Usuario").fill(
-        #     f"{self._cuit_cliente_input}"
-        # )
-        # await self.page.get_by_placeholder("Contraseña").click()
-        # await self.page.get_by_placeholder("Contraseña").fill(f"{self._clave_fiscal}")
-        # await self.page.get_by_role("button", name="Ingresar").click()
-        # if (
-        #     await self.page.locator(
-        #         "text='Acción prohibida, por favor ingrese nuevamente al sistema.'"
-        #     ).count()
-        # ) > 0:
-        #     raise LoginError("Login error con mensajde de accion prohibida")
-
     async def buscar_notificacion(self):
         return not await super().buscar_notificacion(
             self.page,
@@ -96,7 +78,6 @@ async def main():
             fecha_hasta,
             cuit_cliente_input,
         )
-        # await tucuman.AFIP_login()
         await tucuman.procesar_jurisdiccion()
 
 

@@ -9,6 +9,7 @@ from cordoba import Cordoba
 from neuquen import Neuquen
 from rio_negro import RioNegro
 from tucuman import Tucuman
+from misiones import Misiones
 
 
 async def main():
@@ -86,6 +87,15 @@ async def main():
             "30052024",
             "30714604356",
         )
+        misiones = await Misiones.create(
+            playwright,
+            "EDGE ARGENTINA S.R.L",
+            "30714604356",
+            "Edge2021",
+            "01052024",
+            "30052024",
+            "30714604356",
+        )
 
         # Crear tareas para cada método procesar_jurisdiccion
         tareas = [
@@ -98,6 +108,8 @@ async def main():
                 cordoba,
                 neuquen,
                 rio_negro,
+                tucuman,
+                misiones,
             ]
         ]
 

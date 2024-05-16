@@ -3,7 +3,28 @@ from playwright.async_api import async_playwright
 
 
 class BaseTest:
-    """Test para el manejo coherente de todos los retornos"""
+    """
+    Clase base para pruebas unitarias.
+
+    Esta clase proporciona un método `run_base_test` que realiza una serie de
+    aserciones para verificar el correcto funcionamiento de la jurisdicción
+    procesada. Las pruebas incluyen la verificación de la existencia de la página,
+    la presencia de notificaciones, la realización de capturas de pantalla y
+    la ausencia de errores.
+
+    Las pruebas se realizan de forma asíncrona para permitir la ejecución
+    concurrente y mejorar el rendimiento de las pruebas.
+
+    Args:
+        Jurisdiccion: La clase de la jurisdicción a probar.
+        client: El cliente a utilizar para las pruebas.
+        cuit: El CUIT a utilizar para las pruebas.
+        clave_fiscal: La clave fiscal a utilizar para las pruebas.
+        fecha_desde: La fecha de inicio del rango de fechas a probar.
+        fecha_hasta: La fecha de fin del rango de fechas a probar.
+        cuit_cliente_input: El CUIT del cliente a utilizar para las pruebas.
+
+    """
 
     @pytest.mark.asyncio
     async def run_base_test(
@@ -28,9 +49,13 @@ class BaseTest:
             )
             await jurisdiccion.procesar_jurisdiccion()
 
-            assert jurisdiccion.page is not None
-            assert jurisdiccion.hay_notificacion is not None
-            assert jurisdiccion.hay_screenshot is not None
+            assert jurisdiccion.page is not None, "La página es None"
+            assert (
+                jurisdiccion.hay_notificacion is not None
+            ), "No hay estado en hay_notificación"
+            assert (
+                jurisdiccion.hay_screenshot is not None
+            ), "No hay estado en hay_screenshot"
             if jurisdiccion.hay_notificacion not in [
                 "Hay notificaciones",
                 "No hay notificaciones",
@@ -38,17 +63,36 @@ class BaseTest:
                 "Se realizó screenshot",
                 "No se realizó screenshot",
             ]:
-                assert jurisdiccion.error is None
-            assert jurisdiccion.nombre is not None
+                assert (
+                    jurisdiccion.error is None
+                ), "Ocurrió un error pero no se reflejo en hay_notificación o hay_screenshot"
+            assert (
+                jurisdiccion.nombre is not None
+            ), "El nombre de la jurisdiccion es None"
             if jurisdiccion.error is not None:
                 assert (
                     jurisdiccion.hay_notificacion == "Error al buscar notificación"
                     and jurisdiccion.hay_screenshot == "Error al tomar screenshot"
-                )
+                ), "Siendo que ocurrió un Error en la notificación o en la captura de pantalla, no se reflejo en hay_notificación o hay_screenshot"
 
 
 class ErrorTest:
-    """Test para identificar retornos de error"""
+    """
+    Clase para pruebas de error.
+
+    Esta clase proporciona un método `run_error_test` que realiza una aserción
+    para verificar que no se produzcan errores durante el procesamiento de la jurisdicción.
+
+    Args:
+        Jurisdiccion: La clase de la jurisdicción a probar.
+        client: El cliente a utilizar para las pruebas.
+        cuit: El CUIT a utilizar para las pruebas.
+        clave_fiscal: La clave fiscal a utilizar para las pruebas.
+        fecha_desde: La fecha de inicio del rango de fechas a probar.
+        fecha_hasta: La fecha de fin del rango de fechas a probar.
+        cuit_cliente_input: El CUIT del cliente a utilizar para las pruebas.
+
+    """
 
     @pytest.mark.asyncio
     async def run_error_test(
@@ -74,7 +118,9 @@ class ErrorTest:
             await jurisdiccion.procesar_jurisdiccion()
 
             # Verifica que no haya errores
-            assert jurisdiccion.error is None
+            assert (
+                jurisdiccion.error is None
+            ), f"Se encontró un error durante la ejecución: {jurisdiccion.error}"
 
 
 class TestNacional(BaseTest, ErrorTest):
@@ -336,7 +382,7 @@ class TestRioNegro(BaseTest, ErrorTest):
         )
 
 
-class Tucuman(BaseTest, ErrorTest):
+class TestTucuman(BaseTest, ErrorTest):
     def setup_method(self, method):
         from tucuman import Tucuman
 
@@ -362,6 +408,43 @@ class Tucuman(BaseTest, ErrorTest):
 
     @pytest.mark.asyncio
     async def test_tucuman_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+
+class TestMisiones(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from misiones import Misiones
+
+        self.Jurisdiccion = Misiones
+        self.client = "EDGE ARGENTINA S.R.L"
+        self.cuit = "30714604356"
+        self.clave_fiscal = "Edge2021"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30714604356"
+
+    @pytest.mark.asyncio
+    async def test_misiones(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+    @pytest.mark.asyncio
+    async def test_misiones_error(self):
         await self.run_error_test(
             self.Jurisdiccion,
             self.client,
