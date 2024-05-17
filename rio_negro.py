@@ -19,7 +19,7 @@ class RioNegro(Jurisdiccion):
         self = await super().create(
             playwright,
             "RioNegro",
-            "904 CORDOBA",
+            "916 RIO NEGRO",
             cliente,
             cuit,
             clave_fiscal,
@@ -56,6 +56,7 @@ class RioNegro(Jurisdiccion):
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
+        await self.page.wait_for_load_state("networkidle")
         return await super().tomar_screenshot(self.page)
 
     async def procesar_jurisdiccion(self):

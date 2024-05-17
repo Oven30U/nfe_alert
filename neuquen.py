@@ -18,7 +18,7 @@ class Neuquen(Jurisdiccion):
         self = await super().create(
             playwright,
             "Neuquén",
-            "NEU",
+            "915 NEUQUEN",
             cliente,
             cuit,
             clave_fiscal,
@@ -64,6 +64,8 @@ class Neuquen(Jurisdiccion):
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
+        self.fecha_desde = self.fecha_desde.replace("/", "")
+        self.fecha_hasta = self.fecha_hasta.replace("/", "")
         return await super().tomar_screenshot()
 
     async def procesar_jurisdiccion(self):

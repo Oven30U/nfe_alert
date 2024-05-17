@@ -17,7 +17,7 @@ class Misiones(Jurisdiccion):
         self = await super().create(
             playwright,
             "Misiones",
-            "Mis",
+            "914 MISIONES",
             cliente,
             cuit,
             clave_fiscal,

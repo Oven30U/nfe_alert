@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
 from playwright.async_api import Playwright, async_playwright, expect
+from playwright._impl._errors import TimeoutError
 from jurisdiccion import Jurisdiccion
 
 
@@ -40,12 +41,11 @@ class Cordoba(Jurisdiccion):
         await self.page.goto(
             "https://www.rentascordoba.gob.ar/nuevorentas/mis-representados"
         )
-        await self.page.wait_for_load_state("load", timeout=600000)
+        await self.page.wait_for_load_state("load", timeout=0)
         while True:
             try:
                 await self.page.click(
-                    f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]""",
-                    timeout=60000,
+                    f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]"""
                 )
                 break
             except Exception as e:
@@ -54,17 +54,27 @@ class Cordoba(Jurisdiccion):
                 await self.page.reload()
 
         await asyncio.sleep(3)  # si no espero, no toma el "Si"
-        await self.page.click('text="Sí"', timeout=6000)
+        await self.page.click('text="Sí"', timeout=0)
         await asyncio.sleep(3)  # si no espero, no toma el "Si"
-        await self.page.wait_for_load_state("domcontentloaded")
-        await self.page.wait_for_selector(
-            'text=" Domicilio Fiscal Electrónico "', state="visible"
-        )
+        # await self.page.wait_for_load_state("load")
+        # await self.page.wait_for_load_state("load")
+        # await self.page.wait_for_selector(
+        #     'text=" Domicilio Fiscal Electrónico "', state="visible"
+        # )
+        # # Wait for the "Sí" button to be clickable
+        # await self.page.wait_for_selector('text="Sí"', state="attached")
+        # # Click the "Sí" button
+        # await self.page.click('text="Sí"', timeout=0)
+        # # Wait for the "Domicilio Fiscal Electrónico" text to be visible
+        # await self.page.wait_for_selector(
+        #     'text=" Domicilio Fiscal Electrónico "', state="visible"
+        # )
+
         try:
+            # await self.page.wait_for_load_state("load", timeout=0)
+            await self.page.wait_for_load_state("load")
             await self.page.click('text=" Domicilio Fiscal Electrónico "')
-            await self.page.wait_for_load_state(
-                "domcontentloaded", timeout=5000
-            )  # espera 5 segundos
+            await self.page.wait_for_load_state("load", timeout=0)
         except Exception as e:
             print(f"Exception: {e}. Navegando directamente a la URL de dfe cordoba.")
             await self.page.goto(
@@ -80,18 +90,27 @@ class Cordoba(Jurisdiccion):
                 wait_until="load",
             )
 
+        await self.page.wait_for_load_state("load")
         while True:
-            text_renderizando_grilla = self.page.locator(
-                'xpath=//*[contains(text(), "Renderizando grilla")]'
+            tbody_locator = self.page.locator(
+                'xpath=//table[@class="table table-hover"]'
             )
-            if not await text_renderizando_grilla.is_visible():
+            if tbody_locator and await tbody_locator.count() == 0:
+                # If tbody does not exist, reload the page
+                await self.page.reload()
+            if await tbody_locator.is_visible():
                 break
-            await self.page.reload()
-            await self.page.wait_for_load_state("load")
-            # await asyncio.sleep(2)
+            # if not await text_renderizando_grilla.is_visible():
+            #     break
+            # try:
+            #     await text_renderizando_grilla.wait_for("hidden", timeout=4000)
+            # except Exception:
+            #     await self.page.reload()
+            #     await self.page.wait_for_load_state("load")
 
     async def buscar_notificacion(self):
         try:
+            await self.page.wait_for_load_state("load")
             if self.page.locator('xpath="(//tody)[1]"') is not None:
                 fecha_disposicion = self.page.locator("xpath=//tbody[1]/tr[1]/td[5]")
                 if fecha_disposicion is not None:
@@ -110,6 +129,12 @@ class Cordoba(Jurisdiccion):
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
+        try:
+            await self.page.wait_for_load_state(
+                "load", timeout=60000
+            )  # Wait for visible content to load
+        except TimeoutError:
+            print("Tiempo de espera superado, se toma screenshot igualmente")
         return await super().tomar_screenshot(self.page)
 
     async def procesar_jurisdiccion(self):

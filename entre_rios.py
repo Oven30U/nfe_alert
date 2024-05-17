@@ -19,7 +19,7 @@ class EntreRios(Jurisdiccion):
         self = await super().create(
             playwright,
             "EntreRios",
-            "904 CORDOBA",
+            "908 ENTRE RIOS",
             cliente,
             cuit,
             clave_fiscal,

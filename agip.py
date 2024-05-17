@@ -17,7 +17,7 @@ class Agip(Jurisdiccion):
     ):
         self = await super().create(
             playwright,
-            "AGIP",
+            "Agip",
             "901 CABA",
             cliente,
             cuit,

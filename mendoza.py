@@ -24,7 +24,7 @@ class Mendoza(Jurisdiccion):
         self = await super().create(
             playwright,
             "Mendoza",
-            "913 Mendoza",
+            "913 MENDOZA",
             cliente,
             cuit,
             clave_fiscal,

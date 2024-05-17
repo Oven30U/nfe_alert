@@ -18,7 +18,7 @@ class Nacional(Jurisdiccion):
         self = await super().create(
             playwright,
             "Nacional",
-            "AFIP",
+            "Nacional",
             cliente,
             cuit,
             clave_fiscal,
@@ -58,6 +58,8 @@ class Nacional(Jurisdiccion):
         )
 
     async def tomar_screenshot(self):
+        self.fecha_desde = self.fecha_desde.replace("/", "")
+        self.fecha_hasta = self.fecha_hasta.replace("/", "")
         return await super().tomar_screenshot(self.new_page)
 
     async def procesar_jurisdiccion(self):

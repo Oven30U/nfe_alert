@@ -19,7 +19,7 @@ class Chubut(Jurisdiccion):
         self = await super().create(
             playwright,
             "Chubut",
-            "Chubut",
+            "907 CHUBUT",
             cliente,
             cuit,
             clave_fiscal,

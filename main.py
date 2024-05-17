@@ -20,7 +20,7 @@ async def main():
         # Crear instancias
         agip = await Agip.create(
             playwright,
-            "FACEBOOK ARGENTINA S.R.L",
+            "EDGE ARGENTINA S.R.L",
             "20236063586",
             "Bart41051",
             "01052024",
@@ -127,33 +127,44 @@ async def main():
             "30714604356",
         )
 
-        # Crear tareas para cada método procesar_jurisdiccion
-        tareas = [
-            asyncio.create_task(instancia.procesar_jurisdiccion())
-            for instancia in [
-                nacional,
-                agip,
-                arba,
-                mendoza,
-                cordoba,
-                neuquen,
-                rio_negro,
-                tucuman,
-                misiones,
-                entre_rios,
-                jujuy,
-                chubut,
-            ]
-        ]
+        # Create a dictionary to map names to instances
+        instances = {
+            "Nacional": nacional,
+            "Agip": agip,
+            "Arba": arba,
+            "Mendoza": mendoza,
+            "Cordoba": cordoba,
+            "Neuquen": neuquen,
+            "RioNegro": rio_negro,
+            "Tucuman": tucuman,
+            "Misiones": misiones,
+            "EntreRios": entre_rios,
+            "Jujuy": jujuy,
+            "Chubut": chubut,
+        }
 
-        # Utilizar la lista en asyncio.gather
+        # Crear una lista de tareas
+        tareas = [instance.procesar_jurisdiccion() for instance in instances.values()]
+
+        # Ejecutar todas las tareas de manera concurrente
         resultados = await asyncio.gather(*tareas)
 
-        # Convertir resultados de tulpa a lista y en DataFrame
+        # Convertir resultados de tupla a lista y en DataFrame
         resultados = [list(res) for res in resultados]
         df = pd.DataFrame(
             resultados, columns=["Nombre", "Notificacion", "Screenshot", "Error"]
         )
+
+        # Verificar errores y volver a ejecutar si es necesario
+        for index, row in df.iterrows():
+            if row["Error"] is not None:
+                # Obtener la instancia por nombre
+                instance = instances[row["Nombre"]]
+                # Volver a ejecutar el método
+                result = await instance.procesar_jurisdiccion()
+                # Actualizar el DataFrame
+                df.loc[index] = list(result)
+
         print(df)
 
 

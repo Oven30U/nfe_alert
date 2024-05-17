@@ -17,7 +17,7 @@ class Arba(Jurisdiccion):
     ):
         self = await super().create(
             playwright,
-            "ARBA",
+            "Arba",
             "902 BUENOS AIRES",
             cliente,
             cuit,

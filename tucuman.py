@@ -16,8 +16,8 @@ class Tucuman(Jurisdiccion):
     ):
         self = await super().create(
             playwright,
-            "Neuquén",
-            "NEU",
+            "Tucumán",
+            "924 TUCUMAN",
             cliente,
             cuit,
             clave_fiscal,
@@ -47,6 +47,7 @@ class Tucuman(Jurisdiccion):
         await self.page.locator("text='Confirmar'").click()
         await self.page.locator("text='Domicilio Fiscal Electrónico'").click()
         await self.page.locator("text='Notificaciones'").click()
+        await self.page.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
         return not await super().buscar_notificacion(
@@ -55,6 +56,7 @@ class Tucuman(Jurisdiccion):
         )
 
     async def tomar_screenshot(self):
+        await self.page.wait_for_load_state("networkidle")
         return await super().tomar_screenshot()
 
     async def procesar_jurisdiccion(self):
