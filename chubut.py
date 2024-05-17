@@ -39,33 +39,24 @@ class Chubut(Jurisdiccion):
         await self.page.click("xpath=//input[@class='entrar']")
         await self.page.wait_for_load_state("networkidle")
         incorrect_login = self.page.locator(
-            'xpath=//div[text()="Verifique el Usuario-Contraseña ingresados!"]'
+            'xpath=//div[text()="Usuario/clave incorrectos"]'
         )
         if await incorrect_login.count() > 0:
             raise LoginError("Login CUIT incorrecto", self.cliente)
 
-        # Verifique el Usuario-Contraseña ingresados!
-
-        # await self.page.click("#vBTN_INGRESAR")
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.goto(
-            "https://www.rentaschubutonline.gob.ar/cedulavirtual/HCon_NotDFEwwRes.aspx"
-        )
-        await self.page.wait_for_load_state("load")
-        await self.page.fill(
-            "#vFECDESDE", await self.formatear_fechas(self.fecha_desde)
-        )
-        await self.page.fill(
-            "#vFECHASTA", await self.formatear_fechas(self.fecha_hasta)
-        )
-        await self.page.click("#IMAGE1")  # boton de buscar
-        await self.page.wait_for_load_state("networkidle")
-
     async def buscar_notificacion(self):
-        filas_de_notificaciones = await self.page.query_selector(
-            'xpath=//*[@id="Grid1ContainerTbl"]/tbody/tr'
-        )
-        self.hay_notificaciones = filas_de_notificaciones is not None
+        fecha_desde_datetime = datetime.strptime(self.fecha_desde, "%d%m%Y")
+        notificaciones = await self.page.locator(
+            "xpath=//td[@aria-describedby='detail_grid_F_VIG_DESDE']"
+        ).element_handles()
+        self.hay_notificacion = False
+        for notificacion in notificaciones:
+            fecha_notificacion_text = await notificacion.inner_text()
+            fecha_notificacion_datetime = datetime.strptime(
+                fecha_notificacion_text, "%d/%m/%Y"
+            )
+            if fecha_notificacion_datetime >= fecha_desde_datetime:
+                self.hay_notificacion = True
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
