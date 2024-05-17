@@ -43,7 +43,7 @@ class Misiones(Jurisdiccion):
         if mensaje_login_incorrecto > 0:
             raise LoginError("Login error con mensajde de accion prohibida")
 
-    async def buscar_notificacion(self):
+    async def buscar_notificacion(self, retry_count=0):
         cantidad_notificaciones = (
             await self.page.locator(
                 "//a[@id='tab_notif']//span[@id='sp_cant_notif']"
@@ -54,7 +54,10 @@ class Misiones(Jurisdiccion):
                 "//a[@id='tab_comun']//span[@id='sp_cant_notif']"
             ).inner_text()
         ).strip("()")
-        if cantidad_notificaciones and cantidad_comunicaciones:
+        if not cantidad_notificaciones and retry_count < 3:  # Limit to 3 retries
+            await self.consultar_notificaciones()
+            return await self.buscar_notificacion(retry_count=retry_count + 1)
+        elif cantidad_notificaciones and cantidad_comunicaciones:
             total_notificaciones = int(cantidad_notificaciones) + int(
                 cantidad_comunicaciones
             )

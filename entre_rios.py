@@ -74,6 +74,7 @@ class EntreRios(Jurisdiccion):
         await self.new_page.wait_for_load_state("load")
 
     async def buscar_notificacion(self):
+        await self.new_page.wait_for_load_state("networkidle")
         cantidad_avisos = (await self.new_page.locator("#avisos").inner_text()).strip(
             "()"
         )

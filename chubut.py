@@ -4,7 +4,7 @@ from playwright.async_api import Playwright, async_playwright, expect
 from jurisdiccion import Jurisdiccion, LoginError
 
 
-class Jujuy(Jurisdiccion):
+class Chubut(Jurisdiccion):
     @classmethod
     async def create(
         cls,
@@ -18,8 +18,8 @@ class Jujuy(Jurisdiccion):
     ):
         self = await super().create(
             playwright,
-            "Jujuy",
-            "Jujuy",
+            "Chubut",
+            "Chubut",
             cliente,
             cuit,
             clave_fiscal,
@@ -29,21 +29,14 @@ class Jujuy(Jurisdiccion):
         )
         return self
 
-    async def formatear_fechas(self, fecha):
-        # Convierte las posiciones a quitar en un conjunto para un acceso más eficiente
-        posiciones_set = set({4, 5})
-        # Utiliza una comprensión de cadena para construir la cadena resultante
-        fecha_formateada = "".join(
-            caracter for i, caracter in enumerate(fecha) if i not in posiciones_set
-        )
-        return fecha_formateada
-
     async def consultar_notificaciones(self):
-        await self.page.goto("https://www.rentasjujuyonline.gob.ar/")
+        await self.page.goto(
+            "https://servicios.dgrchubut.gov.ar/modulos/login_siat.php"
+        )
         await self.page.wait_for_load_state("networkidle")
-        await self.page.fill("#vUSUID", self._cuit)
-        await self.page.fill("#vCONTRING", self._clave_fiscal)
-        await self.page.click("#vBTN_INGRESAR")
+        await self.page.fill("xpath=//input[@name='log_user']", self._cuit)
+        await self.page.fill("xpath=//input[@name='log_pass']", self._clave_fiscal)
+        await self.page.click("xpath=//input[@class='entrar']")
         await self.page.wait_for_load_state("networkidle")
         incorrect_login = self.page.locator(
             'xpath=//div[text()="Verifique el Usuario-Contraseña ingresados!"]'
@@ -56,7 +49,7 @@ class Jujuy(Jurisdiccion):
         # await self.page.click("#vBTN_INGRESAR")
         await self.page.wait_for_load_state("networkidle")
         await self.page.goto(
-            "https://www.rentasjujuyonline.gob.ar/cedulavirtual/HCon_NotDFEwwRes.aspx"
+            "https://www.rentaschubutonline.gob.ar/cedulavirtual/HCon_NotDFEwwRes.aspx"
         )
         await self.page.wait_for_load_state("load")
         await self.page.fill(
@@ -87,19 +80,19 @@ async def main():
         client = "EDGE ARGENTINA S.R.L"
         fecha_desde = "01052024"
         fecha_hasta = "30052024"
-        cuit_Jujuy = "30714604356"
-        clave_fiscal_Jujuy = "Edge2021!"
+        cuit_Chubut = "30714604356"
+        clave_fiscal_Chubut = "Edge2023"
         cuit_cliente_input = "30714604356"
-        jujuy = await Jujuy.create(
+        chubut = await Chubut.create(
             playwright,
             client,
-            cuit_Jujuy,
-            clave_fiscal_Jujuy,
+            cuit_Chubut,
+            clave_fiscal_Chubut,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
         )
-        await jujuy.procesar_jurisdiccion()
+        await chubut.procesar_jurisdiccion()
 
 
 if __name__ == "__main__":

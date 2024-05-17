@@ -455,6 +455,7 @@ class TestMisiones(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+
 class TestEntreRios(BaseTest, ErrorTest):
     def setup_method(self, method):
         from entre_rios import EntreRios
@@ -481,6 +482,80 @@ class TestEntreRios(BaseTest, ErrorTest):
 
     @pytest.mark.asyncio
     async def test_entre_rios_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+
+class TestJujuy(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jujuy import Jujuy
+
+        self.Jurisdiccion = Jujuy
+        self.client = "EDGE ARGENTINA S.R.L"
+        self.cuit = "30714604356"
+        self.clave_fiscal = "Edge2021!"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30714604356"
+
+    @pytest.mark.asyncio
+    async def test_jujuy(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+    @pytest.mark.asyncio
+    async def test_jujuy_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+
+class TestChubut(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from chubut import Chubut
+
+        self.Jurisdiccion = Chubut
+        self.client = "EDGE ARGENTINA S.R.L"
+        self.cuit = "30714604356"
+        self.clave_fiscal = "Edge2023"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30714604356"
+
+    @pytest.mark.asyncio
+    async def test_chubut(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+    @pytest.mark.asyncio
+    async def test_chubut_error(self):
         await self.run_error_test(
             self.Jurisdiccion,
             self.client,

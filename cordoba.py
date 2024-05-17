@@ -40,12 +40,12 @@ class Cordoba(Jurisdiccion):
         await self.page.goto(
             "https://www.rentascordoba.gob.ar/nuevorentas/mis-representados"
         )
-        await self.page.wait_for_load_state("load")
+        await self.page.wait_for_load_state("load", timeout=600000)
         while True:
             try:
                 await self.page.click(
                     f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]""",
-                    timeout=2000,
+                    timeout=60000,
                 )
                 break
             except Exception as e:
