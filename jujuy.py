@@ -58,7 +58,7 @@ class Jujuy(Jurisdiccion):
         await self.page.goto(
             "https://www.rentasjujuyonline.gob.ar/cedulavirtual/HCon_NotDFEwwRes.aspx"
         )
-        await self.page.wait_for_load_state("load")
+        await self.page.wait_for_load_state("networkidle")
         await self.page.fill(
             "#vFECDESDE", await self.formatear_fechas(self.fecha_desde)
         )

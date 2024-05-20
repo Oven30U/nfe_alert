@@ -155,17 +155,17 @@ async def main():
             resultados, columns=["Nombre", "Notificacion", "Screenshot", "Error"]
         )
 
-        # Verificar errores y volver a ejecutar si es necesario
-        for index, row in df.iterrows():
-            if row["Error"] is not None:
-                # Obtener la instancia por nombre
-                instance = instances[row["Nombre"]]
-                # Volver a ejecutar el método
-                result = await instance.procesar_jurisdiccion()
-                # Actualizar el DataFrame
-                df.loc[index] = list(result)
+        # Verificar errores y volver a ejecutar si es necesario, hasta 5 veces
+        for _ in range(5):
+            for index, row in df.iterrows():
+                if row["Error"] is not None:
+                    instance = instances[row["Nombre"]]
+                    result = await instance.procesar_jurisdiccion()
+                    df.loc[index] = list(result)
+            if not df["Error"].any():
+                break
 
-        print(df)
+        return df
 
 
 if __name__ == "__main__":

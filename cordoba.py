@@ -34,28 +34,48 @@ class Cordoba(Jurisdiccion):
         self,
         URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=afip-gobcba",
     ):
-        return await super().AFIP_login(URL_AFIP_LOGIN)
+        try:
+            return await super().AFIP_login(URL_AFIP_LOGIN)
+        except TimeoutError:
+            print("AFIP_login excepcion de error de Timeout.")
 
     async def consultar_notificaciones(self):
-        await self.AFIP_login()
-        await self.page.goto(
-            "https://www.rentascordoba.gob.ar/nuevorentas/mis-representados"
-        )
-        await self.page.wait_for_load_state("load", timeout=0)
+        try:
+            await self.AFIP_login()
+        except Exception as e:
+            print(f"El metodo de AFIP_login falló: {e}")
+        try:
+            await self.page.goto(
+                "https://www.rentascordoba.gob.ar/nuevorentas/mis-representados",
+                timeout=90000,
+            )
+            await self.page.wait_for_load_state("load", timeout=900000)
+        except Exception as e:
+            print(f"Error al cargar la página mis-representados: {e}")
         while True:
             try:
+                await self.page.wait_for_selector(
+                    f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]""",
+                    state="attached",
+                    timeout=3000,
+                )
                 await self.page.click(
                     f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]"""
                 )
                 break
             except Exception as e:
-                print(f"Error: {e}. Recargando e intentando de nuevo en un 1 seg...")
-                await asyncio.sleep(1)
+                print(
+                    f"Error no cargo representado: Recargando e intentando de nuevo... {e}"
+                )
                 await self.page.reload()
+        await self.page.wait_for_selector('text="Sí"', state="attached")
+        await self.page.click('text="Sí"', timeout=900000)
+        await self.page.wait_for_load_state("load", timeout=60000)
 
-        await asyncio.sleep(3)  # si no espero, no toma el "Si"
-        await self.page.click('text="Sí"', timeout=0)
-        await asyncio.sleep(3)  # si no espero, no toma el "Si"
+        #! await asyncio.sleep(3)  # si no espero, no toma el "Si"
+
+        # await self.page.click('text="Sí"', timeout=0)
+        # await asyncio.sleep(3)  # si no espero, no toma el "Si"
         # await self.page.wait_for_load_state("load")
         # await self.page.wait_for_load_state("load")
         # await self.page.wait_for_selector(
@@ -66,37 +86,50 @@ class Cordoba(Jurisdiccion):
         # # Click the "Sí" button
         # await self.page.click('text="Sí"', timeout=0)
         # # Wait for the "Domicilio Fiscal Electrónico" text to be visible
-        # await self.page.wait_for_selector(
-        #     'text=" Domicilio Fiscal Electrónico "', state="visible"
-        # )
 
-        try:
-            # await self.page.wait_for_load_state("load", timeout=0)
-            await self.page.wait_for_load_state("load")
-            await self.page.click('text=" Domicilio Fiscal Electrónico "')
-            await self.page.wait_for_load_state("load", timeout=0)
-        except Exception as e:
-            print(f"Exception: {e}. Navegando directamente a la URL de dfe cordoba.")
-            await self.page.goto(
-                "https://www.rentascordoba.gob.ar/nuevorentas/domicilio-fiscal",
-                wait_until="load",
-            )
-        expected_title = "MI RENTAS | Perfil Tributario"
-        current_title = await self.page.title()
+        # try:
+        #     # await self.page.wait_for_load_state("load", timeout=0)
+        #     # await self.page.wait_for_load_state("networkidle", timeout=90000)
+        #     await self.page.wait_for_selector(
+        #         'text=" Domicilio Fiscal Electrónico "', state="visible", timeout=60000
+        #     )
+        #     await self.page.click('text=" Domicilio Fiscal Electrónico "')
+        #     # await self.page.wait_for_load_state("networkidle", timeout=900000)
+        # except Exception as e:
+        #     print(f"Exception: {e}. Navegando directamente a la URL de dfe cordoba.")
+        #     await self.page.goto(
+        #         "https://www.rentascordoba.gob.ar/nuevorentas/domicilio-fiscal",
+        #         wait_until="networkidle",
+        #     )
+        # expected_title = "MI RENTAS | Perfil Tributario"
+        # current_title = await self.page.title()
 
-        if current_title != expected_title:
-            await self.page.goto(
-                "https://www.rentascordoba.gob.ar/nuevorentas/domicilio-fiscal",
-                wait_until="load",
-            )
+        # if current_title != expected_title:
+        #     await self.page.goto(
+        #         "https://www.rentascordoba.gob.ar/nuevorentas/domicilio-fiscal",
+        #         wait_until="networkidle",
+        #     )
 
-        await self.page.wait_for_load_state("load")
+        # await self.page.wait_for_load_state("networkidle", timeout=60000)
+
+        # //*[contains(text(), 'En representación de')]
+        await self.page.wait_for_selector(
+            'text="En representación de"', state="visible"
+        )
+        # await self.page.wait_for_load_state("load", timeout=60000)
+        await self.page.goto(
+            "https://www.rentascordoba.gob.ar/nuevorentas/domicilio-fiscal",
+            wait_until="load",
+        )
         while True:
             tbody_locator = self.page.locator(
                 'xpath=//table[@class="table table-hover"]'
             )
             if tbody_locator and await tbody_locator.count() == 0:
                 # If tbody does not exist, reload the page
+                await self.page.wait_for_timeout(
+                    3000
+                )  # wait for 3 seconds before reloading
                 await self.page.reload()
             if await tbody_locator.is_visible():
                 break
@@ -110,7 +143,7 @@ class Cordoba(Jurisdiccion):
 
     async def buscar_notificacion(self):
         try:
-            await self.page.wait_for_load_state("load")
+            await self.page.wait_for_load_state("load", timeout=60000)
             if self.page.locator('xpath="(//tody)[1]"') is not None:
                 fecha_disposicion = self.page.locator("xpath=//tbody[1]/tr[1]/td[5]")
                 if fecha_disposicion is not None:
@@ -131,8 +164,8 @@ class Cordoba(Jurisdiccion):
     async def tomar_screenshot(self):
         try:
             await self.page.wait_for_load_state(
-                "load", timeout=60000
-            )  # Wait for visible content to load
+                "networkidle", timeout=60000
+            )
         except TimeoutError:
             print("Tiempo de espera superado, se toma screenshot igualmente")
         return await super().tomar_screenshot(self.page)
