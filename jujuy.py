@@ -39,22 +39,31 @@ class Jujuy(Jurisdiccion):
         return fecha_formateada
 
     async def consultar_notificaciones(self):
-        await self.page.goto("https://www.rentasjujuyonline.gob.ar/")
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.fill("#vUSUID", self._cuit)
-        await self.page.fill("#vCONTRING", self._clave_fiscal)
-        await self.page.click("#vBTN_INGRESAR")
-        await self.page.wait_for_load_state("networkidle")
-        incorrect_login = self.page.locator(
-            'xpath=//div[text()="Verifique el Usuario-Contraseña ingresados!"]'
-        )
-        if await incorrect_login.count() > 0:
-            raise LoginError("Login CUIT incorrecto", self.cliente)
+        while True:
+            await self.page.goto("https://www.rentasjujuyonline.gob.ar/")
+            await self.page.wait_for_load_state("networkidle")
+            await self.page.fill("#vUSUID", self._cuit)
+            await self.page.fill("#vCONTRING", self._clave_fiscal)
+            await self.page.click("#vBTN_INGRESAR")
+            await self.page.wait_for_load_state("networkidle")
+            incorrect_login = self.page.locator(
+                'xpath=//div[text()="Verifique el Usuario-Contraseña ingresados!"]'
+            )
+            if await incorrect_login.count() > 0:
+                raise LoginError("Login CUIT incorrecto", self.cliente)
 
-        # Verifique el Usuario-Contraseña ingresados!
+            while True:
+                await self.page.wait_for_load_state("networkidle")
+                title = await self.page.title()
+                if title == "Inicio":
+                    break
 
-        # await self.page.click("#vBTN_INGRESAR")
-        await self.page.wait_for_load_state("networkidle")
+            await self.page.wait_for_load_state("networkidle")
+
+            title = await self.page.title()
+            if title != "Página de Autenticación":
+                break
+
         await self.page.goto(
             "https://www.rentasjujuyonline.gob.ar/cedulavirtual/HCon_NotDFEwwRes.aspx"
         )

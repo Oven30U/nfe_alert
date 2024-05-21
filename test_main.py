@@ -3,6 +3,8 @@ import main
 import pytest
 
 
+@pytest.mark.main
+@pytest.mark.error
 @pytest.mark.asyncio
 async def test_no_errors():
     # Ejecutar la función principal y capturar el DataFrame resultante

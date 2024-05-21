@@ -135,6 +135,7 @@ class TestNacional(BaseTest, ErrorTest):
         self.fecha_hasta = "30/05/2024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_nacional(self):
         await self.run_base_test(
@@ -147,6 +148,7 @@ class TestNacional(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_nacional_error(self):
         await self.run_error_test(
@@ -172,6 +174,7 @@ class TestArba(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_arba(self):
         await self.run_base_test(
@@ -184,6 +187,7 @@ class TestArba(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_arba_error(self):
         await self.run_error_test(
@@ -209,6 +213,7 @@ class TestAgip(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30712132554"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_agip(self):
         await self.run_base_test(
@@ -221,6 +226,7 @@ class TestAgip(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_agip_error(self):
         await self.run_error_test(
@@ -246,6 +252,7 @@ class TestMendoza(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_mendoza(self):
         await self.run_base_test(
@@ -258,6 +265,7 @@ class TestMendoza(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_mendoza_error(self):
         await self.run_error_test(
@@ -283,6 +291,7 @@ class TestCordoba(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_cordoba(self):
         await self.run_base_test(
@@ -295,6 +304,7 @@ class TestCordoba(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_cordoba_error(self):
         await self.run_error_test(
@@ -320,6 +330,7 @@ class TestNeuquen(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_neuquen(self):
         await self.run_base_test(
@@ -332,6 +343,7 @@ class TestNeuquen(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_neuquen_error(self):
         await self.run_error_test(
@@ -357,6 +369,7 @@ class TestRioNegro(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_rio_negro(self):
         await self.run_base_test(
@@ -369,6 +382,7 @@ class TestRioNegro(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_rio_negro_error(self):
         await self.run_error_test(
@@ -394,6 +408,7 @@ class TestTucuman(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_tucuman(self):
         await self.run_base_test(
@@ -406,6 +421,7 @@ class TestTucuman(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_tucuman_error(self):
         await self.run_error_test(
@@ -431,6 +447,7 @@ class TestMisiones(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_misiones(self):
         await self.run_base_test(
@@ -443,6 +460,7 @@ class TestMisiones(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_misiones_error(self):
         await self.run_error_test(
@@ -468,6 +486,7 @@ class TestEntreRios(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_entre_rios(self):
         await self.run_base_test(
@@ -480,6 +499,7 @@ class TestEntreRios(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_entre_rios_error(self):
         await self.run_error_test(
@@ -505,6 +525,7 @@ class TestJujuy(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_jujuy(self):
         await self.run_base_test(
@@ -517,6 +538,7 @@ class TestJujuy(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_jujuy_error(self):
         await self.run_error_test(
@@ -542,6 +564,7 @@ class TestChubut(BaseTest, ErrorTest):
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
+    @pytest.mark.base
     @pytest.mark.asyncio
     async def test_chubut(self):
         await self.run_base_test(
@@ -554,6 +577,7 @@ class TestChubut(BaseTest, ErrorTest):
             self.cuit_cliente_input,
         )
 
+    @pytest.mark.error
     @pytest.mark.asyncio
     async def test_chubut_error(self):
         await self.run_error_test(

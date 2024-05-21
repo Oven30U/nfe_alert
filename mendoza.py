@@ -1,5 +1,6 @@
 import asyncio
 from playwright.async_api import Playwright, async_playwright, expect
+from playwright._impl._errors import TimeoutError
 from jurisdiccion import (
     Jurisdiccion,
     LoginError,
@@ -36,9 +37,19 @@ class Mendoza(Jurisdiccion):
         return self
 
     async def consultar_notificaciones(self):
-        await self.page.goto(
-            "https://atm.mendoza.gov.ar/portalatm/misTramites/misTramitesLogin.jsp"
-        )
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                await self.page.goto(
+                    "https://atm.mendoza.gov.ar/portalatm/misTramites/misTramitesLogin.jsp",
+                    timeout=120000,
+                )
+                break
+            except TimeoutError:
+                if attempt < max_retries - 1:
+                    continue
+                else:
+                    raise
         await self.page.wait_for_load_state("domcontentloaded")
         await self.page.fill("#cuit", f"{self._cuit}")
         await self.page.fill("#password", f"{self._clave_fiscal}")
@@ -46,7 +57,11 @@ class Mendoza(Jurisdiccion):
         async with self.page.expect_popup() as popup_info:
             await self.page.click("#divDFE")
         self.new_page = await popup_info.value
-        await self.new_page.wait_for_load_state("domcontentloaded")
+        while True:
+            await self.new_page.wait_for_load_state("networkidle")
+            title = await self.new_page.title()
+            if title == "Domicilio Fiscal Electrónico":
+                break
         await self.new_page.locator(
             "xpath=(//*[@class='z-datebox'])[1]//input[1]"
         ).fill(self.fecha_desde)
@@ -70,7 +85,9 @@ class Mendoza(Jurisdiccion):
         comunicaciones = await self.new_page.locator(
             "css=[class*='z-listitem']"
         ).count()
-        notificaciones_totales = notificaciones_con_vencimiento + intimaciones + comunicaciones
+        notificaciones_totales = (
+            notificaciones_con_vencimiento + intimaciones + comunicaciones
+        )
         if notificaciones_totales > 0:
             self.hay_notificacion = True
 
