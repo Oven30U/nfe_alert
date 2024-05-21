@@ -57,7 +57,15 @@ class RioNegro(Jurisdiccion):
 
     async def tomar_screenshot(self):
         await self.page.wait_for_load_state("networkidle")
-        return await super().tomar_screenshot(self.page)
+        await self.page.click("button#btn_e-ventanilla")
+        secciones = [
+            ("notificaciones", 'a#tab_notif'),
+            ("mensajes", 'a#tab_msj'),
+        ]
+        self.hay_screenshot = await super().tomar_varias_screenshots(
+            secciones, self.page
+        )
+        return self.hay_screenshot
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()

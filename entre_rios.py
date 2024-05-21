@@ -86,7 +86,15 @@ class EntreRios(Jurisdiccion):
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
-        return await super().tomar_screenshot(self.new_page)
+        """Tomar dos screenshot's en la jurisdicción de Entre Rios."""
+        secciones = [
+            ("notificaciones", "a.nav-link.notificaciones"),
+            ("avisos", "a.nav-link.avisos"),
+        ]
+        self.hay_screenshot = await super().tomar_varias_screenshots(
+            secciones, self.new_page
+        )
+        return self.hay_screenshot
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()

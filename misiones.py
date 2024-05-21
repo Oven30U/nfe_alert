@@ -67,7 +67,13 @@ class Misiones(Jurisdiccion):
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
-        return await super().tomar_screenshot()
+        """Tomar dos screenshot's en la jurisdicción de Misiones."""
+        secciones = [
+            ('notificaciones', 'a#tab_notif'),
+            ('avisos', 'a#tab_comun')
+        ]
+        self.hay_screenshot = await super().tomar_varias_screenshots(secciones, self.page, delay = 2)
+        return self.hay_screenshot
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()

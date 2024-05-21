@@ -56,7 +56,6 @@ class Chubut(Jurisdiccion):
             """
             )
             heights.append(height)
-            print(f"La tabla {tabla_id} tiene el primer td con un height de {height}.")
 
         if all(height != "0px" for height in heights):
             self.hay_notificacion = True
@@ -67,31 +66,13 @@ class Chubut(Jurisdiccion):
 
     async def tomar_screenshot(self):
         """Tomar dos screenshot's en la jurisdicción de Chubut."""
-        seccion = "comunicaciones"
-        nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
-        try:
-            await self.page.wait_for_load_state("domcontentloaded")
-            await self.page.screenshot(path=nombre_archivo, full_page=True)
-            self.hay_screenshot_comunicaciones = True
-        except Exception as e:
-            print(f"Error taking screenshot en seccion {seccion}: {e}")
-            self.hay_screenshot = False
-            raise Exception(f"Error taking screenshot en seccion {seccion}: {e}") from e
-
-        await self.page.get_by_text("Fiscalización electrónica").click()
-        seccion = "fiscalización_electrónica"
-        nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
-        try:
-            await self.page.wait_for_load_state("domcontentloaded")
-            await self.page.screenshot(path=nombre_archivo, full_page=True)
-            self.hay_screenshot_fiscalizacion = True
-        except Exception as e:
-            print(f"Error taking screenshot en seccion {seccion}: {e}")
-            self.hay_screenshot = False
-            raise Exception(f"Error taking screenshot en seccion {seccion}: {e}") from e
-
-        if self.hay_screenshot_comunicaciones and self.hay_screenshot_fiscalizacion:
-            self.hay_screenshot = True
+        secciones = [
+            ("comunicaciones", "a#ui-id-1"),
+            ("fiscalización_electrónica", "a#ui-id-2"),
+        ]
+        self.hay_screenshot = await super().tomar_varias_screenshots(
+            secciones, self.page
+        )
         return self.hay_screenshot
 
     async def procesar_jurisdiccion(self):

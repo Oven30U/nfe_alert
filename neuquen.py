@@ -64,9 +64,17 @@ class Neuquen(Jurisdiccion):
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
+        """Tomar dos screenshot's en la jurisdicción de Neuquen."""
         self.fecha_desde = self.fecha_desde.replace("/", "")
         self.fecha_hasta = self.fecha_hasta.replace("/", "")
-        return await super().tomar_screenshot()
+        secciones = [
+            ("notiicaciones", 'xpath=//a[@href="div_notificaciones"]'),
+            ("comunicaciones", 'xpath=//a[@href="div_comunicaciones"]'),
+        ]
+        self.hay_screenshot = await super().tomar_varias_screenshots(
+            secciones, self.page
+        )
+        return self.hay_screenshot
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()

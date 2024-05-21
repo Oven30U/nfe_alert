@@ -206,12 +206,12 @@ class TestAgip(BaseTest, ErrorTest):
         from agip import Agip
 
         self.Jurisdiccion = Agip
-        self.client = "FACEBOOK ARGENTINA S.R.L"
+        self.client = "EDGE ARGENTINA S.R.L"
         self.cuit = "20236063586"
         self.clave_fiscal = "Bart41051"
         self.fecha_desde = "01052024"
         self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30712132554"
+        self.cuit_cliente_input = "30714604356"
 
     @pytest.mark.base
     @pytest.mark.asyncio

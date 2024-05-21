@@ -64,12 +64,12 @@ class Agip(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        client = "FACEBOOK ARGENTINA S.R.L"
+        client = "EDGE ARGENTINA S.R.L"
         fecha_desde = "01052024"
         fecha_hasta = "30052024"
         cuit_Agip = "20236063586"
         clave_fiscal_Agip = "Bart41051"
-        cuit_cliente_input = "30712132554"
+        cuit_cliente_input = "30714604356"
         agip = await Agip.create(
             playwright,
             client,

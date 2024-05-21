@@ -2,7 +2,8 @@
 Este modulo contiene la clase Jurisdiccion.
 """
 
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional, Union, List
+import asyncio
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -157,6 +158,27 @@ class Jurisdiccion(ABC):
             raise Exception(f"Error taking screenshot: {e}") from e
         return self.hay_screenshot
 
+
+    async def tomar_varias_screenshots(self, secciones: List[Tuple[str, str]], page: Optional[Page] = None, delay: int = 0) -> bool:
+        """Metodo utilizado para tomar varios screenshots de diferentes secciones de la jurisdicción."""
+        if page is None:
+            page = self.page
+        for seccion, selector in secciones:
+            try:
+                await page.click(selector)
+                await asyncio.sleep(delay)  # Agrega una pausa después de cada clic
+                await page.wait_for_load_state("networkidle")
+                await page.wait_for_load_state("domcontentloaded")
+                await page.wait_for_load_state("load")
+                nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
+                await page.screenshot(path=nombre_archivo, full_page=True)
+                self.hay_screenshot = True
+            except Exception as e:
+                print(f"Error taking screenshot: {e}")
+                self.hay_screenshot = False
+                raise Exception(f"Error taking screenshot: {e}") from e
+        return self.hay_screenshot
+
     async def procesar_jurisdiccion(
         self,
     ) -> Tuple[str, str, str, Optional[Union[LoggedException, None]]]:
@@ -166,16 +188,16 @@ class Jurisdiccion(ABC):
             await self.consultar_notificaciones()
         except LoginError as e:
             self.error = e
-            self.enviar_correo_errores(self.error)
+            # self.enviar_correo_errores(self.error)
         except ConsultarNotificacionesError as e:
             self.error = e
-            self.enviar_correo_errores(self.error)
+            # self.enviar_correo_errores(self.error)
         except Exception as e:
             self.error = ConsultarNotificacionesError(
                 "Error al consultar notificaciones", self.cliente
             )
             print(e)
-            self.enviar_correo_errores(self.error)
+            # self.enviar_correo_errores(self.error)
 
         if not self.error:
             try:
@@ -193,7 +215,7 @@ class Jurisdiccion(ABC):
                     "Error al buscar notificación", self.cliente
                 )
                 print(e)
-                self.enviar_correo_errores(self.error)
+                # self.enviar_correo_errores(self.error)
 
         if not self.error:
             try:
@@ -208,7 +230,7 @@ class Jurisdiccion(ABC):
                     "Error al tomar screenshot", self.cliente
                 )
                 print(e)
-                self.enviar_correo_errores(self.error)
+                # self.enviar_correo_errores(self.error)
 
         if self.error:
             self.hay_notificacion = "Error al buscar notificación"
