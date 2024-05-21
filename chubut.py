@@ -31,7 +31,7 @@ class Chubut(Jurisdiccion):
 
     async def consultar_notificaciones(self):
         await self.page.goto(
-            "https://servicios.dgrchubut.gov.ar/modulos/login_siat.php"
+            "https://servicios.dgrchubut.gov.ar/modulos/login_siat.php?back_url=%2Fmodulos%2Fedom_contrib.php"
         )
         await self.page.wait_for_load_state("networkidle")
         await self.page.fill("xpath=//input[@name='log_user']", self._cuit)
@@ -45,22 +45,54 @@ class Chubut(Jurisdiccion):
             raise LoginError("Login CUIT incorrecto", self.cliente)
 
     async def buscar_notificacion(self):
-        fecha_desde_datetime = datetime.strptime(self.fecha_desde, "%d%m%Y")
-        notificaciones = await self.page.locator(
-            "xpath=//td[@aria-describedby='detail_grid_F_VIG_DESDE']"
-        ).element_handles()
-        self.hay_notificacion = False
-        for notificacion in notificaciones:
-            fecha_notificacion_text = await notificacion.inner_text()
-            fecha_notificacion_datetime = datetime.strptime(
-                fecha_notificacion_text, "%d/%m/%Y"
+        heights = []
+        for tabla_id in ["actos_grid", "actos_grid_fisca"]:
+            height = await self.page.evaluate(
+                f"""
+                (() => {{
+                    const tabla = document.querySelector("#{tabla_id}" + " tbody tr td:first-child");
+                    return tabla ? window.getComputedStyle(tabla).height : "0";
+                }})()
+            """
             )
-            if fecha_notificacion_datetime >= fecha_desde_datetime:
-                self.hay_notificacion = True
+            heights.append(height)
+            print(f"La tabla {tabla_id} tiene el primer td con un height de {height}.")
+
+        if all(height != "0px" for height in heights):
+            self.hay_notificacion = True
+        else:
+            self.hay_notificacion = False
+
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
-        return await super().tomar_screenshot(self.page)
+        """Tomar dos screenshot's en la jurisdicción de Chubut."""
+        seccion = "comunicaciones"
+        nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
+        try:
+            await self.page.wait_for_load_state("domcontentloaded")
+            await self.page.screenshot(path=nombre_archivo, full_page=True)
+            self.hay_screenshot_comunicaciones = True
+        except Exception as e:
+            print(f"Error taking screenshot en seccion {seccion}: {e}")
+            self.hay_screenshot = False
+            raise Exception(f"Error taking screenshot en seccion {seccion}: {e}") from e
+
+        await self.page.get_by_text("Fiscalización electrónica").click()
+        seccion = "fiscalización_electrónica"
+        nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
+        try:
+            await self.page.wait_for_load_state("domcontentloaded")
+            await self.page.screenshot(path=nombre_archivo, full_page=True)
+            self.hay_screenshot_fiscalizacion = True
+        except Exception as e:
+            print(f"Error taking screenshot en seccion {seccion}: {e}")
+            self.hay_screenshot = False
+            raise Exception(f"Error taking screenshot en seccion {seccion}: {e}") from e
+
+        if self.hay_screenshot_comunicaciones and self.hay_screenshot_fiscalizacion:
+            self.hay_screenshot = True
+        return self.hay_screenshot
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
