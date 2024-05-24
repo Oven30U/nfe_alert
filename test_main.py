@@ -10,6 +10,9 @@ async def test_no_errors():
     # Ejecutar la función principal y capturar el DataFrame resultante
     df = await main.main()
 
+    # Verificar que df no sea None antes de intentar acceder a sus elementos
+    assert df is not None, "main no retornó un dataframe"
+
     # Verificar que ninguna fila en la columna 'Error' tenga un valor distinto de None
     for error in df["Error"]:
         assert error is None, "Hay valor en Error de alguna jurisdiccion"

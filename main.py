@@ -1,7 +1,15 @@
 import asyncio
+import glob
+import os
+import zipfile
+from datetime import datetime
+
 import pandas as pd
 from playwright.async_api import async_playwright
 from inputs import obtener_clientes
+from mapa_plot import crear_mapa, crear_mapa_argentina
+from mail import enviar_correo
+
 from nacional import Nacional
 from agip import Agip
 from arba import Arba
@@ -46,6 +54,7 @@ async def main():
                 fecha_desde = row["fecha_desde"].replace("/", "")
                 fecha_hasta = row["fecha_hasta"].replace("/", "")
                 cuit_cliente = int(row["cuit_cliente"])
+                correo_output = row["Correo Output"]
 
                 JurisdictionClass = jurisdiccion_clases[jurisdiction]
 
@@ -216,8 +225,42 @@ async def main():
                     break
 
             print(f"{cliente} \n {df_final_cliente}")
-            # return df
+            # ToDo Borrar el retorno para luego seguir con mail, por cliente dentro de este for
+            # return df_final_cliente
 
+            output_folder = f"Estructura-robot/{cliente}/Output"
+            crear_mapa(df_final_cliente, f"{output_folder}/mapa_jurisdicciones_{cliente}.png")
+            crear_mapa_argentina(df_final_cliente, f"{output_folder}/mapa_nacional_{cliente}.png")
+
+            now = datetime.now()
+            fecha_actual = now.strftime("%Y%m%d")
+            hora_actual = now.strftime("%H%M")
+            zip_filename = f"{cliente}_{fecha_actual}_{hora_actual}.zip"
+            zip_filepath = f"{output_folder}/{zip_filename}"
+            png_files = glob.glob(f"{output_folder}/*.png")
+            with zipfile.ZipFile(zip_filepath, "w") as zipf:
+                for file in png_files:
+                    zipf.write(file, os.path.basename(file))
+
+
+            df_adjunto_correo = df_final_cliente[["Nombre", "Notificacion", "Screenshot"]].copy()
+            df_adjunto_correo = df_adjunto_correo.rename(columns={
+                "Nombre": "Jurisdicción",
+                "Notificacion": "Notificaciones",
+                "Screenshot": "Screenshot"
+            })
+
+            enviar_correo(
+                receptor=correo_output,
+                cliente=cliente,
+                ruta_archivo_adjunto=zip_filepath,
+                nombre_archivo_adjunto=zip_filename,
+                df=df_adjunto_correo,
+                ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
+                ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
+                cuerpo_html_plantilla="html/mail_plantilla.html",
+                # cuerpo_html_salida="html/mail_plantilla_salida_con_tabla_ejemplo2.html",
+            )
 
 if __name__ == "__main__":
     asyncio.run(main())
