@@ -147,7 +147,7 @@ class Jurisdiccion(ABC):
         """Metodo utilizado para tomar un screenshot de la sección de notificaciones de la jurisdicción."""
         if page is None:
             page = self.page
-        nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}.png"
+        nombre_archivo = f"Estructura-robot\\{self.cliente}\\Output\\{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}.png"
         try:
             await page.wait_for_load_state("domcontentloaded")
             await page.screenshot(path=nombre_archivo, full_page=True)

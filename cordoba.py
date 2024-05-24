@@ -65,7 +65,7 @@ class Cordoba(Jurisdiccion):
                 break
             except Exception as e:
                 print(
-                    f"Error no cargo representado: Recargando e intentando de nuevo... {e}"
+                    f"Cordoba: Error no cargo representado: Recargando e intentando de nuevo... {e}"
                 )
                 await self.page.reload()
         await self.page.wait_for_selector('text="Sí"', state="attached")
