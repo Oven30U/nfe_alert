@@ -1,0 +1,6 @@
+127.0.0.1
+Port: 25
+HOST
+Server: "appmail.atrame.deloitte.com"
+LOGON
+Email: "RPA-Tax-AR@deloitte.com"
