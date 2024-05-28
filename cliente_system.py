@@ -19,13 +19,15 @@ import os
 # from genericpath import isdir
 import pandas as pd
 import unidecode
-
+import math
+import numpy as np
 
 class ClienteSystem:
     """
     Por cada cliente de System/System-Clientes.xlsx (fila del dataframe) se crea un objeto de esta clase \n
     """
 
+    link_clientes = "Estructura-robot/System/System-Clientes.xlsx"
     def __init__(
         self,
         nombre,
@@ -77,8 +79,10 @@ class ClienteSystem:
           La última verificación fue antes de hoy
         """
         try:
-            if os.listdir(archivo_input):
-                if self.schedule == "Manual":
+            if os.path.exists(archivo_input) and os.listdir(archivo_input):
+                if self.schedule == "Manual" or self.ultima_verificacion is None or (
+                        isinstance(self.ultima_verificacion, str) and self.ultima_verificacion == '') or (
+                        isinstance(self.ultima_verificacion, float) and math.isnan(self.ultima_verificacion)):
                     return True
                 elif self.schedule == "Automático":
                     dias_semana = {
@@ -98,33 +102,33 @@ class ClienteSystem:
                     hora_de_inicio = datetime.strptime(
                         self.hora_de_inicio, "%H:%M:%S"
                     ).time()
-                    ultima_verificacion = (
-                        self.ultima_verificacion.to_pydatetime()
-                        if isinstance(self.ultima_verificacion, pd.Timestamp)
-                        else datetime.strptime(
-                            self.ultima_verificacion, "%d/%m/%Y %H:%M:%S"
-                        )
-                    )
+                    if self.ultima_verificacion is not None and self.ultima_verificacion != '':
+                        if isinstance(self.ultima_verificacion, pd.Timestamp):
+                            ultima_verificacion = self.ultima_verificacion.to_pydatetime()
+                        elif isinstance(self.ultima_verificacion, str):
+                            ultima_verificacion = datetime.strptime(self.ultima_verificacion, "%d/%m/%Y %H:%M:%S")
+                        else:
+                            ultima_verificacion = self.ultima_verificacion
 
-                    if (
-                        dia
-                        in unidecode.unidecode(self.dias_de_ejecucion.replace(" ", ""))
-                        .lower()
-                        .split(";")
-                        and hora_de_inicio < hora_actual
-                        and pd.Timestamp(ultima_verificacion).date()
-                        < datetime.strptime(
+                        if (
+                                dia
+                                in unidecode.unidecode(self.dias_de_ejecucion.replace(" ", ""))
+                                .lower()
+                                .split(";")
+                                and hora_de_inicio < hora_actual
+                                and pd.Timestamp(ultima_verificacion).date()
+                                < datetime.strptime(
                             datetime.now().strftime("%d/%m/%Y"), "%d/%m/%Y"
                         ).date()
-                    ):
-                        return True
-                else:
-                    return False
+                        ):
+                            return True
+                    else:
+                        return False
         except Exception as e:
             print(e)
             return False
 
-    def actualizar_fecha_verificacion(self, link_clientes):
+    def actualizar_fecha_verificacion(self):
         """
         Actualiza la fecha de la última verificación del cliente en el archivo Excel.
 
@@ -132,7 +136,7 @@ class ClienteSystem:
             link_clientes (str): Ruta del archivo Excel que contiene la información de los clientes.
         """
         # Leer el archivo Excel en un DataFrame
-        df_clientes = pd.read_excel(link_clientes, sheet_name="System-Clientes")
+        df_clientes = pd.read_excel(self.link_clientes, sheet_name="System-Clientes")
 
         # Encontrar la fila donde la columna "Cliente" coincide con self.nombre
         index = df_clientes[df_clientes["Cliente"] == self.nombre].index
@@ -143,7 +147,7 @@ class ClienteSystem:
         )
 
         # Guardar el DataFrame de nuevo en el archivo Excel
-        df_clientes.to_excel(link_clientes, sheet_name="System-Clientes", index=False)
+        df_clientes.to_excel(self.link_clientes, sheet_name="System-Clientes", index=False)
 
     def quitar_input_ejecucion_manual(self, path_carpeta_input, path_carpeta_destino):
         """

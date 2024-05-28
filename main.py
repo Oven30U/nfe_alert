@@ -1,27 +1,28 @@
 import asyncio
 import glob
 import os
+import shutil
 import zipfile
 from datetime import datetime
 
 import pandas as pd
 from playwright.async_api import async_playwright
-from inputs import obtener_clientes
-from mapa_plot import crear_mapa, crear_mapa_argentina
-from mail import enviar_correo
 
-from nacional import Nacional
 from agip import Agip
 from arba import Arba
-from mendoza import Mendoza
+from chubut import Chubut
 from cordoba import Cordoba
+from entre_rios import EntreRios
+from inputs import obtener_clientes
+from jujuy import Jujuy
+from mail import enviar_correo
+from mapa_plot import crear_mapa, crear_mapa_argentina
+from mendoza import Mendoza
+from misiones import Misiones
+from nacional import Nacional
 from neuquen import Neuquen
 from rio_negro import RioNegro
 from tucuman import Tucuman
-from misiones import Misiones
-from entre_rios import EntreRios
-from jujuy import Jujuy
-from chubut import Chubut
 
 
 async def main():
@@ -56,6 +57,20 @@ async def main():
                 cuit_cliente = int(row["cuit_cliente"])
                 correo_output = row["Correo Output"]
 
+                # Define the source and destination directories
+                output_folder = f"Estructura-robot/{cliente}/Output"
+                backup_folder = f"Estructura-robot/{cliente}/Backup"
+                # Create the backup folder if it doesn't exist
+                os.makedirs(backup_folder, exist_ok=True)
+                # Get a list of all files in the output folder
+                files = os.listdir(output_folder)
+                # Move each .zip file to the backup folder and delete the rest
+                for file in files:
+                    if file.endswith('.zip'):
+                        shutil.move(os.path.join(output_folder, file), backup_folder)
+                    else:
+                        os.remove(os.path.join(output_folder, file))
+
                 JurisdictionClass = jurisdiccion_clases[jurisdiction]
 
                 # Use the globals() function to get the class by name
@@ -71,131 +86,6 @@ async def main():
                 )
                 instances[jurisdiction] = instance
 
-            # agip = await Agip.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "20236063586",
-            #     "Bart41051",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-            # nacional = await Nacional.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "20386165476",
-            #     "Gabriel1994",
-            #     "01/05/2024",
-            #     "30/05/2024",
-            #     "30714604356",
-            # )
-            # arba = await Arba.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "30714604356",
-            #     "Edge2018",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-            # mendoza = await Mendoza.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "30714604356",
-            #     "Edge2023",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-            # cordoba = await Cordoba.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "20386165476",
-            #     "Gabriel1994",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-            # neuquen = await Neuquen.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "30714604356",
-            #     "Edge2021",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-            # rio_negro = await RioNegro.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "20386165476",
-            #     "Gabriel1994",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-            # tucuman = await Tucuman.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "20386165476",
-            #     "Gabriel1994",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-            # misiones = await Misiones.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "30714604356",
-            #     "Edge2021",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-            # entre_rios = await EntreRios.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "20386165476",
-            #     "Gabriel1994",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-            # jujuy = await Jujuy.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "30714604356",
-            #     "Edge2021!",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-            # chubut = await Chubut.create(
-            #     playwright,
-            #     "EDGE ARGENTINA S.R.L",
-            #     "30714604356",
-            #     "Edge2023",
-            #     "01052024",
-            #     "30052024",
-            #     "30714604356",
-            # )
-
-            # # Create a dictionary to map names to instances
-            # instances = {
-            #     "Nacional": nacional,
-            #     "Agip": agip,
-            #     "Arba": arba,
-            #     "Mendoza": mendoza,
-            #     "Cordoba": cordoba,
-            #     "Neuquen": neuquen,
-            #     "RioNegro": rio_negro,
-            #     "Tucuman": tucuman,
-            #     "Misiones": misiones,
-            #     "EntreRios": entre_rios,
-            #     "Jujuy": jujuy,
-            #     "Chubut": chubut,
-            # }
-
             # Crear una lista de tareas
             tareas = [
                 instance.procesar_jurisdiccion() for instance in instances.values()
@@ -204,9 +94,9 @@ async def main():
             # Ejecutar todas las tareas de manera concurrente
             resultados = await asyncio.gather(*tareas)
 
-            # Cerrar todas las instancias de navegador
-            for instance in instances.values():
-                await instance.browser.close()
+            # # Cerrar todas las instancias de navegador
+            # for instance in instances.values():
+            #     await instance.browser.close()
 
             # Convertir resultados de tupla a lista y en DataFrame
             resultados = [list(res) for res in resultados]
@@ -225,10 +115,7 @@ async def main():
                     break
 
             print(f"{cliente} \n {df_final_cliente}")
-            # ToDo Borrar el retorno para luego seguir con mail, por cliente dentro de este for
-            # return df_final_cliente
 
-            output_folder = f"Estructura-robot/{cliente}/Output"
             crear_mapa(df_final_cliente, f"{output_folder}/mapa_jurisdicciones_{cliente}.png")
             crear_mapa_argentina(df_final_cliente, f"{output_folder}/mapa_nacional_{cliente}.png")
 
@@ -241,7 +128,6 @@ async def main():
             with zipfile.ZipFile(zip_filepath, "w") as zipf:
                 for file in png_files:
                     zipf.write(file, os.path.basename(file))
-
 
             df_adjunto_correo = df_final_cliente[["Nombre", "Notificacion", "Screenshot"]].copy()
             df_adjunto_correo = df_adjunto_correo.rename(columns={
@@ -261,6 +147,15 @@ async def main():
                 cuerpo_html_plantilla="html/mail_plantilla.html",
                 # cuerpo_html_salida="html/mail_plantilla_salida_con_tabla_ejemplo2.html",
             )
+
+            # #! Comentado hasta testear
+            # Actualiza hora de Última verificación
+            PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
+            df_cliente_system = pd.read_excel(PATH_CLIENTES)
+            now = datetime.now()
+            current_time = now.strftime("%d-%m-%Y %H:%M")
+            df_cliente_system.loc[df_cliente_system['Cliente'] == cliente, 'Última verificación'] = current_time
+            df_cliente_system.to_excel(PATH_CLIENTES, sheet_name="System-Clientes", index=False)
 
 if __name__ == "__main__":
     asyncio.run(main())

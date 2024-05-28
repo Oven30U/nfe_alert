@@ -17,7 +17,7 @@ class Neuquen(Jurisdiccion):
     ):
         self = await super().create(
             playwright,
-            "Neuquén",
+            "Neuquen",
             "915 NEUQUEN",
             cliente,
             cuit,

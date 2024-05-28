@@ -56,16 +56,20 @@ def enviar_correo(
     servidor_smtp = "appmail.atrame.deloitte.com"
     puerto_smtp = 25
 
+    # Asegurarse de que 'receptor' es una lista y no un string
+    if not isinstance(receptor, list):
+        receptor = [receptor]
+
     # Crear el mensaje
     msg = MIMEMultipart()
     # msg["From"] = "TaxTecARG@deloitte.com"
     msg["From"] = "robot-Tax-AR@deloitte.com"
     # msg["From"] = "Robot DFE <Robot-Tax@deloitte.com>"
-    msg["To"] = ";".join(receptor)
+    msg["To"] = ",".join(receptor)
     # msg["To"] = receptor
     # msg["To"] = ", ".join(receptor)
     msg["Subject"] = (
-        f"Revisión de Domicilios Fiscales Electronicos del cliente {cliente}"
+        f"Revisión de Domicilios Fiscales Electrónicos del cliente {cliente}"
     )
 
     # Adjuntar el archivo si se proporciona
@@ -153,6 +157,16 @@ def enviar_correo(
     if df is not None:
         mapa_provincias_html = convertir_imagen_en_html(ruta_imagen_png)
         mapa_argentina_html = convertir_imagen_en_html(ruta_imagen_png_2)
+        dict_reemplazo = {
+            "Agip": "AGIP",
+            "Arba": "ARBA",
+            "Cordoba": "Córdoba",
+            "EntreRios": "Entre Ríos",
+            "Neuquen": "Neuquén",
+            "RioNegro": "Río Negro",
+            "Tucuman": "Tucumán",
+        }
+        df["Jurisdicción"] = df["Jurisdicción"].replace(dict_reemplazo)
         html_con_tabla = insertar_tabla_en_html(
             df,
             cuerpo_html_plantilla,

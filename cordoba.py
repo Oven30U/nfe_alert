@@ -52,6 +52,7 @@ class Cordoba(Jurisdiccion):
             await self.page.wait_for_load_state("load", timeout=900000)
         except Exception as e:
             print(f"Error al cargar la página mis-representados: {e}")
+        # ToDo colocar limite al loop
         while True:
             try:
                 await self.page.wait_for_selector(

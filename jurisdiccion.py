@@ -179,6 +179,10 @@ class Jurisdiccion(ABC):
                 raise Exception(f"Error taking screenshot: {e}") from e
         return self.hay_screenshot
 
+
+    async def cerrar_navegador(self):
+        await self.browser.close()
+
     async def procesar_jurisdiccion(
         self,
     ) -> Tuple[str, str, str, Optional[Union[LoggedException, None]]]:
@@ -236,7 +240,11 @@ class Jurisdiccion(ABC):
             self.hay_notificacion = "Error al buscar notificación"
             self.hay_screenshot = "Error al tomar screenshot"
 
+        # Cerrar el navegador al final
+        await self.cerrar_navegador()
+
         return self.nombre, self.hay_notificacion, self.hay_screenshot, self.error
+
 
     def enviar_correo_errores(self, error):
         servidor_smtp = "appmail.atrame.deloitte.com"

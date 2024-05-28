@@ -1,5 +1,6 @@
 import asyncio
 from playwright.async_api import Playwright, async_playwright, expect
+from datetime import datetime
 from jurisdiccion import Jurisdiccion
 
 
@@ -15,6 +16,9 @@ class Nacional(Jurisdiccion):
         fecha_hasta,
         cuit_cliente_input=None,
     ):
+        # Convertir las fechas al formato dd/mm/yyyy
+        fecha_desde = datetime.strptime(fecha_desde, "%d%m%Y").strftime("%d/%m/%Y")
+        fecha_hasta = datetime.strptime(fecha_hasta, "%d%m%Y").strftime("%d/%m/%Y")
         self = await super().create(
             playwright,
             "Nacional",
@@ -33,6 +37,7 @@ class Nacional(Jurisdiccion):
     ):
         return await super().AFIP_login(URL_AFIP_LOGIN)
 
+
     async def consultar_notificaciones(self):
         await self.AFIP_login()
         await self.page.fill("input#buscadorInput", "Domicilio Fiscal Electrónico")
@@ -46,11 +51,29 @@ class Nacional(Jurisdiccion):
         await self.new_page.click('text=" Comunicaciones de mis representados "')
         await self.new_page.click("#d-select-80")
         await self.new_page.click(f'xpath=//button[@id="{self.cuit_cliente_input}"]')
+        await self.page.wait_for_load_state("networkidle")
+        try:
+            await self.new_page.wait_for_selector('text="Cerrar"', timeout=2000)
+            await self.new_page.click('text="Cerrar"')
+        except Exception:
+            pass
         await self.new_page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
-        await self.new_page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}")
-        await self.new_page.keyboard.press("Tab")
-        await self.new_page.keyboard.press("Enter")
+        await self.new_page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}") #\t\n
+        await self.new_page.locator('//button[contains(text(), "Aplicar")]').nth(1).click()
+        # await self.new_page.keyboard.press("Tab")
+        # await self.new_page.keyboard.press("Enter")
+
+        # async def completar_fechas(page, fecha_desde, fecha_hasta):
+        # await self.page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
+        # await self.page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}")
+        # await self.page.wait_for_load_state("networkidle")
+        # await self.page.keyboard.press("Tab")
+        # await self.page.keyboard.press("Enter")
+        # await self.page.wait_for_load_state("networkidle")
         await self.new_page.select_option("select[name='filtroEstado']", "No Leída")
+
+        # await completar_fechas(self.new_page, self.fecha_desde, self.fecha_hasta)
+
 
     async def buscar_notificacion(self):
         return not await super().buscar_notificacion(
@@ -68,12 +91,15 @@ class Nacional(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
-        fecha_desde = "01/05/2024"
-        fecha_hasta = "30/05/2024"
-        cuit_Nacional = "20386165476"
+        # client = "EDGE ARGENTINA S.R.L"
+        # cuit_cliente_input = "30714604356"
+        client = "FACEBOOK ARGENTINA S.R.L"
+        cuit_cliente_input = "30712132554"
+
         clave_fiscal_Nacional = "Gabriel1994"
-        cuit_cliente_input = "30714604356"
+        cuit_Nacional = "20386165476"
+        fecha_desde = "01052024"
+        fecha_hasta = "30052024"
         nacional = await Nacional.create(
             playwright,
             client,
