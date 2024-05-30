@@ -28,6 +28,9 @@ from tucuman import Tucuman
 async def main():
     async with async_playwright() as playwright:
         df_input = obtener_clientes()
+        if df_input.empty:
+            print("df_input esta vacio, finaliza el programa.")
+            return
         df_input_por_cliente = df_input.groupby("Cliente")
 
         # Mapea nombre de las instancias
@@ -153,7 +156,7 @@ async def main():
             PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
             df_cliente_system = pd.read_excel(PATH_CLIENTES)
             now = datetime.now()
-            current_time = now.strftime("%d-%m-%Y %H:%M")
+            current_time = now.strftime("%d/%m/%Y %H:%M:%S")
             df_cliente_system.loc[df_cliente_system['Cliente'] == cliente, 'Última verificación'] = current_time
             df_cliente_system.to_excel(PATH_CLIENTES, sheet_name="System-Clientes", index=False)
 

@@ -45,9 +45,10 @@ def obtener_clientes():
         else:
             clientes_no_verificar.append(cliente_system)
 
+    df_final = pd.DataFrame()
     if not clientes_si_verificar:
         print("No hay clientes por verificar en este momento")
-        sys.exit()
+        return df_final
     else:
         print(
             f"Clientes a verificar: {', '.join([cliente.nombre for cliente in clientes_si_verificar])}"
@@ -76,7 +77,6 @@ def obtener_clientes():
     df_clientes_si_verificar = pd.DataFrame(clientes_si_verificar)
 
     fecha_actual = datetime.today()
-    df_final = pd.DataFrame()
     for index, row in df_clientes_si_verificar.iterrows():
         cliente_nombre = row["Cliente"]
         correo_output = row["Correo Output"]
