@@ -3,3 +3,7 @@ Estructura-robot/*
 
 __pycache__/
 Documentación/estructura_input.xlsx
+
+*.pdf
+
+*.docx
