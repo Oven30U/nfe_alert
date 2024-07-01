@@ -33,25 +33,13 @@ async def main():
             return
         df_input_por_cliente = df_input.groupby("Cliente")
 
-        # Mapea nombre de las instancias
-        jurisdiccion_clases = {
-            "Nacional": Nacional,
-            "AGIP": Agip,
-            "ARBA": Arba,
-            "Mendoza": Mendoza,
-            "Cordoba": Cordoba,
-            "Neuquen": Neuquen,
-            "Rio Negro": RioNegro,
-            "Tucuman": Tucuman,
-            "Misiones": Misiones,
-            "Entre Rios": EntreRios,
-            "Jujuy": Jujuy,
-            "Chubut": Chubut,
-        }
         for cliente, group in df_input_por_cliente:
             instances = {}
             for index, row in group.iterrows():
                 jurisdiction = row["Jurisdiccion"]
+                if jurisdiction not in globals():
+                    print(f"Jurisdiccion {jurisdiction} no encontrada, se omite.")
+                    continue
                 cliente = row["Cliente"]
                 usuario = int(row["Usuario"])
                 password = row["Password"]
@@ -74,7 +62,7 @@ async def main():
                     else:
                         os.remove(os.path.join(output_folder, file))
 
-                JurisdictionClass = jurisdiccion_clases[jurisdiction]
+                JurisdictionClass = globals()[jurisdiction]
 
                 # Use the globals() function to get the class by name
                 # JurisdictionClass = globals()[jurisdiction]
@@ -97,25 +85,40 @@ async def main():
             # Ejecutar todas las tareas de manera concurrente
             resultados = await asyncio.gather(*tareas)
 
-            # # Cerrar todas las instancias de navegador
-            # for instance in instances.values():
-            #     await instance.browser.close()
-
             # Convertir resultados de tupla a lista y en DataFrame
             resultados = [list(res) for res in resultados]
             df_final_cliente = pd.DataFrame(
                 resultados, columns=["Nombre", "Notificacion", "Screenshot", "Error"]
             )
 
-            # Verificar errores y volver a ejecutar si es necesario, hasta 5 veces
-            for _ in range(5):
-                for index, row in df_final_cliente.iterrows():
-                    if row["Error"] is not None:
-                        instance = instances[row["Nombre"]]
-                        result = await instance.procesar_jurisdiccion()
-                        df_final_cliente.loc[index] = list(result)
-                if not df_final_cliente["Error"].any():
-                    break
+            # Verificar si hay errores
+            errores = df_final_cliente[df_final_cliente["Error"].notna()]
+
+
+            for _, error_row in errores.iterrows():
+                jurisdiction = error_row["Nombre"]
+                for _, row in df_input_por_cliente.get_group(cliente).iterrows():
+                    if row["Jurisdiccion"] == jurisdiction:
+                        JurisdictionClass = globals()[jurisdiction]
+                        for intento in range(10):  # Limitar a 10 intentos por Error
+                            instance = await JurisdictionClass.create(
+                                playwright,
+                                row["Cliente"],
+                                int(row["Usuario"]),
+                                row["Password"],
+                                row["fecha_desde"].replace("/", ""),
+                                row["fecha_hasta"].replace("/", ""),
+                                int(row["cuit_cliente"]),
+                            )
+                            resultado = await instance.procesar_jurisdiccion()
+
+                            # Actualizar el DataFrame con el nuevo resultado
+                            df_final_cliente.loc[df_final_cliente["Nombre"] == jurisdiction] = list(resultado)
+
+                            # Verificar si "Error" es none
+                            if pd.isnull(
+                                    df_final_cliente.loc[df_final_cliente["Nombre"] == jurisdiction, "Error"]).all():
+                                break  # Si "Error" is None, break el loop
 
             print(f"{cliente} \n {df_final_cliente}")
 
@@ -159,6 +162,7 @@ async def main():
             current_time = now.strftime("%d/%m/%Y %H:%M:%S")
             df_cliente_system.loc[df_cliente_system['Cliente'] == cliente, 'Última verificación'] = current_time
             df_cliente_system.to_excel(PATH_CLIENTES, sheet_name="System-Clientes", index=False)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

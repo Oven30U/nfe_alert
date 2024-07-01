@@ -66,8 +66,23 @@ def enviar_correo(
     msg["From"] = "robot-Tax-AR@deloitte.com"
     # msg["From"] = "Robot DFE <Robot-Tax@deloitte.com>"
     msg["To"] = ",".join(receptor)
+    correos_rpa = ["lmarinaro@deloitte.com", "rpa-tax-ar@deloitte.com"]
+    # if not receptor[0].endswith(";"):
+    #     receptor[0] += ";"
+    # for correo in correos_rpa:
+    #     receptor[0] += f" {correo};"
+    # Dividir la cadena en varias cadenas utilizando el método split()
+    receptor = receptor[0].split(';')
+    # receptor = [email.strip() for email in receptor if email]
+    # receptor = ";".join(receptor)
+    # receptor = [receptor]
+    # receptor = ['lmarinaro@deloitte.com; lecaracciolo@deloitte.com']
+    receptor.extend(correos_rpa)
     # msg["To"] = receptor
     # msg["To"] = ", ".join(receptor)
+    # msg["Cc"] = "rpa-tax-ar@deloitte.com; lmarinaro@deloitte.com"
+    # msg["Cc"] = "lecaracciolo@deloitte.com"
+    # msg["Bcc"] = "rpa-tax-ar@deloitte.com; lmarinaro@deloitte.com"
     msg["Subject"] = (
         f"Revisión de Domicilios Fiscales Electrónicos del cliente {cliente}"
     )
@@ -226,6 +241,9 @@ def enviar_correo(
     # Intenta enviar el correo electrónico
     try:
         server.sendmail(msg["From"], receptor, msg.as_string())
+        # server.sendmail(msg["From"], ["lmarinaro@deloitte.com", "lecaracciolo@deloitte.com"], msg.as_string())
+        # msg["To"] = "lmarinaro@deloitte.com; lecaracciolo@deloitte.com"
+        # server.sendmail(msg["From"], msg["To"].split("; "), msg.as_string())
     except SMTPNotSupportedError:
         # Si no se admite la autenticación, continuar sin autenticación
         server = smtplib.SMTP(servidor_smtp)

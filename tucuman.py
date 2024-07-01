@@ -45,7 +45,7 @@ class Tucuman(Jurisdiccion):
                 await radio.check()
                 break
         await self.page.locator("text='Confirmar'").click()
-        await self.page.locator("text='Domicilio Fiscal Electrónico'").click()
+        await self.page.click("//a[text()='Domicilio Fiscal Electrónico']")
         await self.page.locator("text='Notificaciones'").click()
         await self.page.wait_for_load_state("networkidle")
 

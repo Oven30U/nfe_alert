@@ -123,6 +123,15 @@ def obtener_clientes():
     # Eliminar las filas de df_final donde 'Usuario' y 'Password' son NaN
     df_final = df_final.dropna(subset=["Usuario", "Password"])
 
+    jurisdiccion_clases = {
+        "AGIP": "Agip",
+        "ARBA": "Arba",
+        "Rio Negro": "RioNegro",
+        "Entre Rios": "EntreRios",
+    }
+
+    df_final['Jurisdiccion'] = df_final['Jurisdiccion'].replace(jurisdiccion_clases)
+
     return df_final
 
 
