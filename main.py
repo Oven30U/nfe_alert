@@ -11,6 +11,7 @@ from playwright.async_api import async_playwright
 from agip import Agip
 from arba import Arba
 from chubut import Chubut
+from conectar_db import conectar_db
 from cordoba import Cordoba
 from entre_rios import EntreRios
 from inputs import obtener_clientes
@@ -34,134 +35,146 @@ async def main():
         df_input_por_cliente = df_input.groupby("Cliente")
 
         for cliente, group in df_input_por_cliente:
-            instances = {}
-            for index, row in group.iterrows():
-                jurisdiction = row["Jurisdiccion"]
-                if jurisdiction not in globals():
-                    print(f"Jurisdiccion {jurisdiction} no encontrada, se omite.")
-                    continue
-                cliente = row["Cliente"]
-                usuario = int(row["Usuario"])
-                password = row["Password"]
-                fecha_desde = row["fecha_desde"].replace("/", "")
-                fecha_hasta = row["fecha_hasta"].replace("/", "")
-                cuit_cliente = int(row["cuit_cliente"])
-                correo_output = row["Correo Output"]
+            # Registrar el estado de la ejecución para conectar_db
+            inicio_value = datetime.now()
+            try:
+                instances = {}
+                for index, row in group.iterrows():
+                    jurisdiction = row["Jurisdiccion"]
+                    if jurisdiction not in globals():
+                        print(f"Jurisdiccion {jurisdiction} no encontrada, se omite.")
+                        continue
+                    cliente = row["Cliente"]
+                    usuario = int(row["Usuario"])
+                    password = row["Password"]
+                    fecha_desde = row["fecha_desde"].replace("/", "")
+                    fecha_hasta = row["fecha_hasta"].replace("/", "")
+                    cuit_cliente = int(row["cuit_cliente"])
+                    correo_output = row["Correo Output"]
 
-                # Define the source and destination directories
-                output_folder = f"Estructura-robot/{cliente}/Output"
-                backup_folder = f"Estructura-robot/{cliente}/Backup"
-                # Create the backup folder if it doesn't exist
-                os.makedirs(backup_folder, exist_ok=True)
-                # Get a list of all files in the output folder
-                files = os.listdir(output_folder)
-                # Move each .zip file to the backup folder and delete the rest
-                for file in files:
-                    if file.endswith('.zip'):
-                        shutil.move(os.path.join(output_folder, file), backup_folder)
-                    else:
-                        os.remove(os.path.join(output_folder, file))
+                    # Define the source and destination directories
+                    output_folder = f"Estructura-robot/{cliente}/Output"
+                    backup_folder = f"Estructura-robot/{cliente}/Backup"
+                    # Create the backup folder if it doesn't exist
+                    os.makedirs(backup_folder, exist_ok=True)
+                    # Get a list of all files in the output folder
+                    files = os.listdir(output_folder)
+                    # Move each .zip file to the backup folder and delete the rest
+                    for file in files:
+                        if file.endswith('.zip'):
+                            shutil.move(os.path.join(output_folder, file), backup_folder)
+                        else:
+                            os.remove(os.path.join(output_folder, file))
 
-                JurisdictionClass = globals()[jurisdiction]
+                    JurisdictionClass = globals()[jurisdiction]
 
-                # Use the globals() function to get the class by name
-                # JurisdictionClass = globals()[jurisdiction]
-                instance = await JurisdictionClass.create(
-                    playwright,
-                    cliente,
-                    usuario,
-                    password,
-                    fecha_desde,
-                    fecha_hasta,
-                    cuit_cliente,
+                    # Use the globals() function to get the class by name
+                    # JurisdictionClass = globals()[jurisdiction]
+                    instance = await JurisdictionClass.create(
+                        playwright,
+                        cliente,
+                        usuario,
+                        password,
+                        fecha_desde,
+                        fecha_hasta,
+                        cuit_cliente,
+                    )
+                    instances[jurisdiction] = instance
+
+                # Crear una lista de tareas
+                tareas = [
+                    instance.procesar_jurisdiccion() for instance in instances.values()
+                ]
+
+                # Ejecutar todas las tareas de manera concurrente
+                resultados = await asyncio.gather(*tareas)
+
+                # Convertir resultados de tupla a lista y en DataFrame
+                resultados = [list(res) for res in resultados]
+                df_final_cliente = pd.DataFrame(
+                    resultados, columns=["Nombre", "Notificacion", "Screenshot", "Error"]
                 )
-                instances[jurisdiction] = instance
 
-            # Crear una lista de tareas
-            tareas = [
-                instance.procesar_jurisdiccion() for instance in instances.values()
-            ]
+                # Verificar si hay errores
+                errores = df_final_cliente[df_final_cliente["Error"].notna()]
 
-            # Ejecutar todas las tareas de manera concurrente
-            resultados = await asyncio.gather(*tareas)
+                for _, error_row in errores.iterrows():
+                    jurisdiction = error_row["Nombre"]
+                    for _, row in df_input_por_cliente.get_group(cliente).iterrows():
+                        if row["Jurisdiccion"] == jurisdiction:
+                            JurisdictionClass = globals()[jurisdiction]
+                            for intento in range(10):  # Limitar a 10 intentos por Error
+                                instance = await JurisdictionClass.create(
+                                    playwright,
+                                    row["Cliente"],
+                                    int(row["Usuario"]),
+                                    row["Password"],
+                                    row["fecha_desde"].replace("/", ""),
+                                    row["fecha_hasta"].replace("/", ""),
+                                    int(row["cuit_cliente"]),
+                                )
+                                resultado = await instance.procesar_jurisdiccion()
 
-            # Convertir resultados de tupla a lista y en DataFrame
-            resultados = [list(res) for res in resultados]
-            df_final_cliente = pd.DataFrame(
-                resultados, columns=["Nombre", "Notificacion", "Screenshot", "Error"]
-            )
+                                # Actualizar el DataFrame con el nuevo resultado
+                                df_final_cliente.loc[df_final_cliente["Nombre"] == jurisdiction] = list(resultado)
 
-            # Verificar si hay errores
-            errores = df_final_cliente[df_final_cliente["Error"].notna()]
+                                # Verificar si "Error" es none
+                                if pd.isnull(
+                                        df_final_cliente.loc[
+                                            df_final_cliente["Nombre"] == jurisdiction, "Error"]).all():
+                                    break  # Si "Error" is None, break el loop
 
+                print(f"{cliente} \n {df_final_cliente}")
 
-            for _, error_row in errores.iterrows():
-                jurisdiction = error_row["Nombre"]
-                for _, row in df_input_por_cliente.get_group(cliente).iterrows():
-                    if row["Jurisdiccion"] == jurisdiction:
-                        JurisdictionClass = globals()[jurisdiction]
-                        for intento in range(10):  # Limitar a 10 intentos por Error
-                            instance = await JurisdictionClass.create(
-                                playwright,
-                                row["Cliente"],
-                                int(row["Usuario"]),
-                                row["Password"],
-                                row["fecha_desde"].replace("/", ""),
-                                row["fecha_hasta"].replace("/", ""),
-                                int(row["cuit_cliente"]),
-                            )
-                            resultado = await instance.procesar_jurisdiccion()
+                crear_mapa(df_final_cliente, f"{output_folder}/mapa_jurisdicciones_{cliente}.png")
+                crear_mapa_argentina(df_final_cliente, f"{output_folder}/mapa_nacional_{cliente}.png")
 
-                            # Actualizar el DataFrame con el nuevo resultado
-                            df_final_cliente.loc[df_final_cliente["Nombre"] == jurisdiction] = list(resultado)
+                now = datetime.now()
+                fecha_actual = now.strftime("%Y%m%d")
+                hora_actual = now.strftime("%H%M")
+                zip_filename = f"{cliente}_{fecha_actual}_{hora_actual}.zip"
+                zip_filepath = f"{output_folder}/{zip_filename}"
+                png_files = glob.glob(f"{output_folder}/*.png")
+                with zipfile.ZipFile(zip_filepath, "w") as zipf:
+                    for file in png_files:
+                        zipf.write(file, os.path.basename(file))
 
-                            # Verificar si "Error" es none
-                            if pd.isnull(
-                                    df_final_cliente.loc[df_final_cliente["Nombre"] == jurisdiction, "Error"]).all():
-                                break  # Si "Error" is None, break el loop
+                df_adjunto_correo = df_final_cliente[["Nombre", "Notificacion", "Screenshot"]].copy()
+                df_adjunto_correo = df_adjunto_correo.rename(columns={
+                    "Nombre": "Jurisdicción",
+                    "Notificacion": "Notificaciones",
+                    "Screenshot": "Screenshot"
+                })
 
-            print(f"{cliente} \n {df_final_cliente}")
+                enviar_correo(
+                    receptor=correo_output,
+                    cliente=cliente,
+                    ruta_archivo_adjunto=zip_filepath,
+                    nombre_archivo_adjunto=zip_filename,
+                    df=df_adjunto_correo,
+                    ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
+                    ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
+                    cuerpo_html_plantilla="html/mail_plantilla.html",
+                    # cuerpo_html_salida="html/mail_plantilla_salida_con_tabla_ejemplo2.html",
+                )
 
-            crear_mapa(df_final_cliente, f"{output_folder}/mapa_jurisdicciones_{cliente}.png")
-            crear_mapa_argentina(df_final_cliente, f"{output_folder}/mapa_nacional_{cliente}.png")
+                # Actualiza hora de Última verificación
+                PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
+                df_cliente_system = pd.read_excel(PATH_CLIENTES)
+                now = datetime.now()
+                current_time = now.strftime("%d/%m/%Y %H:%M:%S")
+                df_cliente_system.loc[df_cliente_system['Cliente'] == cliente, 'Última verificación'] = current_time
+                df_cliente_system.to_excel(PATH_CLIENTES, sheet_name="System-Clientes", index=False)
 
-            now = datetime.now()
-            fecha_actual = now.strftime("%Y%m%d")
-            hora_actual = now.strftime("%H%M")
-            zip_filename = f"{cliente}_{fecha_actual}_{hora_actual}.zip"
-            zip_filepath = f"{output_folder}/{zip_filename}"
-            png_files = glob.glob(f"{output_folder}/*.png")
-            with zipfile.ZipFile(zip_filepath, "w") as zipf:
-                for file in png_files:
-                    zipf.write(file, os.path.basename(file))
+                estado_value = "Correcto"
+            except Exception as e:
+                print(f"Error en el cliente {cliente}: {e}")
+                estado_value = "Proceso terminado con errores"
 
-            df_adjunto_correo = df_final_cliente[["Nombre", "Notificacion", "Screenshot"]].copy()
-            df_adjunto_correo = df_adjunto_correo.rename(columns={
-                "Nombre": "Jurisdicción",
-                "Notificacion": "Notificaciones",
-                "Screenshot": "Screenshot"
-            })
-
-            enviar_correo(
-                receptor=correo_output,
-                cliente=cliente,
-                ruta_archivo_adjunto=zip_filepath,
-                nombre_archivo_adjunto=zip_filename,
-                df=df_adjunto_correo,
-                ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
-                ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
-                cuerpo_html_plantilla="html/mail_plantilla.html",
-                # cuerpo_html_salida="html/mail_plantilla_salida_con_tabla_ejemplo2.html",
-            )
-
-            # #! Comentado hasta testear
-            # Actualiza hora de Última verificación
-            PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
-            df_cliente_system = pd.read_excel(PATH_CLIENTES)
-            now = datetime.now()
-            current_time = now.strftime("%d/%m/%Y %H:%M:%S")
-            df_cliente_system.loc[df_cliente_system['Cliente'] == cliente, 'Última verificación'] = current_time
-            df_cliente_system.to_excel(PATH_CLIENTES, sheet_name="System-Clientes", index=False)
+            finally:
+                username = str(correo_output)
+                proceso = "Revision de Domicilios Fiscales Electronicos"
+                conectar_db(proceso, username, inicio_value, estado_value)
 
 
 if __name__ == "__main__":

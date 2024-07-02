@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 from jurisdiccion import LoggedException
 from cliente_system import ClienteSystem
+from win32com.client import Dispatch
 
 
 class InputException(LoggedException):
@@ -12,12 +13,56 @@ class InputException(LoggedException):
     pass
 
 
+def cerrar_excel(nombres_archivos):
+    """
+    Cierra las instancias de Excel de los archivos especificados.
+
+    Esta función intenta cerrar las instancias de Excel para una lista dada de nombres de archivos.
+    Guarda los cambios realizados en los libros antes de cerrarlos y maneja excepciones para evitar
+    interrupciones durante el proceso. Si no puede cerrar un libro específico o finalizar la instancia
+    de Excel, simplemente omite el error y continúa con el siguiente archivo o paso.
+
+    Parámetros:
+    nombres_archivos (list): Una lista de cadenas que contiene los nombres de los archivos de Excel
+                             que se intentarán cerrar.
+
+    Notas:
+    - La función no devuelve ningún valor.
+    - Los libros se cierran sin guardar cambios.
+    - Se manejan excepciones de manera genérica para evitar interrupciones, pero no se proporciona
+      retroalimentación detallada sobre las excepciones capturadas.
+    """
+    try:
+        excel = Dispatch("Excel.Application")
+        for libro in excel.Workbooks:
+            for nombre in nombres_archivos:
+                try:
+                    if (nombre in libro.Name):
+                        libro.Save()  # Guardar el libro antes de cerrarlo
+                        libro.Close(SaveChanges=False)
+                except:
+                    pass
+        try:
+            del excel, nombres_archivos
+        except:
+            pass
+    except:
+        pass
+
+
 def obtener_clientes():
     PATH_BOT = "Estructura-robot/"
     PATH_SYSTEM = "Estructura-robot/System/"
     PATH_ERRORES = "Estructura-robot/System/errores/"
     PATH_CLIENTES = f"{PATH_SYSTEM}System-Clientes.xlsx"
     PATH_CREDENCIALES = f"{PATH_SYSTEM}System-Credenciales.xlsm"
+
+    nombres_archivos_excel = [
+        "System-Clientes.xlsx",
+        "System-Credenciales.xlsm",
+        "DFE - Input - Cliente.xlsx"
+    ]
+    cerrar_excel(nombres_archivos_excel)
 
     try:
         df_clientes = pd.read_excel(PATH_CLIENTES, sheet_name="System-Clientes")
@@ -118,7 +163,7 @@ def obtener_clientes():
     # Crear df_sin_credenciales con las filas donde 'Usuario' y 'Password' son NaN
     df_sin_credenciales = df_final[
         df_final["Usuario"].isna() & df_final["Password"].isna()
-    ]
+        ]
 
     # Eliminar las filas de df_final donde 'Usuario' y 'Password' son NaN
     df_final = df_final.dropna(subset=["Usuario", "Password"])

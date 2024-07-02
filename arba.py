@@ -6,14 +6,14 @@ from jurisdiccion import Jurisdiccion, LoginError
 class Arba(Jurisdiccion):
     @classmethod
     async def create(
-        cls,
-        playwright: Playwright,
-        cliente,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input,
+            cls,
+            playwright: Playwright,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
     ):
         self = await super().create(
             playwright,
@@ -36,13 +36,13 @@ class Arba(Jurisdiccion):
         # await asyncio.sleep(2)
         await self.page.press("#clave_Cuit", "Enter")
         if (
-            await self.page.is_visible(
-                "text=Ocurrio un error inesperado al autorizar al usuario"
-            )
-            or await self.page.is_visible(
-                "text=El usuario ingresado y/o la contraseña no son válidos."
-            )
-            or await self.page.is_visible("text=Servicio ocupado")
+                await self.page.is_visible(
+                    "text=Ocurrio un error inesperado al autorizar al usuario"
+                )
+                or await self.page.is_visible(
+            "text=El usuario ingresado y/o la contraseña no son válidos."
+        )
+                or await self.page.is_visible("text=Servicio ocupado")
         ):
             raise LoginError(
                 "Error de login en ARBA, al autorizar al usuario", self.cliente
@@ -59,9 +59,10 @@ class Arba(Jurisdiccion):
         await self.page.click('a[href="#tabs-Todas"]')
 
     async def buscar_notificacion(self):
-        return not await super().buscar_notificacion(
-            self.page, "No se encontraron resultados"
-        )
+        # Verificar si el texto "No se encontraron resultados" es visible
+        return not await self.buscar_notificacion_xpath_visible(
+            "//table[@id='listaNotificacionesTCTodas']//tbody/tr//*[contains(text(), 'No se encontraron resultados')]",
+            self.page)
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)
@@ -72,18 +73,24 @@ class Arba(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
+        fecha_desde = "01072024"
+        fecha_hasta = "30072024"
 
-        cuit_Arba = "30712132554"
-        clave_fiscal_Arba = "Facebook1819"
-        cuit_cliente_input = "30712132554"
-        client = "FACEBOOK ARGENTINA S.R.L"
+        # cuit_Arba = "30712132554"
+        # clave_fiscal_Arba = "Facebook1819"
+        # cuit_cliente_input = "30712132554"
+        # client = "FACEBOOK ARGENTINA S.R.L"
 
-        # client = "EDGE ARGENTINA S.R.L"
-        # cuit_Arba = "30714604356"
-        # clave_fiscal_Arba = "Edge2018"
-        # cuit_cliente_input = "30714604356"
+        client = "EDGE ARGENTINA S.R.L"
+        cuit_Arba = "30714604356"
+        clave_fiscal_Arba = "Edge2018"
+        cuit_cliente_input = "30714604356"
+
+        # client = "ABBOTT LABORATORIES ARG. S.A"
+        # cuit_Arba = "30500846301"
+        # clave_fiscal_Arba = "Abbott2018"
+        # cuit_cliente_input = "30500846301"
+
         arba = await Arba.create(
             playwright,
             client,

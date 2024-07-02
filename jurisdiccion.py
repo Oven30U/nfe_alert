@@ -1,5 +1,5 @@
 """
-Este modulo contiene la clase Jurisdiccion.
+Este modulo contiene la clase Jurisdiccion y las clases correspondientes a excepciones.
 """
 
 from typing import Tuple, Optional, Union, List
@@ -63,20 +63,57 @@ class TomarScreenshotError(LoggedException):
 
 
 class Jurisdiccion(ABC):
+    """
+    Clase abstracta que representa una jurisdicción. Esta clase define la estructura y los métodos comunes
+    que deben implementar las clases que representan a las diferentes jurisdicciones.
+
+    Atributos:
+        nombre (str): Nombre de la jurisdicción.
+        codigo (str): Código de la jurisdicción.
+        cliente (str): Nombre del cliente.
+        _cuit (str): CUIT del cliente.
+        _clave_fiscal (str): Clave fiscal del cliente.
+        fecha_desde (str): Fecha de inicio del periodo a consultar.
+        fecha_hasta (str): Fecha de fin del periodo a consultar.
+        _cuit_cliente_input (str): CUIT del cliente a ingresar en la consulta.
+        _razon_social_cliente_input (str): Razón social del cliente a ingresar en la consulta.
+        texto_notificacion (str): Texto de la notificación a buscar.
+        browser (Browser): Instancia del navegador a utilizar.
+        context (BrowserContext): Contexto del navegador.
+        page (Page): Página actual del navegador.
+        hay_notificacion (bool): Indica si se encontró una notificación.
+        hay_screenshot (bool): Indica si se tomó un screenshot.
+        hora_actual (str): Hora actual en formato HHMMSS.
+        error (LoggedException): Error ocurrido durante el procesamiento de la jurisdicción.
+
+    Métodos:
+        create: Método de clase para crear una instancia de la jurisdicción.
+        AFIP_login: Realiza el inicio de sesión en AFIP.
+        consultar_notificaciones: Navega hasta la sección de notificaciones de la jurisdicción.
+        buscar_notificacion: Busca una notificación en la página.
+        buscar_notificacion_texto_visible: Verifica si un texto específico es visible en la página.
+        buscar_notificacion_xpath_visible: Verifica si un elemento específico es visible en la página utilizando un XPath.
+        tomar_screenshot: Toma un screenshot de la sección de notificaciones de la jurisdicción.
+        tomar_varias_screenshots: Toma varios screenshots de diferentes secciones de la jurisdicción.
+        cerrar_navegador: Cierra el navegador.
+        procesar_jurisdiccion: Procesa la jurisdicción, consultando notificaciones, buscando una notificación y tomando un screenshot.
+        enviar_correo_errores: Envía un correo electrónico con los errores ocurridos durante el procesamiento de la jurisdicción.
+    """
+
     @classmethod
     async def create(
-        cls,
-        playwright: Playwright,
-        nombre,
-        codigo,
-        cliente,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input=None,
-        razon_social_cliente_input=None,
-        texto_notificacion=None,
+            cls,
+            playwright: Playwright,
+            nombre,
+            codigo,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input=None,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
     ):
         self = cls()
         self.nombre = nombre
@@ -100,7 +137,7 @@ class Jurisdiccion(ABC):
         return self
 
     async def AFIP_login(
-        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+            self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
     ):
         await self.page.goto(URL_AFIP_LOGIN)
         await self.page.get_by_role("spinbutton").click()
@@ -130,7 +167,7 @@ class Jurisdiccion(ABC):
         pass
 
     async def buscar_notificacion(
-        self, page: Optional[Page] = None, texto: Optional[str] = None
+            self, page: Optional[Page] = None, texto: Optional[str] = None
     ) -> bool:
         """
         Si aparece el texto retorna hay_notificacion = true
@@ -142,6 +179,55 @@ class Jurisdiccion(ABC):
         notificacion = await page.query_selector(f":has-text('{texto}')")
         self.hay_notificacion = notificacion is not None
         return self.hay_notificacion
+
+    async def buscar_notificacion_texto_visible(
+            self, texto: str, page: Optional[Page] = None
+    ) -> bool:
+        """
+        Verifica si un texto específico es visible en la página.
+
+        Parámetros:
+        page (Optional[Page]): La página en la que se buscará el texto. Si no se proporciona, se utilizará self.page.
+        texto (Optional[str]): El texto que se buscará en la página. Si no se proporciona, se utilizará self.texto_notificacion.
+
+        Devuelve:
+        bool: True si el texto es visible en la página, False en caso contrario.
+
+        Nota:
+        Si se busca el texto que indica que no hay notificaciones, utilizar not para que
+        self.hay_notificaciones sea False en caso de que el texto aparezca visible:
+            return not await self.buscar_notificacion_texto_visible(self.page, "No se encontraron resultados")
+        """
+        if page is None:
+            page = self.page
+        if texto is None:
+            texto = self.texto_notificacion
+        es_visible = await page.is_visible(f"text={texto}")
+        return es_visible
+
+    async def buscar_notificacion_xpath_visible(self, xpath: str, page: Optional[Page] = None) -> bool:
+        """
+        Verifica si un elemento específico es visible en la página utilizando un XPath.
+
+        Parámetros:
+        page (Optional[Page]): La página en la que se buscará el elemento. Si no se proporciona, se utilizará self.page.
+        xpath (Optional[str]): El XPath que se utilizará para buscar el elemento en la página.
+
+        Devuelve:
+        bool: True si el elemento es visible en la página, False en caso contrario.
+
+        Nota:
+        Si se busca el xpath que indica que no hay notificaciones, utilizar not para que
+        self.hay_notificaciones sea False en caso de que el xpath aparezca visible:
+            return not await self.buscar_notificacion_xpath_visible(self.page,"//table[@id='listaNotificacionesTCTodas']//tbody/tr//*[contains(text(), 'No se encontraron resultados')]")
+        """
+        if page is None:
+            page = self.page
+        if xpath is None:
+            raise ValueError("Se debe proporcionar un XPath válido.")
+
+        es_visible = await page.is_visible(f"xpath={xpath}")
+        return es_visible
 
     async def tomar_screenshot(self, page: Optional[Page] = None) -> bool:
         """Metodo utilizado para tomar un screenshot de la sección de notificaciones de la jurisdicción."""
@@ -158,8 +244,8 @@ class Jurisdiccion(ABC):
             raise Exception(f"Error taking screenshot: {e}") from e
         return self.hay_screenshot
 
-
-    async def tomar_varias_screenshots(self, secciones: List[Tuple[str, str]], page: Optional[Page] = None, delay: int = 0) -> bool:
+    async def tomar_varias_screenshots(self, secciones: List[Tuple[str, str]], page: Optional[Page] = None,
+                                       delay: int = 0) -> bool:
         """Metodo utilizado para tomar varios screenshots de diferentes secciones de la jurisdicción."""
         if page is None:
             page = self.page
@@ -179,12 +265,11 @@ class Jurisdiccion(ABC):
                 raise Exception(f"Error taking screenshot: {e}") from e
         return self.hay_screenshot
 
-
     async def cerrar_navegador(self):
         await self.browser.close()
 
     async def procesar_jurisdiccion(
-        self,
+            self,
     ) -> Tuple[str, str, str, Optional[Union[LoggedException, None]]]:
         self.error = None
 
@@ -244,7 +329,6 @@ class Jurisdiccion(ABC):
         await self.cerrar_navegador()
 
         return self.nombre, self.hay_notificacion, self.hay_screenshot, self.error
-
 
     def enviar_correo_errores(self, error):
         servidor_smtp = "appmail.atrame.deloitte.com"

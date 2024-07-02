@@ -165,53 +165,53 @@ class ClienteSystem:
                 shutil.move(path_archivo_input, nuevo_path_archivo_input)
 
 
-#! Test
-# clientesito = ClienteSystem(
-#     "nombre",
-#     "correo_output",
-#     "personas_autorizadas",
-#     "Automático",
-#     "lunes; viernes",
-#     "16:00",
-#     "18/04/2024",
-# )
-# if clientesito.verificar_ejecucion():
-#     print("Se debe verificar")
-# else:
-#     print("No se debe verificar")
+if __name__ == "__main__":
+    clientesito = ClienteSystem(
+        "nombre",
+        "correo_output",
+        "personas_autorizadas",
+        "Automático",
+        "lunes; viernes",
+        "16:00",
+        "18/04/2024",
+    )
+    if clientesito.verificar_ejecucion():
+        print("Se debe verificar")
+    else:
+        print("No se debe verificar")
 
-# link_system = "Estructura-robot/System/"
+    link_system = "Estructura-robot/System/"
 
-# link_clientes = f"{link_system}System-Clientes.xlsx"
+    link_clientes = f"{link_system}System-Clientes.xlsx"
 
-# df_clientes = pd.read_excel(link_clientes, sheet_name="System-Clientes")
+    df_clientes = pd.read_excel(link_clientes, sheet_name="System-Clientes")
 
-# clientes_si_verificar = []
-# clientes_no_verificar = []
+    clientes_si_verificar = []
+    clientes_no_verificar = []
 
-# for cliente in df_clientes.iterrows():
-#     cliente = ClienteSystem(
-#         cliente[1]["Cliente"],
-#         cliente[1]["Correo Output"],
-#         cliente[1]["Personas autorizadas"],
-#         cliente[1]["Schedule"],
-#         cliente[1]["Dia/s de ejecución"],
-#         cliente[1]["Hora de inicio"],
-#         cliente[1]["Última verificación"],
-#     )
+    for cliente in df_clientes.iterrows():
+        cliente = ClienteSystem(
+            cliente[1]["Cliente"],
+            cliente[1]["Correo Output"],
+            cliente[1]["Personas autorizadas"],
+            cliente[1]["Schedule"],
+            cliente[1]["Dia/s de ejecución"],
+            cliente[1]["Hora de inicio"],
+            cliente[1]["Última verificación"],
+        )
 
-# Falta colocar un argumento
-#     if cliente.verificar_ejecucion():
-#         clientes_si_verificar.append(cliente.nombre)
-#         cliente.actualizar_fecha_verificacion(link_clientes)
-#         print(f"Se actualizó la fecha de verificación de {cliente.nombre}")
-#     else:
-#         clientes_no_verificar.append(cliente.nombre)
+    # Falta colocar un argumento
+        if cliente.verificar_ejecucion():
+            clientes_si_verificar.append(cliente.nombre)
+            cliente.actualizar_fecha_verificacion(link_clientes)
+            print(f"Se actualizó la fecha de verificación de {cliente.nombre}")
+        else:
+            clientes_no_verificar.append(cliente.nombre)
 
-# print("Clientes a verificar")
-# for cliente in clientes_si_verificar:
-#     print(cliente)
+    print("Clientes a verificar")
+    for cliente in clientes_si_verificar:
+        print(cliente)
 
-# print("\nClientes no verificar")
-# for cliente in clientes_no_verificar:
-#     print(cliente)
+    print("\nClientes no verificar")
+    for cliente in clientes_no_verificar:
+        print(cliente)
