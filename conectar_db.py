@@ -3,7 +3,6 @@ from datetime import datetime
 from pyodbc import connect
 from time import sleep
 
-
 SERVER = "ARBAS0228\\RPA"
 DATABASE = "Tecnologia"
 USERNAME = "TaxTech"
@@ -11,7 +10,7 @@ PASSWORD = "T&LTechnologies"
 DRIVER = "{SQL Server}"
 
 
-def conectar_db(proceso, username=getlogin(), inicio_value=datetime.now(), estado_value="Erróneo"):
+def conectar_db(proceso, cliente, username=getlogin(), inicio_value=datetime.now(), estado_value="Erróneo"):
     """Se conecta a la base de datos interna para hacer un seguimiento de las ejecuciones."""
     max_reintentos_conn = 10
     for i in range(max_reintentos_conn):
@@ -39,8 +38,8 @@ def conectar_db(proceso, username=getlogin(), inicio_value=datetime.now(), estad
         if user_name != '':
             cursor.execute(
                 """
-                INSERT INTO monitoreo_bots (username, proceso, estado, iniciado, finalizado)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO monitoreo_bots (username, proceso, estado, iniciado, finalizado, cliente)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user_name,
@@ -48,6 +47,7 @@ def conectar_db(proceso, username=getlogin(), inicio_value=datetime.now(), estad
                     estado_value,
                     inicio_value,
                     fin_value,
+                    cliente
                 ),
             )
 

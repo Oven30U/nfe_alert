@@ -97,7 +97,6 @@ async def main():
 
                 # Verificar si hay errores
                 errores = df_final_cliente[df_final_cliente["Error"].notna()]
-
                 for _, error_row in errores.iterrows():
                     jurisdiction = error_row["Nombre"]
                     for _, row in df_input_por_cliente.get_group(cliente).iterrows():
@@ -174,7 +173,7 @@ async def main():
             finally:
                 username = str(correo_output)
                 proceso = "Revision de Domicilios Fiscales Electronicos"
-                conectar_db(proceso, username, inicio_value, estado_value)
+                conectar_db(proceso, cliente, username, inicio_value, estado_value)
 
 
 if __name__ == "__main__":
