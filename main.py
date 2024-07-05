@@ -150,20 +150,6 @@ async def main():
                     estado_value = "Proceso terminado con errores"
                 else:
                     estado_value = "Correcto"
-
-                enviar_correo(
-                    receptor=correo_output,
-                    cliente=cliente,
-                    ruta_archivo_adjunto=zip_filepath,
-                    nombre_archivo_adjunto=zip_filename,
-                    df=df_adjunto_correo,
-                    ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
-                    ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
-                    cuerpo_html_plantilla="html/mail_plantilla.html",
-                    # cuerpo_html_salida="html/mail_plantilla_salida_con_tabla_ejemplo2.html",
-                )
-
-                if estado_value == "Correcto":
                     # Actualiza hora de Última verificación
                     PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
                     df_cliente_system = pd.read_excel(PATH_CLIENTES)
@@ -177,6 +163,17 @@ async def main():
                 estado_value = "Erróneo"
 
             finally:
+                enviar_correo(
+                    receptor=correo_output,
+                    cliente=cliente,
+                    ruta_archivo_adjunto=zip_filepath,
+                    nombre_archivo_adjunto=zip_filename,
+                    df=df_adjunto_correo,
+                    ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
+                    ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
+                    cuerpo_html_plantilla="html/mail_plantilla.html",
+                    # cuerpo_html_salida="html/mail_plantilla_salida_con_tabla_ejemplo2.html",
+                )
                 username = str(correo_output)
                 proceso = "Revision de Domicilios Fiscales Electronicos"
                 conectar_db(proceso, cliente, username, inicio_value, estado_value)
