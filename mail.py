@@ -25,15 +25,15 @@ from generar_html import (
 
 
 def enviar_correo(
-    receptor,
-    cliente,
-    ruta_archivo_adjunto=None,
-    nombre_archivo_adjunto=None,
-    df=None,
-    ruta_imagen_png=None,
-    ruta_imagen_png_2=None,
-    cuerpo_html_plantilla="html/mail_plantilla.html",
-    # cuerpo_html_salida=None,
+        receptor,
+        cliente,
+        ruta_archivo_adjunto=None,
+        nombre_archivo_adjunto=None,
+        df=None,
+        ruta_imagen_png=None,
+        ruta_imagen_png_2=None,
+        cuerpo_html_plantilla="html/mail_plantilla.html",
+        # cuerpo_html_salida=None,
 ):
     """
     Esta función envía un correo electrónico con un archivo adjunto y/o un DataFrame en el cuerpo del correo.

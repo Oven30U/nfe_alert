@@ -145,6 +145,12 @@ async def main():
                     "Screenshot": "Screenshot"
                 })
 
+                if df_final_cliente["Error"].notna().any():
+                    correo_output = 'lmarinaro@deloitte.com'
+                    estado_value = "Proceso terminado con errores"
+                else:
+                    estado_value = "Correcto"
+
                 enviar_correo(
                     receptor=correo_output,
                     cliente=cliente,
@@ -157,18 +163,18 @@ async def main():
                     # cuerpo_html_salida="html/mail_plantilla_salida_con_tabla_ejemplo2.html",
                 )
 
-                # Actualiza hora de Última verificación
-                PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
-                df_cliente_system = pd.read_excel(PATH_CLIENTES)
-                now = datetime.now()
-                current_time = now.strftime("%d/%m/%Y %H:%M:%S")
-                df_cliente_system.loc[df_cliente_system['Cliente'] == cliente, 'Última verificación'] = current_time
-                df_cliente_system.to_excel(PATH_CLIENTES, sheet_name="System-Clientes", index=False)
+                if estado_value == "Correcto":
+                    # Actualiza hora de Última verificación
+                    PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
+                    df_cliente_system = pd.read_excel(PATH_CLIENTES)
+                    now = datetime.now()
+                    current_time = now.strftime("%d/%m/%Y %H:%M:%S")
+                    df_cliente_system.loc[df_cliente_system['Cliente'] == cliente, 'Última verificación'] = current_time
+                    df_cliente_system.to_excel(PATH_CLIENTES, sheet_name="System-Clientes", index=False)
 
-                estado_value = "Correcto"
             except Exception as e:
                 print(f"Error en el cliente {cliente}: {e}")
-                estado_value = "Proceso terminado con errores"
+                estado_value = "Erróneo"
 
             finally:
                 username = str(correo_output)

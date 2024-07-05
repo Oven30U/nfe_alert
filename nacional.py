@@ -49,7 +49,8 @@ class Nacional(Jurisdiccion):
         # await self.new_page.wait_for_selector('text="Recordar más tarde"')
         await self.new_page.click('text="Recordar más tarde"')
         await self.new_page.click('text=" Comunicaciones de mis representados "')
-        await self.new_page.click("#d-select-80")
+        # await self.new_page.click("#d-select-81")
+        await self.new_page.click("(//div[@class='input-group'])[5]//div[@class='form-control dropdown-toggle']")
         await self.new_page.click(f'xpath=//button[@id="{self.cuit_cliente_input}"]')
         await self.page.wait_for_load_state("networkidle")
         try:
@@ -57,8 +58,10 @@ class Nacional(Jurisdiccion):
             await self.new_page.click('text="Cerrar"')
         except Exception:
             pass
-        await self.new_page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
-        await self.new_page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}") #\t\n
+        # await self.new_page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
+        await self.new_page.fill("xpath=(//label[contains(text(), 'Desde')]/following::input[1])[2]", f"{self.fecha_desde}")
+        # await self.new_page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}") #\t\n
+        await self.new_page.fill("xpath=(//label[contains(text(), 'Hasta')]/following::input[1])[2]", f"{self.fecha_hasta}") #\t\n
         await self.new_page.locator('//button[contains(text(), "Aplicar")]').nth(1).click()
         # await self.new_page.keyboard.press("Tab")
         # await self.new_page.keyboard.press("Enter")
