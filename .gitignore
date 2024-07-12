@@ -7,3 +7,6 @@ Documentación/estructura_input.xlsx
 *.pdf
 
 *.docx
+/Documentación/
+Documentación/*
+/Documentación/*

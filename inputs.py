@@ -173,6 +173,7 @@ def obtener_clientes():
         "ARBA": "Arba",
         "Rio Negro": "RioNegro",
         "Entre Rios": "EntreRios",
+        "SICNEA": "Sicnea",
     }
 
     df_final['Jurisdiccion'] = df_final['Jurisdiccion'].replace(jurisdiccion_clases)

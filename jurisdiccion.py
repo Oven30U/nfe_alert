@@ -126,10 +126,11 @@ class Jurisdiccion(ABC):
         self._cuit_cliente_input = str(cuit_cliente_input)
         self._razon_social_cliente_input = razon_social_cliente_input
         self.texto_notificacion = texto_notificacion
+
         # Modificar el headless a False para ver la navegación y a True para que sea invisible en entorno de producción
         # True = Producción
         # False = Desarrollo
-        self.browser = await playwright.chromium.launch(headless=False)
+        self.browser = await playwright.chromium.launch(headless=True)
         self.context = await self.browser.new_context()
         self.page = await self.context.new_page()
         self.hay_notificacion = False

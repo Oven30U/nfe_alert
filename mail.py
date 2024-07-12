@@ -175,6 +175,7 @@ def enviar_correo(
         dict_reemplazo = {
             "Agip": "AGIP",
             "Arba": "ARBA",
+            "Sicnea": "SICNEA",
             "Cordoba": "Córdoba",
             "EntreRios": "Entre Ríos",
             "Neuquen": "Neuquén",
