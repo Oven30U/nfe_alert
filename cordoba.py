@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 from playwright.async_api import Playwright, async_playwright, expect
 from playwright._impl._errors import TimeoutError
-from jurisdiccion import Jurisdiccion
+from jurisdiccion import Jurisdiccion, ConsultarNotificacionesError
 
 
 class Cordoba(Jurisdiccion):
@@ -39,6 +39,37 @@ class Cordoba(Jurisdiccion):
         except TimeoutError:
             print("AFIP_login excepcion de error de Timeout.")
 
+    # ToDo colocar limite al loop
+
+    async def intentar_representado(self):
+        limite_loop = 0
+        while limite_loop <= 15:
+            try:
+                if not await self.page.is_visible('text=" Actualmente esta consulta no arroja resultados. "'):
+                    await self.realizar_representado()
+                    return
+                else:
+                    print(f"Cartel de Actualmente esta consulta no arroja resultados: intento de recarga {limite_loop}.")
+                    await self.page.reload()
+            except Exception as e:
+                print(f"Cordoba: Error no cargo representado: Recargando e intentando de nuevo... {e}")
+                await self.page.reload()
+            finally:
+                limite_loop += 1
+
+        print("Se agotaron los intentos de seleccionar el representado.")
+        raise ConsultarNotificacionesError("Se agotaron los intentos de seleccionar el representado.", self.cliente)
+
+    async def realizar_representado(self):
+        await self.page.wait_for_selector(
+            f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]""",
+            state="attached",
+            timeout=3000,
+        )
+        await self.page.click(
+            f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]"""
+        )
+
     async def consultar_notificaciones(self):
         try:
             await self.AFIP_login()
@@ -52,23 +83,10 @@ class Cordoba(Jurisdiccion):
             await self.page.wait_for_load_state("load", timeout=900000)
         except Exception as e:
             print(f"Error al cargar la página mis-representados: {e}")
-        # ToDo colocar limite al loop
-        while True:
-            try:
-                await self.page.wait_for_selector(
-                    f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]""",
-                    state="attached",
-                    timeout=3000,
-                )
-                await self.page.click(
-                    f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]"""
-                )
-                break
-            except Exception as e:
-                print(
-                    f"Cordoba: Error no cargo representado: Recargando e intentando de nuevo... {e}"
-                )
-                await self.page.reload()
+
+        # Intentar loguearse con el representado
+        await self.intentar_representado()
+
         await self.page.wait_for_selector('text="Sí"', state="attached")
         await self.page.click('text="Sí"', timeout=900000)
         await self.page.wait_for_load_state("load", timeout=60000)

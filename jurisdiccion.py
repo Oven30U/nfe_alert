@@ -130,7 +130,8 @@ class Jurisdiccion(ABC):
         # Modificar el headless a False para ver la navegación y a True para que sea invisible en entorno de producción
         # True = Producción
         # False = Desarrollo
-        self.browser = await playwright.chromium.launch(headless=True)
+        # self.browser = await playwright.chromium.launch(headless=True)
+        self.browser = await playwright.chromium.launch(headless=False)
         self.context = await self.browser.new_context()
         self.page = await self.context.new_page()
         self.hay_notificacion = False

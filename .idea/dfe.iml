@@ -3,6 +3,15 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/Estructura-robot/ABBOTT LABORATORIES ARG. S.A" />
+      <excludeFolder url="file://$MODULE_DIR$/Estructura-robot/EDGE ARGENTINA S.R.L" />
+      <excludeFolder url="file://$MODULE_DIR$/Estructura-robot/FACEBOOK ARGENTINA S.R.L" />
+      <excludeFolder url="file://$MODULE_DIR$/Estructura-robot/MAGNETI MARELLI CONJ.DE ESCAPE S.A" />
+      <excludeFolder url="file://$MODULE_DIR$/Estructura-robot/MAGNETI MARELLI REPUESTOS S.A" />
+      <excludeFolder url="file://$MODULE_DIR$/Estructura-robot/NATURA COSMETICOS S.A" />
+      <excludeFolder url="file://$MODULE_DIR$/Estructura-robot/SIMPLOT ARGENTINA S.R.L" />
+      <excludeFolder url="file://$MODULE_DIR$/Estructura-robot/System" />
+      <excludeFolder url="file://$MODULE_DIR$/Estructura-robot/plantilla" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.11 (dfe)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
