@@ -86,7 +86,17 @@ class Nacional(Jurisdiccion):
     async def tomar_screenshot(self):
         self.fecha_desde = self.fecha_desde.replace("/", "")
         self.fecha_hasta = self.fecha_hasta.replace("/", "")
-        return await super().tomar_screenshot(self.new_page)
+        await super().tomar_screenshot(self.new_page)
+
+        while True:
+            selector_flecha_siguiente = "(//button[@role='menuitem'])[4]"
+            clases_flecha_siguiente = await self.new_page.get_attribute(selector_flecha_siguiente, "class")
+
+            if "disabled" in clases_flecha_siguiente:
+                return True
+
+            await self.new_page.click(selector_flecha_siguiente)
+            await super().tomar_screenshot(self.new_page)
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()

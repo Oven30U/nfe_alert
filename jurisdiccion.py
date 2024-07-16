@@ -130,8 +130,9 @@ class Jurisdiccion(ABC):
         # Modificar el headless a False para ver la navegación y a True para que sea invisible en entorno de producción
         # True = Producción
         # False = Desarrollo
-        # self.browser = await playwright.chromium.launch(headless=True)
-        self.browser = await playwright.chromium.launch(headless=False)
+        self.browser = await playwright.chromium.launch(headless=True)
+        # self.browser = await playwright.chromium.launch(headless=False)
+
         self.context = await self.browser.new_context()
         self.page = await self.context.new_page()
         self.hay_notificacion = False
@@ -237,7 +238,13 @@ class Jurisdiccion(ABC):
         """Metodo utilizado para tomar un screenshot de la sección de notificaciones de la jurisdicción."""
         if page is None:
             page = self.page
-        nombre_archivo = f"Estructura-robot\\{self.cliente}\\Output\\{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}.png"
+        base_nombre_archivo = f"Estructura-robot\\{self.cliente}\\Output\\{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}"
+        extension = ".png"
+        nombre_archivo = base_nombre_archivo + extension
+        contador = 1
+        while os.path.exists(nombre_archivo):
+            nombre_archivo = f"{base_nombre_archivo}_{contador}{extension}"
+            contador += 1
         try:
             await page.wait_for_load_state("domcontentloaded")
             await page.screenshot(path=nombre_archivo, full_page=True)
