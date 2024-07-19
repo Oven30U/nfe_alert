@@ -86,17 +86,38 @@ class Nacional(Jurisdiccion):
     async def tomar_screenshot(self):
         self.fecha_desde = self.fecha_desde.replace("/", "")
         self.fecha_hasta = self.fecha_hasta.replace("/", "")
-        await super().tomar_screenshot(self.new_page)
-
         while True:
+            # Primer Screenshot
+            await super().tomar_screenshot(self.new_page)
+
+            # Sólo si hay notificaciones continuo tomando screenshots
+            if self.hay_notificacion == 'Hay notificaciones':
+                # Scroll hasta la última notificación
+                # selector_ultima_notificacion = "//div[@class='tab-pane active card-body']//tr[@aria-rowindex=10]"
+                selector_ultima_notificacion = "(//div[@class='tab-pane active card-body']//tr)[last()]"
+                await self.new_page.evaluate("""
+                    (selector) => {
+                        document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.scrollIntoView();
+                    }
+                """, selector_ultima_notificacion)
+
+                # Segundo Screenshot
+                await super().tomar_screenshot(self.new_page)
+
+            # Verificar si hay más páginas, si hay -> navegar a la próxima y repetir
             selector_flecha_siguiente = "(//button[@role='menuitem'])[4]"
             clases_flecha_siguiente = await self.new_page.get_attribute(selector_flecha_siguiente, "class")
-
             if "disabled" in clases_flecha_siguiente:
                 return True
-
             await self.new_page.click(selector_flecha_siguiente)
-            await super().tomar_screenshot(self.new_page)
+
+            # Scroll hasta la primera notificación
+            selector_ultima_notificacion = "(//div[@class='tab-pane active card-body']//tr)[1]"
+            await self.new_page.evaluate("""
+                (selector) => {
+                    document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.scrollIntoView();
+                }
+            """, selector_ultima_notificacion)
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
@@ -104,10 +125,10 @@ class Nacional(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        # client = "EDGE ARGENTINA S.R.L"
-        # cuit_cliente_input = "30714604356"
-        client = "FACEBOOK ARGENTINA S.R.L"
-        cuit_cliente_input = "30712132554"
+        client = "EDGE ARGENTINA S.R.L"
+        cuit_cliente_input = "30714604356"
+        # client = "FACEBOOK ARGENTINA S.R.L"
+        # cuit_cliente_input = "30712132554"
 
         clave_fiscal_Nacional = "Gabriel1994"
         cuit_Nacional = "20386165476"
