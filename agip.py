@@ -59,10 +59,12 @@ class Agip(Jurisdiccion):
                 await self.page.wait_for_selector(f"a[data-id='{self._cuit_cliente_input}']", timeout=900000)
                 await self.page.click(f"xpath=//*[a[@data-id={self._cuit_cliente_input}]]", timeout=900000)
             finally:
-                await self.page.wait_for_selector("xpath=//button[@class='btnNoLeidas btn btn-default']",
+                boton_filtro = "xpath=//button[@class='btnNoLeidas btn btn-default']" # no_leidas
+                # boton_filtro = "xpath=//button[@class='btnSinNotificar btn btn-default']" # sin_notificar
+                await self.page.wait_for_selector(boton_filtro,
                                                   timeout=900000)
                 await self.page.click(
-                    "xpath=//button[@class='btnNoLeidas btn btn-default']", timeout=900000
+                    boton_filtro, timeout=900000
                 )  # 15 min
         except Exception as e:
             raise ConsultarNotificacionesError(
@@ -104,20 +106,20 @@ async def main():
         fecha_desde = "01052024"
         fecha_hasta = "30052024"
 
-        # client = "ABBOTT LABORATORIES ARG. S.A"
-        # cuit_Agip = "27262736364"
-        # clave_fiscal_Agip = "Cambio2020"
-        # cuit_cliente_input = "30500846301"
+        client = "ABBOTT LABORATORIES ARG. S.A"
+        cuit_Agip = "27262736364"
+        clave_fiscal_Agip = "Cambio2020"
+        cuit_cliente_input = "30500846301"
 
         # client = "EDGE ARGENTINA S.R.L"
         # cuit_Agip = "20236063586"
         # clave_fiscal_Agip = "Bart41051"
         # cuit_cliente_input = "30714604356"
 
-        client = "NATURA COSMETICOS S.A"
-        cuit_Agip = "20937892692"
-        clave_fiscal_Agip = "Natura1860"
-        cuit_cliente_input = "30677757295"
+        # client = "NATURA COSMETICOS S.A"
+        # cuit_Agip = "20937892692"
+        # clave_fiscal_Agip = "Natura1860"
+        # cuit_cliente_input = "30677757295"
 
         agip = await Agip.create(
             playwright,
