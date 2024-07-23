@@ -183,6 +183,7 @@ async def main():
                         # cuerpo_html_salida="html/mail_plantilla_salida_con_tabla_ejemplo2.html",
                     )
                     # Si enviar_correo() se ejecuta sin errores, actualizar la variable
+                    # Si hay alguna jurisdiccion con error, igualmente se envia y se actualiza la última verificación
                     correo_enviado_exitosamente = True
                 except Exception as e:
                     print(f"Error al enviar correo: {e}")

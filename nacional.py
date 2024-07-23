@@ -90,10 +90,13 @@ class Nacional(Jurisdiccion):
             # Primer Screenshot
             await super().tomar_screenshot(self.new_page)
 
-            # Sólo si hay notificaciones continuo tomando screenshots
-            if self.hay_notificacion == 'Hay notificaciones':
+            # Contar la cantidad de elementos <tr> dentro del selector especificado
+            selector_notificaciones = "//div[@class='tab-pane active card-body']//tbody[@role='rowgroup']/tr"
+            cantidad_notificaciones = await self.new_page.locator(selector_notificaciones).count()
+
+            # Sólo si hay 7 o más notificaciones continuo tomando screenshots
+            if cantidad_notificaciones >= 7:
                 # Scroll hasta la última notificación
-                # selector_ultima_notificacion = "//div[@class='tab-pane active card-body']//tr[@aria-rowindex=10]"
                 selector_ultima_notificacion = "(//div[@class='tab-pane active card-body']//tr)[last()]"
                 await self.new_page.evaluate("""
                     (selector) => {
@@ -112,12 +115,12 @@ class Nacional(Jurisdiccion):
             await self.new_page.click(selector_flecha_siguiente)
 
             # Scroll hasta la primera notificación
-            selector_ultima_notificacion = "(//div[@class='tab-pane active card-body']//tr)[1]"
+            selector_primera_notificacion = "(//div[@class='tab-pane active card-body']//tr)[1]"
             await self.new_page.evaluate("""
                 (selector) => {
                     document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.scrollIntoView();
                 }
-            """, selector_ultima_notificacion)
+            """, selector_primera_notificacion)
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
@@ -134,6 +137,7 @@ async def main():
         cuit_Nacional = "20386165476"
         fecha_desde = "01052024"
         fecha_hasta = "30052024"
+
         nacional = await Nacional.create(
             playwright,
             client,

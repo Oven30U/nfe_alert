@@ -348,7 +348,7 @@ class Jurisdiccion(ABC):
         # remitente = "cgonzaleztorres@deloitte.com"
         receptor = [
             "lmarinaro@deloitte.com"
-        ]  # Todo Reemplazar con laz direcciones del equipo
+        ]  # Todo Reemplazar con las direcciones del equipo
         # "cgonzaleztorres@deloitte.com; lmarinaro@deloitte.com; apiselli@deloitte.com; lecaracciolo@deloitte.com; rtolaba@deloitte.com; amiriarte@deloitte.com"
 
         # Crear el mensaje
