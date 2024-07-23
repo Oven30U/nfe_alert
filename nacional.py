@@ -7,14 +7,14 @@ from jurisdiccion import Jurisdiccion
 class Nacional(Jurisdiccion):
     @classmethod
     async def create(
-        cls,
-        playwright: Playwright,
-        cliente,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input=None,
+            cls,
+            playwright: Playwright,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input=None,
     ):
         # Convertir las fechas al formato dd/mm/yyyy
         fecha_desde = datetime.strptime(fecha_desde, "%d%m%Y").strftime("%d/%m/%Y")
@@ -30,13 +30,13 @@ class Nacional(Jurisdiccion):
             fecha_hasta,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
+        self.hay_screenshots_filtrados = False
         return self
 
     async def AFIP_login(
-        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+            self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
     ):
         return await super().AFIP_login(URL_AFIP_LOGIN)
-
 
     async def consultar_notificaciones(self):
         await self.AFIP_login()
@@ -59,9 +59,11 @@ class Nacional(Jurisdiccion):
         except Exception:
             pass
         # await self.new_page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
-        await self.new_page.fill("xpath=(//label[contains(text(), 'Desde')]/following::input[1])[2]", f"{self.fecha_desde}")
+        await self.new_page.fill("xpath=(//label[contains(text(), 'Desde')]/following::input[1])[2]",
+                                 f"{self.fecha_desde}")
         # await self.new_page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}") #\t\n
-        await self.new_page.fill("xpath=(//label[contains(text(), 'Hasta')]/following::input[1])[2]", f"{self.fecha_hasta}") #\t\n
+        await self.new_page.fill("xpath=(//label[contains(text(), 'Hasta')]/following::input[1])[2]",
+                                 f"{self.fecha_hasta}")  # \t\n
         await self.new_page.locator('//button[contains(text(), "Aplicar")]').nth(1).click()
         # await self.new_page.keyboard.press("Tab")
         # await self.new_page.keyboard.press("Enter")
@@ -77,18 +79,39 @@ class Nacional(Jurisdiccion):
 
         # await completar_fechas(self.new_page, self.fecha_desde, self.fecha_hasta)
 
-
     async def buscar_notificacion(self):
-        return not await super().buscar_notificacion(
-            self.new_page, "No hay comunicaciones para mostrar"
-        )
+        selectores = {
+            "notificaciones": "xpath=//a[contains(text(), ' Notificaciones ')]",
+            "requerimientos": "xpath=//a[contains(text(), ' Requerimientos ')]",
+            "otras_notificaciones": "xpath=//a[contains(text(), ' Otras notificaciones ')]",
+            "fce": "xpath=//a[contains(text(), ' Factura de Crédito Electrónica ')]"
+        }
+        contador_filtro_hay_notificacion = 0
+        todos_screenshots_exitosos = True
 
-    async def tomar_screenshot(self):
+        for clave, selector in selectores.items():
+            await self.new_page.click(selector)
+            await self.new_page.wait_for_load_state("networkidle")
+            no_hay_notificaciones = await super().buscar_notificacion(self.new_page,
+                                                                      "No hay comunicaciones para mostrar")
+
+            if not no_hay_notificaciones:  # and clave != "fce":
+                contador_filtro_hay_notificacion += 1
+
+            screen_estado = await self.tomar_screenshot_filtrado(clave)
+            if not screen_estado:
+                todos_screenshots_exitosos = False
+
+        self.hay_screenshots_filtrados = todos_screenshots_exitosos
+        # Si hay notificaciones en al menos uno de los filtros, retorno True
+        return True if contador_filtro_hay_notificacion > 0 else False
+
+    async def tomar_screenshot_filtrado(self, tipo_notificacion) -> bool:
         self.fecha_desde = self.fecha_desde.replace("/", "")
         self.fecha_hasta = self.fecha_hasta.replace("/", "")
         while True:
             # Primer Screenshot
-            await super().tomar_screenshot(self.new_page)
+            await super().tomar_screenshot(self.new_page, nombre_extra=tipo_notificacion)
 
             # Contar la cantidad de elementos <tr> dentro del selector especificado
             selector_notificaciones = "//div[@class='tab-pane active card-body']//tbody[@role='rowgroup']/tr"
@@ -105,7 +128,7 @@ class Nacional(Jurisdiccion):
                 """, selector_ultima_notificacion)
 
                 # Segundo Screenshot
-                await super().tomar_screenshot(self.new_page)
+                await super().tomar_screenshot(self.new_page, nombre_extra=tipo_notificacion)
 
             # Verificar si hay más páginas, si hay -> navegar a la próxima y repetir
             selector_flecha_siguiente = "(//button[@role='menuitem'])[4]"
@@ -122,16 +145,19 @@ class Nacional(Jurisdiccion):
                 }
             """, selector_primera_notificacion)
 
+    async def tomar_screenshot(self):
+        return self.hay_screenshots_filtrados
+
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
 
 
 async def main():
     async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
-        cuit_cliente_input = "30714604356"
-        # client = "FACEBOOK ARGENTINA S.R.L"
-        # cuit_cliente_input = "30712132554"
+        # client = "EDGE ARGENTINA S.R.L"
+        # cuit_cliente_input = "30714604356"
+        client = "FACEBOOK ARGENTINA S.R.L"
+        cuit_cliente_input = "30712132554"
 
         clave_fiscal_Nacional = "Gabriel1994"
         cuit_Nacional = "20386165476"

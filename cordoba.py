@@ -39,7 +39,6 @@ class Cordoba(Jurisdiccion):
         except TimeoutError:
             print("AFIP_login excepcion de error de Timeout.")
 
-    # ToDo colocar limite al loop
 
     async def intentar_representado(self):
         limite_loop = 0

@@ -234,11 +234,13 @@ class Jurisdiccion(ABC):
         es_visible = await page.is_visible(f"xpath={xpath}")
         return es_visible
 
-    async def tomar_screenshot(self, page: Optional[Page] = None) -> bool:
+    async def tomar_screenshot(self, page: Optional[Page] = None, nombre_extra: Optional[str] = None) -> bool:
         """Metodo utilizado para tomar un screenshot de la sección de notificaciones de la jurisdicción."""
         if page is None:
             page = self.page
         base_nombre_archivo = f"Estructura-robot\\{self.cliente}\\Output\\{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}"
+        if nombre_extra:
+            base_nombre_archivo += f"_{nombre_extra}"
         extension = ".png"
         nombre_archivo = base_nombre_archivo + extension
         contador = 1
@@ -348,7 +350,7 @@ class Jurisdiccion(ABC):
         # remitente = "cgonzaleztorres@deloitte.com"
         receptor = [
             "lmarinaro@deloitte.com"
-        ]  # Todo Reemplazar con las direcciones del equipo
+        ]
         # "cgonzaleztorres@deloitte.com; lmarinaro@deloitte.com; apiselli@deloitte.com; lecaracciolo@deloitte.com; rtolaba@deloitte.com; amiriarte@deloitte.com"
 
         # Crear el mensaje
