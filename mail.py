@@ -173,8 +173,8 @@ def enviar_correo(
         mapa_provincias_html = convertir_imagen_en_html(ruta_imagen_png)
         mapa_argentina_html = convertir_imagen_en_html(ruta_imagen_png_2)
         dict_reemplazo = {
-            "Agip": "AGIP",
-            "Arba": "ARBA",
+            "Agip": "CABA",
+            "Arba": "Buenos Aires",
             "Sicnea": "SICNEA",
             "Cordoba": "Córdoba",
             "EntreRios": "Entre Ríos",

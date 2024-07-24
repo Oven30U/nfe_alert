@@ -8,14 +8,14 @@ from jurisdiccion import Jurisdiccion, ConsultarNotificacionesError
 class Cordoba(Jurisdiccion):
     @classmethod
     async def create(
-        cls,
-        playwright: Playwright,
-        cliente,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input=None,
+            cls,
+            playwright: Playwright,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input=None,
     ):
         self = await super().create(
             playwright,
@@ -31,14 +31,13 @@ class Cordoba(Jurisdiccion):
         return self
 
     async def AFIP_login(
-        self,
-        URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=afip-gobcba",
+            self,
+            URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=afip-gobcba",
     ):
         try:
             return await super().AFIP_login(URL_AFIP_LOGIN)
         except TimeoutError:
-            print("AFIP_login excepcion de error de Timeout.")
-
+            print("Cordoba AFIP_login excepcion de error de Timeout.")
 
     async def intentar_representado(self):
         limite_loop = 0
@@ -48,7 +47,8 @@ class Cordoba(Jurisdiccion):
                     await self.realizar_representado()
                     return
                 else:
-                    print(f"Cartel de Actualmente esta consulta no arroja resultados: intento de recarga {limite_loop}.")
+                    print(
+                        f"Cordoba Cartel de Actualmente esta consulta no arroja resultados: intento de recarga {limite_loop}.")
                     await self.page.reload()
             except Exception as e:
                 print(f"Cordoba: Error no cargo representado: Recargando e intentando de nuevo... {e}")
@@ -56,24 +56,30 @@ class Cordoba(Jurisdiccion):
             finally:
                 limite_loop += 1
 
-        print("Se agotaron los intentos de seleccionar el representado.")
+        print("Cordoba Se agotaron los intentos de seleccionar el representado.")
         raise ConsultarNotificacionesError("Se agotaron los intentos de seleccionar el representado.", self.cliente)
 
     async def realizar_representado(self):
+        a_svg_cuit = f"//div[div[p[contains(text(),'{self.cuit_cliente_input}')]]]//a[1]"
+
         await self.page.wait_for_selector(
-            f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]""",
+            a_svg_cuit,
             state="attached",
             timeout=3000,
         )
+
+        # //p[@class="perfil-representados__description"]
+        # //div[div[p[contains(text(),'{self.cuit_cliente_input}')]]]//a[1]
+
         await self.page.click(
-            f"""//a[@ng-click="ingresar('{self.cuit_cliente_input}')"]"""
+            a_svg_cuit
         )
 
     async def consultar_notificaciones(self):
         try:
             await self.AFIP_login()
         except Exception as e:
-            print(f"El metodo de AFIP_login falló: {e}")
+            print(f"Cordoba El metodo de AFIP_login falló: {e}")
         try:
             await self.page.goto(
                 "https://www.rentascordoba.gob.ar/nuevorentas/mis-representados",
@@ -81,16 +87,19 @@ class Cordoba(Jurisdiccion):
             )
             await self.page.wait_for_load_state("load", timeout=900000)
         except Exception as e:
-            print(f"Error al cargar la página mis-representados: {e}")
+            print(f"Cordoba Error al cargar la página mis-representados: {e}")
 
         # Intentar loguearse con el representado
         await self.intentar_representado()
 
-        await self.page.wait_for_selector('text="Sí"', state="attached")
-        await self.page.click('text="Sí"', timeout=900000)
-        await self.page.wait_for_load_state("load", timeout=60000)
+        try:
+            await self.page.wait_for_selector('text="Sí"', state="attached", timeout=5000)
+            await self.page.click('text="Sí"', timeout=900000)
+            await self.page.wait_for_load_state("load", timeout=60000)
+        except TimeoutError:
+            print('Cordoba: El selector "Sí" no apareció, continuando la ejecución.')
 
-        #! await asyncio.sleep(3)  # si no espero, no toma el "Si"
+        # ! await asyncio.sleep(3)  # si no espero, no toma el "Si"
 
         # await self.page.click('text="Sí"', timeout=0)
         # await asyncio.sleep(3)  # si no espero, no toma el "Si"
@@ -170,11 +179,11 @@ class Cordoba(Jurisdiccion):
                         text_date = datetime.strptime(texto, "%d/%m/%Y")
                         fecha_desde_date = datetime.strptime(self.fecha_desde, "%d%m%Y")
                     except ValueError:
-                        print("Error: Fecha no está en el formato correcto")
+                        print("Cordoba Error: Fecha no está en el formato correcto")
                         self.hay_notificacion = False
                         return
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Cordoba Error: {e}")
 
         self.hay_notificacion = fecha_desde_date <= text_date
         return self.hay_notificacion
@@ -185,7 +194,7 @@ class Cordoba(Jurisdiccion):
                 "networkidle", timeout=60000
             )
         except TimeoutError:
-            print("Tiempo de espera superado, se toma screenshot igualmente")
+            print("Cordoba Tiempo de espera superado, se toma screenshot igualmente")
         return await super().tomar_screenshot(self.page)
 
     async def procesar_jurisdiccion(self):
