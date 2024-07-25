@@ -98,7 +98,7 @@ class Sicnea(Jurisdiccion):
             else:
                 # Espera un corto tiempo antes de volver a verificar, para evitar saturar el CPU
                 await asyncio.sleep(0.5)
-                print(f"intento: {intento_encontrado}")
+                print(f"SICNEA: intento de carga: {intento_encontrado}")
                 intento_encontrado += 1
 
         return self.hay_notificacion
@@ -111,7 +111,7 @@ class Sicnea(Jurisdiccion):
             await self.frame.wait_for_selector("input#btnBuscar")
             await self.new_page_2.screenshot(path=nombre_archivo_enviadas, full_page=True)
 
-            nombre_archivo_notificadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_notificadas.png"
+            nombre_archivo_notificadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_notificadas"
             await self.frame.select_option("select#ddlEstado", value="NOTI")
             await self.frame.click("input[name='btnBuscar']")
             # Inicializar una variable para controlar el bucle
@@ -124,7 +124,20 @@ class Sicnea(Jurisdiccion):
                 if texto_notificaciones or texto_motivo:
                     notificado_cargado = True
             await self.frame.wait_for_selector("input#btnBuscar")
-            await self.new_page_2.screenshot(path=nombre_archivo_notificadas, full_page=True)
+
+            await self.new_page_2.screenshot(path=f"{nombre_archivo_notificadas}_0.png",
+                                             full_page=True)
+            cantidad_paginas_notificadas = 1
+            while await self.frame.query_selector("a#lnkSiguiente"):
+                await self.frame.click("a#lnkSiguiente")
+                await self.frame.wait_for_selector("input#btnBuscar")
+                await self.new_page_2.screenshot(
+                    path=f"{nombre_archivo_notificadas}_{cantidad_paginas_notificadas}.png",
+                    full_page=True)
+                cantidad_paginas_notificadas += 1
+
+                # a  # lnkSiguiente
+            # await self.new_page_2.screenshot(path=nombre_archivo_notificadas, full_page=True)
             self.hay_screenshot = True
 
         except Exception as e:
