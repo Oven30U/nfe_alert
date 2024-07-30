@@ -88,14 +88,19 @@ class Nacional(Jurisdiccion):
         }
         contador_filtro_hay_notificacion = 0
         todos_screenshots_exitosos = True
+        selectores_validos = 0
 
         for clave, selector in selectores.items():
-            await self.new_page.click(selector)
-            await self.new_page.wait_for_load_state("networkidle")
-            no_hay_notificaciones = await super().buscar_notificacion(self.new_page,
-                                                                      "No hay comunicaciones para mostrar")
+            try:
+                await self.new_page.click(selector)
+                await self.new_page.wait_for_load_state("networkidle")
+                selectores_validos += 1
+            except Exception:
+                continue
 
-            if not no_hay_notificaciones:  # and clave != "fce":
+            no_hay_notificaciones = await super().buscar_notificacion(self.new_page, "No hay comunicaciones para mostrar")
+
+            if not no_hay_notificaciones:
                 contador_filtro_hay_notificacion += 1
 
             screen_estado = await self.tomar_screenshot_filtrado(clave)
@@ -103,7 +108,6 @@ class Nacional(Jurisdiccion):
                 todos_screenshots_exitosos = False
 
         self.hay_screenshots_filtrados = todos_screenshots_exitosos
-        # Si hay notificaciones en al menos uno de los filtros, retorno True
         return True if contador_filtro_hay_notificacion > 0 else False
 
     async def tomar_screenshot_filtrado(self, tipo_notificacion) -> bool:

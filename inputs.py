@@ -104,6 +104,7 @@ def obtener_clientes():
     except Exception as e:
         raise InputException(f"No se pudo acceder al archivo {PATH_CREDENCIALES}, {e}")
         print("No se pudo acceder al archivo %s: %s", PATH_CREDENCIALES, str(e))
+    df_credenciales["Cliente"] = df_credenciales["Cliente"].str.rstrip('.')
 
     # Obtiene una lista de todos los nombres de las carpetas en el directorio
     folder_names = [

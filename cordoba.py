@@ -62,18 +62,27 @@ class Cordoba(Jurisdiccion):
     async def realizar_representado(self):
         a_svg_cuit = f"//div[div[p[contains(text(),'{self.cuit_cliente_input}')]]]//a[1]"
 
-        await self.page.wait_for_selector(
-            a_svg_cuit,
-            state="attached",
-            timeout=3000,
-        )
-
-        # //p[@class="perfil-representados__description"]
-        # //div[div[p[contains(text(),'{self.cuit_cliente_input}')]]]//a[1]
-
-        await self.page.click(
-            a_svg_cuit
-        )
+        while True:
+            try:
+                await self.page.wait_for_selector(
+                    a_svg_cuit,
+                    state="attached",
+                    timeout=3000,
+                )
+                await self.page.click(a_svg_cuit)
+                break
+            except TimeoutError:
+                pagination_locator = "//ul[@class='pagination']//li[@class='page-item active ng-star-inserted']/following-sibling::li[1]"
+                try:
+                    await self.page.wait_for_selector(
+                        pagination_locator,
+                        state="attached",
+                        timeout=3000,
+                    )
+                    await self.page.click(pagination_locator)
+                except TimeoutError:
+                    print("No se encontró el representado ni la paginación.")
+                    break
 
     async def consultar_notificaciones(self):
         try:
@@ -92,12 +101,19 @@ class Cordoba(Jurisdiccion):
         # Intentar loguearse con el representado
         await self.intentar_representado()
 
-        try:
-            await self.page.wait_for_selector('text="Sí"', state="attached", timeout=5000)
+        selector_si = await self.page.query_selector('text="Sí"')
+        if selector_si:
             await self.page.click('text="Sí"', timeout=900000)
             await self.page.wait_for_load_state("load", timeout=60000)
-        except TimeoutError:
+        else:
             print('Cordoba: El selector "Sí" no apareció, continuando la ejecución.')
+
+        # try:
+        #     await self.page.wait_for_selector('text="Sí"', state="attached", timeout=5000)
+        #     await self.page.click('text="Sí"', timeout=900000)
+        #     await self.page.wait_for_load_state("load", timeout=60000)
+        # except TimeoutError:
+        #     print('Cordoba: El selector "Sí" no apareció, continuando la ejecución.')
 
         # ! await asyncio.sleep(3)  # si no espero, no toma el "Si"
 
@@ -203,12 +219,20 @@ class Cordoba(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
         fecha_desde = "01052024"
         fecha_hasta = "30052024"
-        cuit_Cordoba = "20386165476"
-        clave_fiscal_Cordoba = "Gabriel1994"
-        cuit_cliente_input = "30714604356"
+
+        # client = "EDGE ARGENTINA S.R.L"
+        # cuit_Cordoba = "20386165476"
+        # clave_fiscal_Cordoba = "Gabriel1994"
+        # cuit_cliente_input = "30714604356"
+
+        client = "MAGNETI MARELLI CONJ.DE ESCAPE S.A"
+        cuit_Cordoba = "23381628124"
+        clave_fiscal_Cordoba = "Achavesgaspar24"
+        cuit_cliente_input = "30707570144"
+
+
         cordoba = await Cordoba.create(
             playwright,
             client,
