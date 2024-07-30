@@ -1,20 +1,19 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# Introducción 
+Proyecto para realizar la revisión de los DFE de las jurisdicciones de la República Argentina. 
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
-
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
-
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
-
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+# Estructura
+Pasos para utilizar:
+1. Crear el virtual enviroment (en caso de no existir utilizando requirements.txt)
+2. Ejecutar main.py y verificar el funcionamiento con el archivo de prueba
+3. Tener configurado git
+4. Crear el archivo bat:
+```bat
+@echo off
+cd "C:\Users\lmarinaro\OneDrive - Deloitte (O365D)\Documents\Proyectos\test_robot_framework\dfe"
+call .venv\Scripts\activate
+git reset --hard
+git pull DFEPW main
+start /min "" python main.py
+call .venv\Scripts\deactivate.bat
+```
+5. Configurar la tarea programada para que se ejecute el archivo bat
