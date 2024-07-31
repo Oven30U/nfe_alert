@@ -28,14 +28,14 @@ class BaseTest:
 
     @pytest.mark.asyncio
     async def run_base_test(
-        self,
-        Jurisdiccion,
-        client,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input,
+            self,
+            Jurisdiccion,
+            client,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
     ):
         async with async_playwright() as playwright:
             jurisdiccion = await Jurisdiccion.create(
@@ -51,10 +51,10 @@ class BaseTest:
 
             assert jurisdiccion.page is not None, "La página es None"
             assert (
-                jurisdiccion.hay_notificacion is not None
+                    jurisdiccion.hay_notificacion is not None
             ), "No hay estado en hay_notificación"
             assert (
-                jurisdiccion.hay_screenshot is not None
+                    jurisdiccion.hay_screenshot is not None
             ), "No hay estado en hay_screenshot"
             if jurisdiccion.hay_notificacion not in [
                 "Hay notificaciones",
@@ -64,15 +64,15 @@ class BaseTest:
                 "No se realizó screenshot",
             ]:
                 assert (
-                    jurisdiccion.error is None
+                        jurisdiccion.error is None
                 ), "Ocurrió un error pero no se reflejo en hay_notificación o hay_screenshot"
             assert (
-                jurisdiccion.nombre is not None
+                    jurisdiccion.nombre is not None
             ), "El nombre de la jurisdiccion es None"
             if jurisdiccion.error is not None:
                 assert (
-                    jurisdiccion.hay_notificacion == "Error al buscar notificación"
-                    and jurisdiccion.hay_screenshot == "Error al tomar screenshot"
+                        jurisdiccion.hay_notificacion == "Error al buscar notificación"
+                        and jurisdiccion.hay_screenshot == "Error al tomar screenshot"
                 ), "Siendo que ocurrió un Error en la notificación o en la captura de pantalla, no se reflejo en hay_notificación o hay_screenshot"
 
 
@@ -96,14 +96,14 @@ class ErrorTest:
 
     @pytest.mark.asyncio
     async def run_error_test(
-        self,
-        Jurisdiccion,
-        client,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input,
+            self,
+            Jurisdiccion,
+            client,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
     ):
         async with async_playwright() as playwright:
             jurisdiccion = await Jurisdiccion.create(
@@ -119,7 +119,7 @@ class ErrorTest:
 
             # Verifica que no haya errores
             assert (
-                jurisdiccion.error is None
+                    jurisdiccion.error is None
             ), f"Se encontró un error durante la ejecución: {jurisdiccion.error}"
 
 
@@ -580,6 +580,45 @@ class TestChubut(BaseTest, ErrorTest):
     @pytest.mark.error
     @pytest.mark.asyncio
     async def test_chubut_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+
+class TestLaPampa(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from la_pampa import LaPampa
+
+        self.Jurisdiccion = LaPampa
+        self.client = "NATURA COSMETICOS S.A"
+        self.cuit = "20252501852"
+        self.clave_fiscal = "natura2014"
+        self.fecha_desde = "01072024"
+        self.fecha_hasta = "30072024"
+        self.cuit_cliente_input = "30677757295"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_la_pampa(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_la_pampa_error(self):
         await self.run_error_test(
             self.Jurisdiccion,
             self.client,

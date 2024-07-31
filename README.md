@@ -19,3 +19,10 @@ Pasos para utilizar:
    call .venv\Scripts\deactivate.bat
    ```
 5. Configurar la tarea programada para que se ejecute el archivo bat
+
+
+# Testing
+Para realizar los test unitarios de cada jurisdiccion se debe ejecutar el siguiente comando:
+```bash
+pytest --count=4 test_unit.py::TestLaPampa
+```
