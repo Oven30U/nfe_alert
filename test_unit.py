@@ -125,7 +125,7 @@ class ErrorTest:
 
 class TestNacional(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from nacional import Nacional
+        from jurisdicciones.nacional import Nacional
 
         self.Jurisdiccion = Nacional
         self.client = "EDGE ARGENTINA S.R.L"
@@ -164,7 +164,7 @@ class TestNacional(BaseTest, ErrorTest):
 
 class TestArba(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from arba import Arba
+        from jurisdicciones.arba import Arba
 
         self.Jurisdiccion = Arba
         self.client = "EDGE ARGENTINA S.R.L"
@@ -203,7 +203,7 @@ class TestArba(BaseTest, ErrorTest):
 
 class TestAgip(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from agip import Agip
+        from jurisdicciones.agip import Agip
 
         self.Jurisdiccion = Agip
         self.client = "EDGE ARGENTINA S.R.L"
@@ -242,7 +242,7 @@ class TestAgip(BaseTest, ErrorTest):
 
 class TestMendoza(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from mendoza import Mendoza
+        from jurisdicciones.mendoza import Mendoza
 
         self.Jurisdiccion = Mendoza
         self.client = "EDGE ARGENTINA S.R.L"
@@ -281,7 +281,7 @@ class TestMendoza(BaseTest, ErrorTest):
 
 class TestCordoba(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from cordoba import Cordoba
+        from jurisdicciones.cordoba import Cordoba
 
         self.Jurisdiccion = Cordoba
         self.client = "EDGE ARGENTINA S.R.L"
@@ -320,7 +320,7 @@ class TestCordoba(BaseTest, ErrorTest):
 
 class TestNeuquen(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from neuquen import Neuquen
+        from jurisdicciones.neuquen import Neuquen
 
         self.Jurisdiccion = Neuquen
         self.client = "EDGE ARGENTINA S.R.L"
@@ -359,7 +359,7 @@ class TestNeuquen(BaseTest, ErrorTest):
 
 class TestRioNegro(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from rio_negro import RioNegro
+        from jurisdicciones.rio_negro import RioNegro
 
         self.Jurisdiccion = RioNegro
         self.client = "EDGE ARGENTINA S.R.L"
@@ -398,7 +398,7 @@ class TestRioNegro(BaseTest, ErrorTest):
 
 class TestTucuman(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from tucuman import Tucuman
+        from jurisdicciones.tucuman import Tucuman
 
         self.Jurisdiccion = Tucuman
         self.client = "EDGE ARGENTINA S.R.L"
@@ -437,7 +437,7 @@ class TestTucuman(BaseTest, ErrorTest):
 
 class TestMisiones(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from misiones import Misiones
+        from jurisdicciones.misiones import Misiones
 
         self.Jurisdiccion = Misiones
         self.client = "EDGE ARGENTINA S.R.L"
@@ -476,7 +476,7 @@ class TestMisiones(BaseTest, ErrorTest):
 
 class TestEntreRios(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from entre_rios import EntreRios
+        from jurisdicciones.entre_rios import EntreRios
 
         self.Jurisdiccion = EntreRios
         self.client = "EDGE ARGENTINA S.R.L"
@@ -515,7 +515,7 @@ class TestEntreRios(BaseTest, ErrorTest):
 
 class TestJujuy(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from jujuy import Jujuy
+        from jurisdicciones.jujuy import Jujuy
 
         self.Jurisdiccion = Jujuy
         self.client = "EDGE ARGENTINA S.R.L"
@@ -554,7 +554,7 @@ class TestJujuy(BaseTest, ErrorTest):
 
 class TestChubut(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from chubut import Chubut
+        from jurisdicciones.chubut import Chubut
 
         self.Jurisdiccion = Chubut
         self.client = "EDGE ARGENTINA S.R.L"
@@ -593,7 +593,7 @@ class TestChubut(BaseTest, ErrorTest):
 
 class TestLaPampa(BaseTest, ErrorTest):
     def setup_method(self, method):
-        from la_pampa import LaPampa
+        from jurisdicciones.la_pampa import LaPampa
 
         self.Jurisdiccion = LaPampa
         self.client = "NATURA COSMETICOS S.A"

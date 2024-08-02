@@ -31,6 +31,12 @@ class LaRioja(Jurisdiccion):
     async def consultar_notificaciones(self):
         await self.page.goto("https://www.dgiplarioja.gob.ar/frontend51/page?1,principal,LR-Aplicacion,O,es,0,")
         iframe = self.page.frames[0]
+        # Seleccionar el elemento usando el método locator y luego llenar el campo
+        login_user = iframe.locator("input#vUSRLOGIN")
+        await login_user.type(f"{self._cuit}")
+        await iframe.locator("input#vUSRLOGIN").fill(f"{self._cuit}")
+        # await self.page.fill("//input[@id='vUSRLOGIN']", f"{self._cuit}")
+        await iframe.fill("//input[@id='vUSRLOGIN']", f"{self._cuit}")
         await iframe.fill("input#vUSRLOGIN", f"{self._cuit}")
         await iframe.fill("input#vPWDLOGIN", f"{self._clave_fiscal}")
         await iframe.click("//input[@name='BUTTON1']")

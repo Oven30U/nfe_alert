@@ -5,7 +5,7 @@ from datetime import datetime
 from jurisdiccion import LoggedException
 from cliente_system import ClienteSystem
 from win32com.client import Dispatch
-
+from config import jurisdiccion_clases
 
 class InputException(LoggedException):
     """Excepción lanzada por errores en la captura de los input."""
@@ -168,14 +168,6 @@ def obtener_clientes():
 
     # Eliminar las filas de df_final donde 'Usuario' y 'Password' son NaN
     df_final = df_final.dropna(subset=["Usuario", "Password"])
-
-    jurisdiccion_clases = {
-        "AGIP": "Agip",
-        "ARBA": "Arba",
-        "Rio Negro": "RioNegro",
-        "Entre Rios": "EntreRios",
-        "SICNEA": "Sicnea",
-    }
 
     df_final['Jurisdiccion'] = df_final['Jurisdiccion'].replace(jurisdiccion_clases)
 

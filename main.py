@@ -10,23 +10,28 @@ from playwright.async_api import async_playwright
 
 from functions.config import PATH_ESTRUCTURA_ROBOT
 from functions.delete_backs import delete_zip_files_in_backup
-from agip import Agip
-from arba import Arba
-from sicnea import Sicnea
-from chubut import Chubut
 from conectar_db import conectar_db
-from cordoba import Cordoba
-from entre_rios import EntreRios
 from inputs import obtener_clientes
-from jujuy import Jujuy
 from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
-from mendoza import Mendoza
-from misiones import Misiones
-from nacional import Nacional
-from neuquen import Neuquen
-from rio_negro import RioNegro
-from tucuman import Tucuman
+
+from jurisdicciones import (
+    Agip,
+    Arba,
+    Sicnea,
+    Chubut,
+    Cordoba,
+    EntreRios,
+    Jujuy,
+    Mendoza,
+    Misiones,
+    Nacional,
+    Neuquen,
+    RioNegro,
+    Tucuman,
+    LaPampa,
+    LaRioja,
+)
 
 
 async def main():
