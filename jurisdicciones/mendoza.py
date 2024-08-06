@@ -1,12 +1,7 @@
-import asyncio
-from playwright.async_api import Playwright, async_playwright, expect
+from playwright.async_api import Playwright, async_playwright
 from playwright._impl._errors import TimeoutError
-from jurisdiccion import (
+from jurisdicciones.jurisdiccion import (
     Jurisdiccion,
-    LoginError,
-    ConsultarNotificacionesError,
-    TomarScreenshotError,
-    BuscarNotificacionError,
 )
 
 

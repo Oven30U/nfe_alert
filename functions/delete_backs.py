@@ -1,6 +1,6 @@
 import os
 import glob
-from functions.config import PATH_ESTRUCTURA_ROBOT
+# from config import PATH_ESTRUCTURA_ROBOT
 
 def delete_zip_files_in_backup(directory):
     for root, dirs, files in os.walk(directory):

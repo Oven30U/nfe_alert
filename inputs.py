@@ -1,11 +1,11 @@
 import os
-import sys
 import pandas as pd
 from datetime import datetime
-from jurisdiccion import LoggedException
+from jurisdicciones.jurisdiccion import LoggedException
 from cliente_system import ClienteSystem
 from win32com.client import Dispatch
-from config import jurisdiccion_clases
+from config import jurisdiccion_clases, DEBUG, EJECUTAR_TODOS_CLIENTES, clientes_si_verificar_config
+
 
 class InputException(LoggedException):
     """Excepción lanzada por errores en la captura de los input."""
@@ -85,10 +85,19 @@ def obtener_clientes():
         )
         archivo_input_a_verificar = f"{PATH_BOT}{cliente_system.nombre}/Input"
 
-        if cliente_system.verificar_ejecucion(archivo_input_a_verificar):
-            clientes_si_verificar.append(cliente_system)
+        if DEBUG:
+            if EJECUTAR_TODOS_CLIENTES:
+                clientes_si_verificar.append(cliente_system)
+            else:
+                if cliente_system.nombre in clientes_si_verificar_config:
+                    clientes_si_verificar.append(cliente_system)
+                else:
+                    clientes_no_verificar.append(cliente_system)
         else:
-            clientes_no_verificar.append(cliente_system)
+            if cliente_system.verificar_ejecucion(archivo_input_a_verificar):
+                clientes_si_verificar.append(cliente_system)
+            else:
+                clientes_no_verificar.append(cliente_system)
 
     df_final = pd.DataFrame()
     if not clientes_si_verificar:
@@ -96,7 +105,10 @@ def obtener_clientes():
         return df_final
     else:
         print(
-            f"Clientes a verificar: {', '.join([cliente.nombre for cliente in clientes_si_verificar])}"
+            f"\nClientes SI verificar: {', '.join([cliente.nombre for cliente in clientes_si_verificar])}\n"
+        )
+        print(
+            f"\nClientes NO verificar: {', '.join([cliente.nombre for cliente in clientes_no_verificar])}\n"
         )
 
     try:
@@ -169,6 +181,7 @@ def obtener_clientes():
     # Eliminar las filas de df_final donde 'Usuario' y 'Password' son NaN
     df_final = df_final.dropna(subset=["Usuario", "Password"])
 
+    # Reemplazamos df_final['Jurisdiccion'], por el nombre de la clase
     df_final['Jurisdiccion'] = df_final['Jurisdiccion'].replace(jurisdiccion_clases)
 
     return df_final

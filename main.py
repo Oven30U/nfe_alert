@@ -8,38 +8,22 @@ from datetime import datetime
 import pandas as pd
 from playwright.async_api import async_playwright
 
-from functions.config import PATH_ESTRUCTURA_ROBOT
+from config import PATH_ESTRUCTURA_ROBOT, DEBUG
 from functions.delete_backs import delete_zip_files_in_backup
 from conectar_db import conectar_db
 from inputs import obtener_clientes
 from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
 
-from jurisdicciones import (
-    Agip,
-    Arba,
-    Sicnea,
-    Chubut,
-    Cordoba,
-    EntreRios,
-    Jujuy,
-    Mendoza,
-    Misiones,
-    Nacional,
-    Neuquen,
-    RioNegro,
-    Tucuman,
-    LaPampa,
-    LaRioja,
-)
+from jurisdicciones import *
 
 
 async def main():
     async with async_playwright() as playwright:
         df_input = obtener_clientes()
         if not df_input.empty:
-                # print("df_input esta vacio, finaliza el programa.")
-                # return
+            # print("df_input esta vacio, finaliza el programa.")
+            # return
             df_input_por_cliente = df_input.groupby("Cliente")
 
             for cliente, group in df_input_por_cliente:
@@ -47,11 +31,16 @@ async def main():
                 inicio_value = datetime.now()
                 try:
                     instances = {}
+                    jurisdicciones_encontradas = []
+                    jurisdicciones_no_encontradas = []
                     for index, row in group.iterrows():
                         jurisdiction = row["Jurisdiccion"]
                         if jurisdiction not in globals():
-                            print(f"Jurisdiccion {jurisdiction} no encontrada, se omite.")
+                            # print(f"Jurisdiccion {jurisdiction} no encontrada, se omite.")
+                            jurisdicciones_no_encontradas.append(jurisdiction)
                             continue
+                        # print(f"Jurisdiccion {jurisdiction}, se procesará.")
+                        jurisdicciones_encontradas.append(jurisdiction)
                         cliente = row["Cliente"]
                         usuario = int(row["Usuario"])
                         password = row["Password"]
@@ -89,6 +78,8 @@ async def main():
                         )
                         instances[jurisdiction] = instance
 
+                    print(f"Jurisdicciones encontradas: {jurisdicciones_encontradas}")
+                    print(f"Jurisdicciones no encontradas: {jurisdicciones_no_encontradas}")
                     # Crear una lista de tareas
                     tareas = [
                         instance.procesar_jurisdiccion() for instance in instances.values()
@@ -176,7 +167,8 @@ async def main():
 
                     # Comentar para testing para casos correctos.
                     # Con al menos un Incorrecto se envía siempre a lmarinaro
-                    # correo_output = 'lmarinaro@deloitte.com'
+                    if DEBUG:
+                        correo_output = 'lmarinaro@deloitte.com'
                     try:
                         enviar_correo(
                             receptor=correo_output,
@@ -195,24 +187,33 @@ async def main():
                     except Exception as e:
                         print(f"Error al enviar correo: {e}")
 
-                    # Verificar si enviar_correo() fue exitoso antes de actualizar 'Última verificación'
-                    if correo_enviado_exitosamente and estado_value == "Correcto":
+                    # Actualizar 'Última verificación' sólo si se envio el correo y estado Correcto, sin debug.
+                    if correo_enviado_exitosamente and estado_value == "Correcto" and DEBUG is False:
                         # Actualiza hora de Última verificación
                         PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
                         df_cliente_system = pd.read_excel(PATH_CLIENTES)
                         now = datetime.now()
                         current_time = now.strftime("%d/%m/%Y %H:%M:%S")
-                        df_cliente_system.loc[df_cliente_system['Cliente'] == cliente, 'Última verificación'] = current_time
+                        df_cliente_system.loc[
+                            df_cliente_system['Cliente'] == cliente, 'Última verificación'] = current_time
                         df_cliente_system.to_excel(PATH_CLIENTES, sheet_name="System-Clientes", index=False)
 
                     username = str(correo_output)
+
+                    proceso = "Revision de Domicilios Fiscales Electronicos"
+                    conectar_db(proceso, cliente, username, inicio_value, estado_value)
+
         elif df_input.empty:
             inicio_value = datetime.now()
             estado_value = "Correcto"
             username = 'TaxTech'
             cliente = 'TaxTech'
-        proceso = "Revision de Domicilios Fiscales Electronicos"
-        conectar_db(proceso, cliente, username, inicio_value, estado_value)
+
+            proceso = "Revision de Domicilios Fiscales Electronicos"
+            conectar_db(proceso, cliente, username, inicio_value, estado_value)
+
+        # proceso = "Revision de Domicilios Fiscales Electronicos"
+        # conectar_db(proceso, cliente, username, inicio_value, estado_value)
 
         # Eliminar los archivos .zip en la carpeta de Backup
         delete_zip_files_in_backup(PATH_ESTRUCTURA_ROBOT)

@@ -1,7 +1,5 @@
-import asyncio
-from datetime import datetime
-from playwright.async_api import Playwright, async_playwright, expect
-from jurisdiccion import Jurisdiccion, LoginError, ConsultarNotificacionesError
+from playwright.async_api import Playwright, async_playwright
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError, ConsultarNotificacionesError
 
 
 class Agip(Jurisdiccion):

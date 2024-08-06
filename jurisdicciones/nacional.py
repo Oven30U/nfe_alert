@@ -1,7 +1,6 @@
-import asyncio
-from playwright.async_api import Playwright, async_playwright, expect
+from playwright.async_api import Playwright, async_playwright
 from datetime import datetime
-from jurisdiccion import Jurisdiccion
+from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class Nacional(Jurisdiccion):

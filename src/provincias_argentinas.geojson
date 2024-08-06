@@ -395,7 +395,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "EntreRios" },
+      "properties": { "nombre": "Entre Rios" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -436,7 +436,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Arba",
+        "nombre": "Buenos Aires",
         "color": "#00FF00",
         "leyenda": "Leyenda 1",
         "texto_personalizado": "Texto personalizado para Buenos Aires",
@@ -1043,7 +1043,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "RioNegro" },
+      "properties": { "nombre": "Rio Negro" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1394,7 +1394,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Agip",
+        "nombre": "CABA",
         "color": "#FF0000",
         "leyenda": "Leyenda 2",
         "texto_personalizado": "Texto personalizado para Capital Federal",

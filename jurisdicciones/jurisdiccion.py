@@ -13,6 +13,7 @@ from playwright.async_api import Playwright, Page
 import logging
 import os
 
+from config import  headless_state, log_file_path, PATH_ESTRUCTURA_ROBOT
 
 class LoggedException(Exception):
     """Excepción base que registra errores."""
@@ -22,7 +23,7 @@ class LoggedException(Exception):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.ERROR)
 
-        log_file_path = "Estructura-robot/System/logfile.log"
+        # log_file_path = "../Estructura-robot/System/logfile.log"
         log_file_dir = os.path.dirname(log_file_path)
         os.makedirs(log_file_dir, exist_ok=True)
         handler = logging.FileHandler(log_file_path)
@@ -131,7 +132,7 @@ class Jurisdiccion(ABC):
         # True = Producción
         # False = Desarrollo
         # self.browser = await playwright.chromium.launch(headless=True)
-        self.browser = await playwright.chromium.launch(headless=False)
+        self.browser = await playwright.chromium.launch(headless=headless_state)
 
         self.context = await self.browser.new_context()
         self.page = await self.context.new_page()
@@ -238,7 +239,7 @@ class Jurisdiccion(ABC):
         """Metodo utilizado para tomar un screenshot de la sección de notificaciones de la jurisdicción."""
         if page is None:
             page = self.page
-        base_nombre_archivo = f"Estructura-robot\\{self.cliente}\\Output\\{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}"
+        base_nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}"
         if nombre_extra:
             base_nombre_archivo += f"_{nombre_extra}"
         extension = ".png"
@@ -269,7 +270,7 @@ class Jurisdiccion(ABC):
                 await page.wait_for_load_state("networkidle")
                 await page.wait_for_load_state("domcontentloaded")
                 await page.wait_for_load_state("load")
-                nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
+                nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
                 await page.screenshot(path=nombre_archivo, full_page=True)
                 self.hay_screenshot = True
             except Exception as e:

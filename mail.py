@@ -15,6 +15,7 @@ from email.mime.text import MIMEText
 
 
 # from matplotlib import style
+from config import jurisdiccion_clases, mapa_jurisdiccion_clases
 from generar_html import (
     convertir_imagen_en_html,
     insertar_tabla_en_html,
@@ -172,17 +173,18 @@ def enviar_correo(
     if df is not None:
         mapa_provincias_html = convertir_imagen_en_html(ruta_imagen_png)
         mapa_argentina_html = convertir_imagen_en_html(ruta_imagen_png_2)
-        dict_reemplazo = {
-            "Agip": "CABA",
-            "Arba": "Buenos Aires",
-            "Sicnea": "SICNEA",
-            "Cordoba": "Córdoba",
-            "EntreRios": "Entre Ríos",
-            "Neuquen": "Neuquén",
-            "RioNegro": "Río Negro",
-            "Tucuman": "Tucumán",
-        }
-        df["Jurisdicción"] = df["Jurisdicción"].replace(dict_reemplazo)
+        # dict_reemplazo = {
+        #     "Agip": "CABA",
+        #     "Arba": "Buenos Aires",
+        #     "Sicnea": "SICNEA",
+        #     "Cordoba": "Córdoba",
+        #     "EntreRios": "Entre Ríos",
+        #     "Neuquen": "Neuquén",
+        #     "RioNegro": "Río Negro",
+        #     "Tucuman": "Tucumán",
+        # }
+
+        df["Jurisdicción"] = df["Jurisdicción"].replace(mapa_jurisdiccion_clases) #mapa_jurisdiccion_clases jurisdiccion_clases
         html_con_tabla = insertar_tabla_en_html(
             df,
             cuerpo_html_plantilla,

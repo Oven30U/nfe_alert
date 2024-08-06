@@ -1,6 +1,5 @@
-import asyncio
-from playwright.async_api import Playwright, async_playwright, expect
-from jurisdiccion import Jurisdiccion, LoginError
+from playwright.async_api import Playwright, async_playwright
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Arba(Jurisdiccion):

@@ -6,6 +6,8 @@ import matplotlib.patches as mpatches
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib.image as mpimg
 
+from config import mapa_jurisdiccion_clases
+
 
 def crear_mapa(df, output_file):
 
@@ -14,6 +16,7 @@ def crear_mapa(df, output_file):
 
     # Unir el GeoDataFrame con el DataFrame
     # Cambia "nombre" por "Nombre" en df.set_index
+    df["Nombre"] = df["Nombre"].replace(mapa_jurisdiccion_clases)
     merged = provincias.set_index("nombre").join(df.set_index("Nombre"))
 
     # Reemplazar NaN con False en la columna 'Error'

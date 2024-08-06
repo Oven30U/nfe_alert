@@ -22,12 +22,14 @@ import unidecode
 import math
 import numpy as np
 
+from config import  link_clientes
+
 class ClienteSystem:
     """
     Por cada cliente de System/System-Clientes.xlsx (fila del dataframe) se crea un objeto de esta clase \n
     """
 
-    link_clientes = "Estructura-robot/System/System-Clientes.xlsx"
+    # link_clientes = "Estructura-robot/System/System-Clientes.xlsx"
     def __init__(
         self,
         nombre,
@@ -180,9 +182,9 @@ if __name__ == "__main__":
     else:
         print("No se debe verificar")
 
-    link_system = "Estructura-robot/System/"
-
-    link_clientes = f"{link_system}System-Clientes.xlsx"
+    # link_system = "Estructura-robot/System/"
+    #
+    # link_clientes = f"{link_system}System-Clientes.xlsx"
 
     df_clientes = pd.read_excel(link_clientes, sheet_name="System-Clientes")
 

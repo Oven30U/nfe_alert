@@ -1,5 +1,5 @@
 from playwright.async_api import Playwright, async_playwright
-from jurisdiccion import Jurisdiccion, LoginError
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class LaPampa(Jurisdiccion):

@@ -1,5 +1,6 @@
 from playwright.async_api import Playwright, async_playwright
-from jurisdiccion import Jurisdiccion, LoginError
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+from datetime import datetime
 
 
 class LaRioja(Jurisdiccion):
@@ -30,18 +31,13 @@ class LaRioja(Jurisdiccion):
 
     async def consultar_notificaciones(self):
         await self.page.goto("https://www.dgiplarioja.gob.ar/frontend51/page?1,principal,LR-Aplicacion,O,es,0,")
-        iframe = self.page.frames[0]
-        # Seleccionar el elemento usando el método locator y luego llenar el campo
-        login_user = iframe.locator("input#vUSRLOGIN")
-        await login_user.type(f"{self._cuit}")
-        await iframe.locator("input#vUSRLOGIN").fill(f"{self._cuit}")
-        # await self.page.fill("//input[@id='vUSRLOGIN']", f"{self._cuit}")
-        await iframe.fill("//input[@id='vUSRLOGIN']", f"{self._cuit}")
-        await iframe.fill("input#vUSRLOGIN", f"{self._cuit}")
-        await iframe.fill("input#vPWDLOGIN", f"{self._clave_fiscal}")
-        await iframe.click("//input[@name='BUTTON1']")
+        frame = self.page.frame_locator("iframe[name=\"gxpea000098000025\"]")
+        await frame.locator("#vUSRLOGIN").fill(f"{self._cuit}")
+        await frame.locator("#vPWDLOGIN").fill(f"{self._clave_fiscal}")
+        await frame.locator("input[name='BUTTON1']").click()
 
         await self.page.wait_for_load_state("domcontentloaded")
+        await self.page.wait_for_load_state("networkidle")
 
         if (
                 await  self.page.is_visible("text=El CUIT ingresado No Existe o No se encuentra Activo")
@@ -50,24 +46,26 @@ class LaRioja(Jurisdiccion):
                 "Error de login en La Rioja, al autorizar al usuario", self.cliente
             )
 
-        # cuit_clic = self._cuit_cliente_input[:2] + "-" + self._cuit_cliente_input[2:]
-        # await iframe.click(
-        #     f"//form[@id='FrmSeleccionEmpresa']//td[contains(text(),'{cuit_clic}')]/following-sibling::td[2]/input[@type='radio']")
-        # await iframe.click("input#vConfirmar")
-        # await iframe.click("//li[contains(text(), 'Consulta de Novedades/Trámites')]")
-        # await self.page.wait_for_load_state("domcontentloaded")
-        # await self.page.wait_for_load_state("networkidle")
-
     async def buscar_notificacion(self):
-        iframe = self.page.frame(name="iframe1")
-        # Obtener todas las celdas que coinciden con el XPath
-        cells = await iframe.query_selector_all("//table//tr//td[position() mod 6 = 0]")
+        # frame = self.page.frames[0]
+        frame = self.page.frame_locator("iframe[name=\"gxpea000098000025\"]")
+        await frame.locator("//input[@title='Domicilio Fiscal Electrónico']").wait_for(state="visible")
+        await frame.locator("//input[@title='Domicilio Fiscal Electrónico']").click()
 
-        # Iterar a través de las celdas y verificar si alguna contiene el texto "LEIDO"
+        # Obtener todas las celdas que coinciden con el XPath
+        cells = await frame.locator("//table[@id='GrdmensajesContainerTbl']//td[@colindex='7']").all()
+
+        fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
+        fecha_hasta_dt = datetime.strptime(self.fecha_hasta, "%d%m%Y")
+
         for cell in cells:
             text = await cell.inner_text()
-            if "LEIDO" not in text:
-                return True
+            try:
+                cell_date = datetime.strptime(text, "%d/%m/%Y %H:%M:%S")
+                if fecha_desde_dt <= cell_date <= fecha_hasta_dt:
+                    return True
+            except ValueError:
+                continue
 
         return False
 
@@ -80,8 +78,8 @@ class LaRioja(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        fecha_desde = "01072024"
-        fecha_hasta = "30072024"
+        fecha_desde = "01082024"
+        fecha_hasta = "30082024"
 
         cuit_LaRioja = "30677757295"
         clave_fiscal_LaRioja = "Natura2024"

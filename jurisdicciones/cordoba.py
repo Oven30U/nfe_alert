@@ -1,8 +1,7 @@
-import asyncio
 from datetime import datetime
-from playwright.async_api import Playwright, async_playwright, expect
+from playwright.async_api import Playwright, async_playwright
 from playwright._impl._errors import TimeoutError
-from jurisdiccion import Jurisdiccion, ConsultarNotificacionesError
+from jurisdicciones.jurisdiccion import Jurisdiccion, ConsultarNotificacionesError
 
 
 class Cordoba(Jurisdiccion):
@@ -67,7 +66,7 @@ class Cordoba(Jurisdiccion):
                 await self.page.wait_for_selector(
                     a_svg_cuit,
                     state="attached",
-                    timeout=3000,
+                    timeout=12000,
                 )
                 await self.page.click(a_svg_cuit)
                 break
@@ -77,7 +76,7 @@ class Cordoba(Jurisdiccion):
                     await self.page.wait_for_selector(
                         pagination_locator,
                         state="attached",
-                        timeout=3000,
+                        timeout=12000,
                     )
                     await self.page.click(pagination_locator)
                 except TimeoutError:
@@ -217,35 +216,35 @@ class Cordoba(Jurisdiccion):
         return await super().procesar_jurisdiccion()
 
 
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
-
-        # client = "EDGE ARGENTINA S.R.L"
-        # cuit_Cordoba = "20386165476"
-        # clave_fiscal_Cordoba = "Gabriel1994"
-        # cuit_cliente_input = "30714604356"
-
-        client = "MAGNETI MARELLI CONJ.DE ESCAPE S.A"
-        cuit_Cordoba = "23381628124"
-        clave_fiscal_Cordoba = "Achavesgaspar24"
-        cuit_cliente_input = "30707570144"
-
-
-        cordoba = await Cordoba.create(
-            playwright,
-            client,
-            cuit_Cordoba,
-            clave_fiscal_Cordoba,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await cordoba.procesar_jurisdiccion()
-
-
 if __name__ == "__main__":
     import asyncio
+
+
+    async def main():
+        async with async_playwright() as playwright:
+            fecha_desde = "01052024"
+            fecha_hasta = "30052024"
+
+            client = "EDGE ARGENTINA S.R.L"
+            cuit_Cordoba = "20386165476"
+            clave_fiscal_Cordoba = "Gabriel1994"
+            cuit_cliente_input = "30714604356"
+
+            # client = "MAGNETI MARELLI CONJ.DE ESCAPE S.A"
+            # cuit_Cordoba = "23381628124"
+            # clave_fiscal_Cordoba = "Achavesgaspar24"
+            # cuit_cliente_input = "30707570144"
+
+            cordoba = await Cordoba.create(
+                playwright,
+                client,
+                cuit_Cordoba,
+                clave_fiscal_Cordoba,
+                fecha_desde,
+                fecha_hasta,
+                cuit_cliente_input,
+            )
+            await cordoba.procesar_jurisdiccion()
+
 
     asyncio.run(main())

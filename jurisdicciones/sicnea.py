@@ -1,8 +1,6 @@
-import asyncio
-
-from playwright.async_api import Playwright, async_playwright, expect
+from playwright.async_api import Playwright, async_playwright
 from datetime import datetime
-from jurisdiccion import Jurisdiccion
+from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class Sicnea(Jurisdiccion):
@@ -96,8 +94,9 @@ class Sicnea(Jurisdiccion):
                     print("Hay datos relacionados a la busqueda")
                     self.hay_notificacion = True
             else:
-                # Espera un corto tiempo antes de volver a verificar, para evitar saturar el CPU
-                await asyncio.sleep(0.5)
+                # await asyncio.sleep(0.5) # Esperar 0.5 segundos antes de volver a intentar
+                await self.frame.wait_for_selector("div#pnlBotonera")
+
                 print(f"SICNEA: intento de carga: {intento_encontrado}")
                 intento_encontrado += 1
 
@@ -107,11 +106,12 @@ class Sicnea(Jurisdiccion):
         try:
             self.fecha_desde = self.fecha_desde.replace("/", "")
             self.fecha_hasta = self.fecha_hasta.replace("/", "")
-            nombre_archivo_enviadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_enviadas.png"
+            # nombre_archivo_enviadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_enviadas.png"
             await self.frame.wait_for_selector("input#btnBuscar")
-            await self.new_page_2.screenshot(path=nombre_archivo_enviadas, full_page=True)
+            # await self.new_page_2.screenshot(path=nombre_archivo_enviadas, full_page=True)
+            await super().tomar_screenshot(self.new_page_2, nombre_extra="_enviadas")
 
-            nombre_archivo_notificadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_notificadas"
+            # nombre_archivo_notificadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_notificadas"
             await self.frame.select_option("select#ddlEstado", value="NOTI")
             await self.frame.click("input[name='btnBuscar']")
             # Inicializar una variable para controlar el bucle
@@ -125,15 +125,17 @@ class Sicnea(Jurisdiccion):
                     notificado_cargado = True
             await self.frame.wait_for_selector("input#btnBuscar")
 
-            await self.new_page_2.screenshot(path=f"{nombre_archivo_notificadas}_0.png",
-                                             full_page=True)
+            # await self.new_page_2.screenshot(path=f"{nombre_archivo_notificadas}_0.png",
+            #                                  full_page=True)
+            await super().tomar_screenshot(self.new_page_2, nombre_extra="_notificadas")
             cantidad_paginas_notificadas = 1
             while await self.frame.query_selector("a#lnkSiguiente"):
                 await self.frame.click("a#lnkSiguiente")
                 await self.frame.wait_for_selector("input#btnBuscar")
-                await self.new_page_2.screenshot(
-                    path=f"{nombre_archivo_notificadas}_{cantidad_paginas_notificadas}.png",
-                    full_page=True)
+                # await self.new_page_2.screenshot(
+                #     path=f"{nombre_archivo_notificadas}_{cantidad_paginas_notificadas}.png",
+                #     full_page=True)
+                await super().tomar_screenshot(self.new_page_2, nombre_extra=f"_notificadas_{cantidad_paginas_notificadas}")
                 cantidad_paginas_notificadas += 1
 
                 # a  # lnkSiguiente
@@ -151,30 +153,33 @@ class Sicnea(Jurisdiccion):
         return await super().procesar_jurisdiccion()
 
 
-async def main():
-    async with async_playwright() as playwright:
-        # client = "EDGE ARGENTINA S.R.L"
-        # cuit_cliente_input = "30714604356"
-        client = "SIMPLOT ARGENTINA S.R.L"
-        cuit_cliente_input = "30710920075"
 
-        clave_fiscal_Sicnea = "MaiS14822788"
-        cuit_Sicnea = "27291463385"
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
-        sicnea = await Sicnea.create(
-            playwright,
-            client,
-            cuit_Sicnea,
-            clave_fiscal_Sicnea,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await sicnea.procesar_jurisdiccion()
 
 
 if __name__ == "__main__":
     import asyncio
+
+
+    async def main():
+        async with async_playwright() as playwright:
+            # client = "EDGE ARGENTINA S.R.L"
+            # cuit_cliente_input = "30714604356"
+            client = "SIMPLOT ARGENTINA S.R.L"
+            cuit_cliente_input = "30710920075"
+
+            clave_fiscal_Sicnea = "MaiS14822788"
+            cuit_Sicnea = "27291463385"
+            fecha_desde = "01052024"
+            fecha_hasta = "30052024"
+            sicnea = await Sicnea.create(
+                playwright,
+                client,
+                cuit_Sicnea,
+                clave_fiscal_Sicnea,
+                fecha_desde,
+                fecha_hasta,
+                cuit_cliente_input,
+            )
+            await sicnea.procesar_jurisdiccion()
 
     asyncio.run(main())

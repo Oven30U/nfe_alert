@@ -1,1 +1,0 @@
-PATH_ESTRUCTURA_ROBOT = r"C:\Users\lmarinaro\OneDrive - Deloitte (O365D)\Documents\Proyectos\test_robot_framework\dfe\Estructura-robot"
