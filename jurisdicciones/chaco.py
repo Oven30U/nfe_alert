@@ -42,8 +42,10 @@ class Chaco(Jurisdiccion):
             )
         await self.page.wait_for_load_state("networkidle")
         await self.page.locator("//input[@name='BTNACEPTAR']").click()
-        await  self.page.locator("//a[contains(text(), 'Mi Ventanilla')]").click()
-        await  self.page.locator("//a[contains(text(), 'Avisos')]").click()
+        await self.page.wait_for_selector("//a[contains(text(), 'Mi Ventanilla')]")
+        await self.page.locator("//a[contains(text(), 'Mi Ventanilla')]").click()
+        await self.page.wait_for_selector("//a[contains(text(), 'Avisos')]")
+        await self.page.locator("//a[contains(text(), 'Avisos')]").click()
         await self.page.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):

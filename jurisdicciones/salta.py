@@ -53,20 +53,6 @@ class Salta(Jurisdiccion):
     async def buscar_notificacion(self):
         elements = await self.page.locator("//td[contains(text(),'Por el momento no tiene novedades...')]").all()
         return False if len(elements) == 2 else True
-        # else:
-        #     # Seleccionar la segunda ocurrencia de fechas_disposicion
-        #     fecha_mas_actual = self.page.locator("//table[@id='table7']//tr//td[3]").nth(1)
-        #     fecha_text = (await fecha_mas_actual.inner_text()).strip()
-        #     try:
-        #         fecha_text = datetime.strptime(fecha_text, "%d/%m/%Y")
-        #     except ValueError:
-        #         return False
-        #     fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
-        #     fecha_hasta_dt = datetime.strptime(self.fecha_hasta, "%d%m%Y")
-        #     if fecha_desde_dt <= fecha_text <= fecha_hasta_dt:
-        #         return True
-        #     else:
-        #         return False
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)

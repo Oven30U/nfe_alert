@@ -1,6 +1,9 @@
 DEBUG = True
+# DEBUG = False
+
 headless_state = False if DEBUG else True
-# headless_state = True
+# headless_state = True  # Para no ver el navegador
+# headless_state = False  # Para ver el navegador
 
 # (DEBUG) & (EJECUTAR_TODOS_CLIENTES)  ≥ Todos los clientes
 # (DEBUG) & (NOT EJECUTAR_TODOS_CLIENTES) ≥ Clientes de la lista
@@ -53,7 +56,7 @@ link_clientes = f"{link_system}System-Clientes.xlsx"
 
 # Jurisdiccion
 PATH_ESTRUCTURA_ROBOT = "C:/Users/lmarinaro\OneDrive - Deloitte (O365D)/Documents\Proyectos/test_robot_framework/dfe/Estructura-robot"
-log_file_path = "Estructura-robot/System/logfile.log"
+log_file_path = f"{PATH_ESTRUCTURA_ROBOT}/System/logfile.log"
 
 if __name__ == "__main__":
     import asyncio

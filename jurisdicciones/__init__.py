@@ -24,3 +24,4 @@ from .catamarca import Catamarca  # 18
 from .corrientes import Corrientes  # 19
 from .formosa import Formosa  # 20
 from .salta import Salta  # 21
+from .san_luis import SanLuis  # 22
