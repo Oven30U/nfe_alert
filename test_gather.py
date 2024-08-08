@@ -1,6 +1,8 @@
 import asyncio
 import pytest
-from test_unit import TestNacional, TestArba, TestAgip, TestMendoza, TestCordoba, TestNeuquen, TestRioNegro, TestTucuman, TestMisiones, TestEntreRios, TestJujuy, TestChubut
+from test_unit import TestNacional, TestArba, TestAgip, TestMendoza, TestCordoba, TestNeuquen, TestRioNegro, \
+    TestTucuman, TestMisiones, TestEntreRios, TestJujuy, TestChubut, TestLaPampa, TestChaco
+
 
 class TestAll:
     @pytest.mark.asyncio
@@ -19,6 +21,8 @@ class TestAll:
             TestEntreRios(),
             TestJujuy(),
             TestChubut(),
+            TestLaPampa(),
+            TestChaco(),
         ]
 
         # Crear una lista de tareas para ejecutar el método procesar_jurisdiccion() para cada jurisdicción

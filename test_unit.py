@@ -131,8 +131,8 @@ class TestNacional(BaseTest, ErrorTest):
         self.client = "EDGE ARGENTINA S.R.L"
         self.cuit = "20386165476"
         self.clave_fiscal = "Gabriel1994"
-        self.fecha_desde = "01/05/2024"
-        self.fecha_hasta = "30/05/2024"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
     @pytest.mark.base
@@ -606,6 +606,45 @@ class TestLaPampa(BaseTest, ErrorTest):
     @pytest.mark.base
     @pytest.mark.asyncio
     async def test_la_pampa(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_la_pampa_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,
+        )
+
+
+class TestChaco(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.chaco import Chaco
+
+        self.Jurisdiccion = Chaco
+        self.client = "NATURA COSMETICOS S.A"
+        self.cuit = "30677757295"
+        self.clave_fiscal = "Natura0."
+        self.fecha_desde = "01072024"
+        self.fecha_hasta = "30072024"
+        self.cuit_cliente_input = "30677757295"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_chaco(self):
         await self.run_base_test(
             self.Jurisdiccion,
             self.client,

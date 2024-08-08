@@ -1,18 +1,19 @@
 from playwright.async_api import Playwright, async_playwright
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+from datetime import datetime
 
 
 class Chubut(Jurisdiccion):
     @classmethod
     async def create(
-        cls,
-        playwright: Playwright,
-        cliente,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input,
+            cls,
+            playwright: Playwright,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
     ):
         self = await super().create(
             playwright,
@@ -31,11 +32,11 @@ class Chubut(Jurisdiccion):
         await self.page.goto(
             "https://servicios.dgrchubut.gov.ar/modulos/login_siat.php?back_url=%2Fmodulos%2Fedom_contrib.php"
         )
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("load")
         await self.page.fill("xpath=//input[@name='log_user']", self._cuit)
         await self.page.fill("xpath=//input[@name='log_pass']", self._clave_fiscal)
         await self.page.click("xpath=//input[@class='entrar']")
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("load")
         incorrect_login = self.page.locator(
             'xpath=//div[text()="Usuario/clave incorrectos"]'
         )
@@ -43,24 +44,26 @@ class Chubut(Jurisdiccion):
             raise LoginError("Login CUIT incorrecto", self.cliente)
 
     async def buscar_notificacion(self):
-        heights = []
-        for tabla_id in ["actos_grid", "actos_grid_fisca"]:
-            height = await self.page.evaluate(
-                f"""
-                (() => {{
-                    const tabla = document.querySelector("#{tabla_id}" + " tbody tr td:first-child");
-                    return tabla ? window.getComputedStyle(tabla).height : "0";
-                }})()
-            """
-            )
-            heights.append(height)
+        fechas_envio_comunicaciones = await self.page.locator(
+            "//table[@id='actos_grid']//tr[@tabindex='-1']//td[3]").all()
+        fechas_envio_fiscalizaciones = await self.page.locator(
+            "//table[@id='actos_grid_fisca']//tr[@tabindex='-1']//td[3]").all()
 
-        if all(height != "0px" for height in heights):
-            self.hay_notificacion = True
-        else:
-            self.hay_notificacion = False
+        fechas_envio = fechas_envio_comunicaciones + fechas_envio_fiscalizaciones
 
-        return self.hay_notificacion
+        fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
+        fecha_hasta_dt = datetime.strptime(self.fecha_hasta, "%d%m%Y")
+
+        for fecha in fechas_envio:
+            text = await fecha.inner_text()
+            try:
+                fecha_dt = datetime.strptime(text, "%d/%m/%Y")
+                if fecha_desde_dt <= fecha_dt <= fecha_hasta_dt:
+                    return True
+            except ValueError:
+                continue
+
+        return False
 
     async def tomar_screenshot(self):
         """Tomar dos screenshot's en la jurisdicción de Chubut."""
@@ -77,27 +80,35 @@ class Chubut(Jurisdiccion):
         return await super().procesar_jurisdiccion()
 
 
-async def main():
-    async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
-        cuit_Chubut = "30714604356"
-        clave_fiscal_Chubut = "Edge2023"
-        cuit_cliente_input = "30714604356"
-        chubut = await Chubut.create(
-            playwright,
-            client,
-            cuit_Chubut,
-            clave_fiscal_Chubut,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await chubut.procesar_jurisdiccion()
-
-
 if __name__ == "__main__":
     import asyncio
+
+
+    async def main():
+        async with async_playwright() as playwright:
+            fecha_desde = "01052024"
+            fecha_hasta = "30052024"
+
+            # cuit_Chubut = "30714604356"
+            # client = "EDGE ARGENTINA S.R.L"
+            # clave_fiscal_Chubut = "Edge2023"
+            # cuit_cliente_input = "30714604356"
+
+            cuit_Chubut = "30677757295"
+            client = "NATURA COSMETICOS S.A"
+            clave_fiscal_Chubut = "natura00"
+            cuit_cliente_input = "30677757295"
+
+            chubut = await Chubut.create(
+                playwright,
+                client,
+                cuit_Chubut,
+                clave_fiscal_Chubut,
+                fecha_desde,
+                fecha_hasta,
+                cuit_cliente_input,
+            )
+            await chubut.procesar_jurisdiccion()
+
 
     asyncio.run(main())

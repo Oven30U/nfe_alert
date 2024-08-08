@@ -1,13 +1,16 @@
-# Introducción 
-Proyecto para realizar la revisión de los DFE de las jurisdicciones de la República Argentina. 
+# Introducción
+
+Proyecto para realizar la revisión de los DFE de las jurisdicciones de la República Argentina.
 
 # Estructura
+
 Pasos para utilizar:
+
 1. Crear el virtual enviroment (en caso de no existir utilizando requirements.txt)
 2. Ejecutar main.py y verificar el funcionamiento con el archivo de prueba
 3. Tener configurado git
 4. Crear el archivo bat:
-   
+
    ***Precaución con git reset hard*** y actualizar path del proyecto
    ```bat
    @echo off
@@ -20,9 +23,31 @@ Pasos para utilizar:
    ```
 5. Configurar la tarea programada para que se ejecute el archivo bat
 
-
 # Testing
+
 Para realizar los test unitarios de cada jurisdiccion se debe ejecutar el siguiente comando:
+
 ```bash
+# Ejecutar todos los tests
+pytest
+
+# Ejecutar tests de una clase específica
+pytest test_unit.py::TestJujuy
+
+# Ejecutar tests de un método específico en una clase
+pytest test_unit.py::TestJujuy::test_jujuy
+pytest test_unit.py::TestJujuy::test_jujuy_error
+
+# Ejecutar tests con un marcador específico
+pytest -m base
+pytest -m error
+
+# Ejecutar tests múltiples veces
 pytest --count=4 test_unit.py::TestLaPampa
+
+# Detener al primer fallo y reintentar test fallido hasta 3 veces
+pytest --maxfail=1 --reruns 3
+
+# Definir la cantidad de veces a ejecutar el test
+pytest --count=10 test_unit.py::TestJujuy
 ```

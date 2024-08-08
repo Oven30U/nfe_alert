@@ -8,7 +8,7 @@ from datetime import datetime
 import pandas as pd
 from playwright.async_api import async_playwright
 
-from config import PATH_ESTRUCTURA_ROBOT, DEBUG
+from config import PATH_ESTRUCTURA_ROBOT, DEBUG, ENVIAR_CORREO_TEST, CORREO_TEST
 from functions.delete_backs import delete_zip_files_in_backup
 from conectar_db import conectar_db
 from inputs import obtener_clientes
@@ -145,7 +145,7 @@ async def main():
                     })
 
                     if df_final_cliente["Error"].notna().any():
-                        correo_output = 'lmarinaro@deloitte.com'
+                        correo_output = CORREO_TEST
                         estado_value = "Proceso terminado con errores"
                     else:
                         estado_value = "Correcto"
@@ -165,10 +165,9 @@ async def main():
                     # Antes de llamar a enviar_correo(), inicializar la variable
                     correo_enviado_exitosamente = False
 
-                    # Comentar para testing para casos correctos.
-                    # Con al menos un Incorrecto se envía siempre a lmarinaro
-                    if DEBUG:
-                        correo_output = 'lmarinaro@deloitte.com'
+                    # Con al menos un Incorrecto se envía siempre al correo test
+                    if DEBUG and ENVIAR_CORREO_TEST:
+                        correo_output = CORREO_TEST
                     try:
                         enviar_correo(
                             receptor=correo_output,

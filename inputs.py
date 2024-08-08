@@ -4,7 +4,8 @@ from datetime import datetime
 from jurisdicciones.jurisdiccion import LoggedException
 from cliente_system import ClienteSystem
 from win32com.client import Dispatch
-from config import jurisdiccion_clases, DEBUG, EJECUTAR_TODOS_CLIENTES, clientes_si_verificar_config
+from config import jurisdiccion_clases, DEBUG, EJECUTAR_TODOS_CLIENTES, EJECUTAR_CLIENTES_LISTA, \
+    clientes_si_verificar_config
 
 
 class InputException(LoggedException):
@@ -50,6 +51,46 @@ def cerrar_excel(nombres_archivos):
         pass
 
 
+def verificar_cliente(cliente_system, archivo_input_a_verificar, clientes_si_verificar_config, clientes_si_verificar,
+                      clientes_no_verificar):
+    if cliente_system.nombre in clientes_si_verificar_config:
+        clientes_si_verificar.append(cliente_system)
+    else:
+        clientes_no_verificar.append(cliente_system)
+
+
+def verificar_clientes(cliente_system, archivo_input_a_verificar, DEBUG, EJECUTAR_TODOS_CLIENTES,
+                       EJECUTAR_CLIENTES_LISTA, clientes_si_verificar_config, clientes_si_verificar,
+                       clientes_no_verificar):
+    """
+    Verifica los clientes según las configuraciones y los agrega a las listas correspondientes.
+
+    Parámetros:
+    - cliente_system: Objeto ClienteSystem que representa al cliente a verificar.
+    - archivo_input_a_verificar: Ruta del archivo de input a verificar.
+    - DEBUG: Booleano que indica si el modo debug está activado.
+    - EJECUTAR_TODOS_CLIENTES: Booleano que indica si se deben ejecutar todos los clientes.
+    - EJECUTAR_CLIENTES_LISTA: Booleano que indica si se deben ejecutar los clientes de la lista.
+    - clientes_si_verificar_config: Lista de nombres de clientes que se deben verificar.
+    - clientes_si_verificar: Lista donde se agregarán los clientes que se deben verificar.
+    - clientes_no_verificar: Lista donde se agregarán los clientes que no se deben verificar.
+    """
+    if DEBUG:
+        if EJECUTAR_TODOS_CLIENTES:
+            clientes_si_verificar.append(cliente_system)
+        elif EJECUTAR_CLIENTES_LISTA:
+            verificar_cliente(cliente_system, archivo_input_a_verificar, clientes_si_verificar_config,
+                              clientes_si_verificar, clientes_no_verificar)
+        else:
+            verificar_cliente(cliente_system, archivo_input_a_verificar, clientes_si_verificar_config,
+                              clientes_si_verificar, clientes_no_verificar)
+    else:
+        if cliente_system.verificar_ejecucion(archivo_input_a_verificar):
+            clientes_si_verificar.append(cliente_system)
+        else:
+            clientes_no_verificar.append(cliente_system)
+
+
 def obtener_clientes():
     PATH_BOT = "Estructura-robot/"
     PATH_SYSTEM = "Estructura-robot/System/"
@@ -85,19 +126,9 @@ def obtener_clientes():
         )
         archivo_input_a_verificar = f"{PATH_BOT}{cliente_system.nombre}/Input"
 
-        if DEBUG:
-            if EJECUTAR_TODOS_CLIENTES:
-                clientes_si_verificar.append(cliente_system)
-            else:
-                if cliente_system.nombre in clientes_si_verificar_config:
-                    clientes_si_verificar.append(cliente_system)
-                else:
-                    clientes_no_verificar.append(cliente_system)
-        else:
-            if cliente_system.verificar_ejecucion(archivo_input_a_verificar):
-                clientes_si_verificar.append(cliente_system)
-            else:
-                clientes_no_verificar.append(cliente_system)
+        verificar_clientes(cliente_system, archivo_input_a_verificar, DEBUG, EJECUTAR_TODOS_CLIENTES,
+                           EJECUTAR_CLIENTES_LISTA, clientes_si_verificar_config, clientes_si_verificar,
+                           clientes_no_verificar)
 
     df_final = pd.DataFrame()
     if not clientes_si_verificar:

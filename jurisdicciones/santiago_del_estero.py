@@ -18,7 +18,7 @@ class SantiagoDelEstero(Jurisdiccion):
         self = await super().create(
             playwright,
             "SantiagoDelEstero",
-            "919 SAN LUIS",
+            "922 SANTIAGO DEL ESTERO",
             cliente,
             cuit,
             clave_fiscal,
@@ -30,45 +30,30 @@ class SantiagoDelEstero(Jurisdiccion):
         return self
 
     async def consultar_notificaciones(self):
-        self.page.set_default_timeout(60000)
+        await self.page.goto(
+            'https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml')
+        await self.page.wait_for_load_state("load")
+
+        # self.page.set_default_timeout(60000)
         # Create a new browser context with bypass_csp=True
-        context = await self.browser.new_context(bypass_csp=True)
-        self.page = await context.new_page()
-        await self.page.goto("https://dgronline.dgrsantiago.gob.ar/dgronline/hlogin.aspx")
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.locator("//input[@id='vUSUID']").fill(f"{self._cuit}")
-        await self.page.locator("//input[@name='vUSUPWD']").fill(f"{self._clave_fiscal}")
-        await self.page.locator("//input[@value='Confirmar']").click()
-        await self.page.wait_for_load_state("networkidle")
+        # context = await self.browser.new_context(bypass_csp=True)
+        # self.page = await context.new_page()
+        # await self.page.goto("https://dgronline.dgrsantiago.gob.ar/dgronline/hlogin.aspx")
+        await self.page.locator("//input[@id='loginForm:username']").fill(f"{self._cuit}")
+        await self.page.locator("//input[@name='loginForm:password']").fill(f"{self._clave_fiscal}")
+        await self.page.locator("//button[@id='loginForm:loginButton']").click()
+        await self.page.wait_for_load_state("load")
         if (
-                await self.page.is_visible("text=Usuario o contraseña incorrecta.")
+                await self.page.is_visible("text=Usuario y Contraseña Incorrectos!")
         ):
             raise LoginError(
                 "Error de login en SantiagoDelEstero, al autorizar al usuario", self.cliente
             )
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_selector("//span[contains(text(),'Rentas Online')]")
-        await self.page.locator(
-            "//a[contains(text(), 'Domicilio Fiscal Electrónico')]").click()
+        await  self.page.wait_for_selector("//h3[contains(text(),'Bandeja de Entrada')]")
         await self.page.wait_for_load_state("load")
-        await self.page.locator(
-            "//a[contains(text(), 'Ingreso Sistema Domicilio Fiscal Electrónico')]").click()
-        await self.page.wait_for_load_state("load")
-        await self.page.locator("//img[@id='vBOTDOMICILIOELECTRONICO']").click()
-        await self.page.wait_for_load_state("load")
-        new_page = await self.page.context.wait_for_event("page")
-        await new_page.wait_for_load_state("load")
-        if await new_page.locator("//button[@id='proceed-button']").is_visible():
-            # await new_page.locator("//button[@id='proceed-button']").click()
-            # await new_page.wait_for_load_state("load")
-            # await new_page.evaluate("document.querySelector('#proceed-button').click()")
-            await new_page.goto('https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml')
-        await new_page.wait_for_load_state("load")
-        await  new_page.wait_for_selector("//h3[contains(text(),'Bandeja de Entrada')]")
 
     async def buscar_notificacion(self):
-        new_page = self.page.context.pages[-1]
-        fechas_disposicion = await new_page.locator("//tbody[@id='form:tablanotificaciones_data']//tr//td[5]").all()
+        fechas_disposicion = await self.page.locator("//tbody[@id='form:tablanotificaciones_data']//tr//td[5]").all()
 
         fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
         fecha_hasta_dt = datetime.strptime(self.fecha_hasta, "%d%m%Y")
@@ -76,7 +61,7 @@ class SantiagoDelEstero(Jurisdiccion):
         for fecha in fechas_disposicion:
             text = await fecha.inner_text()
             try:
-                fecha_dt = datetime.strptime(text, "%d/%m/%Y %H:%M:%S")
+                fecha_dt = datetime.strptime(text, "%d/%m/%Y")
                 if fecha_desde_dt <= fecha_dt <= fecha_hasta_dt:
                     return True
             except ValueError:
@@ -84,8 +69,7 @@ class SantiagoDelEstero(Jurisdiccion):
 
         return False
 
-        return not await iframe.locator(
-            "//span[contains(text(),'No se han encontrado datos para mostrar')]").is_visible()
+        # return not await self.page.locator("//span[contains(text(),'No se han encontrado datos para mostrar')]").is_visible()
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)
@@ -100,7 +84,7 @@ if __name__ == "__main__":
 
     async def main():
         async with async_playwright() as playwright:
-            fecha_desde = "01012020"
+            fecha_desde = "01082024"
             fecha_hasta = "30082024"
 
             cuit_SantiagoDelEstero = "30714604356"

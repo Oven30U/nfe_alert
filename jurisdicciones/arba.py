@@ -29,11 +29,13 @@ class Arba(Jurisdiccion):
         return self
 
     async def consultar_notificaciones(self):
+        self.page.set_default_timeout(90000)
         await self.page.goto("https://www.arba.gov.ar/Gestionar/PanelAutogestion.asp")
+        await self.page.wait_for_load_state("load")
         await self.page.fill("#CUIT", f"{self._cuit}")
         await self.page.fill("#clave_Cuit", f"{self._clave_fiscal}")
-        # await asyncio.sleep(2)
-        await self.page.press("#clave_Cuit", "Enter")
+        await self.page.locator("//button[@value='Ingresar']").click()
+        # await self.page.press("#clave_Cuit", "Enter")
         if (
                 await self.page.is_visible(
                     "text=Ocurrio un error inesperado al autorizar al usuario"
@@ -46,14 +48,16 @@ class Arba(Jurisdiccion):
             raise LoginError(
                 "Error de login en ARBA, al autorizar al usuario", self.cliente
             )
-        await self.page.wait_for_load_state("domcontentloaded")
+        await self.page.wait_for_load_state("load")
         await self.page.click("xpath=//span[contains(text(), 'DFE')]")
-        await self.page.wait_for_load_state("domcontentloaded")
-        if await self.page.is_visible("text=Seleccione un rol", timeout=5000):
+        await self.page.wait_for_load_state("load")
+        if await self.page.is_visible("text=Seleccione un rol", timeout=60000):
             await self.page.select_option(
                 "select[name='rol']", "ContribuyentesGral/Contribuyente"
             )
-            await self.page.click("xpath=//button[@type='submit']")
+            # await self.page.click("xpath=//button[@type='submit']")
+            await self.page.click("//button[contains(text(),'Continuar')]")
+            await self.page.wait_for_load_state("load")
         await self.page.click("xpath=//td[@id='tdFiltroLeidaNO']/a")
         await self.page.click('a[href="#tabs-Todas"]')
 
@@ -64,6 +68,7 @@ class Arba(Jurisdiccion):
             self.page)
 
     async def tomar_screenshot(self):
+        await self.page.wait_for_load_state("load")
         return await super().tomar_screenshot(self.page)
 
     async def procesar_jurisdiccion(self):
