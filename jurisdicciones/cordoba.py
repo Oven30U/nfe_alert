@@ -63,6 +63,7 @@ class Cordoba(Jurisdiccion):
 
         while True:
             try:
+                await self.page.wait_for_load_state("load", timeout=90000)
                 await self.page.wait_for_selector(
                     a_svg_cuit,
                     state="attached",
@@ -155,8 +156,9 @@ class Cordoba(Jurisdiccion):
         # await self.page.wait_for_load_state("networkidle", timeout=60000)
 
         # //*[contains(text(), 'En representación de')]
+        await self.page.wait_for_load_state("load", timeout=90000)
         await self.page.wait_for_selector(
-            'text="En representación de"', state="visible"
+            'text="En representación de"', state="visible", timeout=90000
         )
         # await self.page.wait_for_load_state("load", timeout=60000)
         await self.page.goto(

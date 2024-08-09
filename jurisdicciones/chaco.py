@@ -1,6 +1,18 @@
 from playwright.async_api import Playwright, async_playwright
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+
+
 # from datetime import datetime
+
+async def wait_for_selector_with_retry(page, selector, retries=3, timeout=30000):
+    for attempt in range(retries):
+        if await page.wait_for_selector(selector, timeout=timeout):
+            return
+        else:
+            if attempt < retries - 1:
+                continue
+            else:
+                raise
 
 
 class Chaco(Jurisdiccion):
@@ -30,7 +42,9 @@ class Chaco(Jurisdiccion):
         return self
 
     async def consultar_notificaciones(self):
-        await self.page.goto("https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/iniciocontribuyente")
+        await self.page.goto("https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/iniciocontribuyente", wait_until="load")
+        # await self.page.wait_for_selector("#vCONCUIT")
+        # await wait_for_selector_with_retry(self.page, "#vCONCUIT")
         await self.page.locator("#vCONCUIT").fill(f"{self._cuit}")
         await self.page.locator("#vCONTRASENA").fill(f"{self._clave_fiscal}")
         await self.page.locator("//input[@name='BUTTON1']").click()
@@ -43,10 +57,14 @@ class Chaco(Jurisdiccion):
         await self.page.wait_for_load_state("networkidle")
         await self.page.locator("//input[@name='BTNACEPTAR']").click()
         await self.page.wait_for_selector("//a[contains(text(), 'Mi Ventanilla')]")
-        await self.page.locator("//a[contains(text(), 'Mi Ventanilla')]").click()
-        await self.page.wait_for_selector("//a[contains(text(), 'Avisos')]")
-        await self.page.locator("//a[contains(text(), 'Avisos')]").click()
-        await self.page.wait_for_load_state("networkidle")
+        # await self.page.locator("//a[contains(text(), 'Mi Ventanilla')]").click()
+        # await self.page.wait_for_selector("//a[contains(text(), 'Avisos')]")
+        # await self.page.locator("//a[contains(text(), 'Avisos')]").click()
+        # https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?4DIYuQQKBgi01OQ3HlzQLKcqdGG8GOUC+DXfz/HUZVGImNMPi1vQi9WjdGcyGpPE
+        # https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?4DIYuQQKBgi01OQ3HlzQLKcqdGG8GOUC+DXfz/HUZVGImNMPi1vQi9WjdGcyGpPE
+        # https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?IHG7CHvg0lUSUr4E6VSOdtFhvggPU869hfJNFv5nLM8AuDif3N+XuysFAgIsNd80
+        await self.page.goto("https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?")
+        await self.page.wait_for_load_state("load")
 
     async def buscar_notificacion(self):
         await self.page.is_visible("text=Avisos - Mi Ventanilla Electrónica")
@@ -80,10 +98,15 @@ if __name__ == "__main__":
             fecha_desde = "01082024"
             fecha_hasta = "30082024"
 
-            cuit_Chaco = "30714604356"
-            clave_fiscal_Chaco = "Edge2021"
-            cuit_cliente_input = "30714604356"
-            client = "EDGE ARGENTINA S.R.L"
+            # cuit_Chaco = "30714604356"
+            # clave_fiscal_Chaco = "Edge2021"
+            # cuit_cliente_input = "30714604356"
+            # client = "EDGE ARGENTINA S.R.L"
+
+            cuit_Chaco = "30500846301"
+            clave_fiscal_Chaco = "Chaco22."
+            cuit_cliente_input = "30500846301"
+            client = "ABBOTT LABORATORIES ARG. S.A"
 
             chaco = await Chaco.create(
                 playwright,

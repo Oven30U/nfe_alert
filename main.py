@@ -8,7 +8,8 @@ from datetime import datetime
 import pandas as pd
 from playwright.async_api import async_playwright
 
-from config import PATH_ESTRUCTURA_ROBOT, DEBUG, ENVIAR_CORREO_TEST, CORREO_TEST
+from config import PATH_ESTRUCTURA_ROBOT, CORREO_TEST, LIMITES_REINTENTO, EJECUTAR_TODOS_CLIENTES, \
+    EJECUTAR_CLIENTES_LISTA, clientes_si_verificar_config, jurisdiccion_clases
 from functions.delete_backs import delete_zip_files_in_backup
 from conectar_db import conectar_db
 from inputs import obtener_clientes
@@ -18,9 +19,10 @@ from mapa_plot import crear_mapa, crear_mapa_argentina
 from jurisdicciones import *
 
 
-async def main():
+async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_state: bool = True):
     async with async_playwright() as playwright:
-        df_input = obtener_clientes()
+        df_input = obtener_clientes(DEBUG, EJECUTAR_TODOS_CLIENTES, EJECUTAR_CLIENTES_LISTA,
+                                    clientes_si_verificar_config, jurisdiccion_clases)
         if not df_input.empty:
             # print("df_input esta vacio, finaliza el programa.")
             # return
@@ -101,7 +103,7 @@ async def main():
                         for _, row in df_input_por_cliente.get_group(cliente).iterrows():
                             if row["Jurisdiccion"] == jurisdiction:
                                 JurisdictionClass = globals()[jurisdiction]
-                                for intento in range(10):  # Limitar a 10 intentos por Error
+                                for intento in range(LIMITES_REINTENTO):  # Limitar a 15 intentos por Error
                                     instance = await JurisdictionClass.create(
                                         playwright,
                                         row["Cliente"],
@@ -219,4 +221,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(DEBUG=False, ENVIAR_CORREO_TEST=False, headless_state=True))

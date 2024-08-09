@@ -13,36 +13,43 @@ Variables:
 - `link_clientes`: Ruta al archivo de clientes del sistema.
 - `PATH_ESTRUCTURA_ROBOT`: Ruta al directorio de la estructura del robot.
 - `log_file_path`: Ruta al archivo de log del sistema.
+- `LIMITES_REINTENTO`: Número máximo de reintentos permitidos.
 
 Uso:
 Estas variables son importadas y utilizadas en varios módulos del sistema, principalmente en `inputs.py` para la verificación y ejecución de clientes, y en `main.py` para la configuración general del sistema.
+
+Ejemplo de uso:
+Para ejecutar el script desde `config.py` se toman los valores de:
+    DEBUG y ENVIAR_CORREO_TEST
+Desde main.py estos dos valores son siempre False, pero desde config.py se pueden cambiar a True para probar el envío de correos y los clientes deseados. No actualiza última vez en System-Clientes.
 """
 
-DEBUG = True
-# DEBUG = False
+# DEBUG = True
+DEBUG = False
 
-headless_state = False if DEBUG else True
+# headless_state = False if DEBUG else True
 # headless_state = True  # Para no ver el navegador
-# headless_state = False  # Para ver el navegador
+headless_state = False  # Para ver el navegador
 
 # (DEBUG) & (EJECUTAR_TODOS_CLIENTES)  ≥ Todos los clientes
 # (DEBUG) & (NOT EJECUTAR_TODOS_CLIENTES) ≥ Clientes de la lista
 # (NOT DEBUG)  ≥ Clientes Productivos
-# EJECUTAR_TODOS_CLIENTES = True
-EJECUTAR_TODOS_CLIENTES = False
+EJECUTAR_TODOS_CLIENTES = True
+# EJECUTAR_TODOS_CLIENTES = False
 
 EJECUTAR_CLIENTES_LISTA = True
 # EJECUTAR_CLIENTES_LISTA = False
 clientes_si_verificar_config = [
     # "FACEBOOK ARGENTINA S.R.L",
-    "EDGE ARGENTINA S.R.L",
+    # "EDGE ARGENTINA S.R.L",
     # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
     # "MAGNETI MARELLI REPUESTOS S.A",
-    # "NATURA COSMETICOS S.A",
+    "NATURA COSMETICOS S.A",
     # "ABBOTT LABORATORIES ARG. S.A",
     # "SIMPLOT ARGENTINA S.R.L",
 ]
 
+# ENVIAR_CORREO_TEST = True
 ENVIAR_CORREO_TEST = False
 CORREO_TEST = 'lmarinaro@deloitte.com'
 
@@ -77,8 +84,10 @@ link_clientes = f"{link_system}System-Clientes.xlsx"
 PATH_ESTRUCTURA_ROBOT = "C:/Users/lmarinaro/OneDrive - Deloitte (O365D)/Documents/Proyectos/test_robot_framework/dfe/Estructura-robot"
 log_file_path = f"{PATH_ESTRUCTURA_ROBOT}/System/logfile.log"
 
+LIMITES_REINTENTO = 15
+
 if __name__ == "__main__":
     import asyncio
     from main import main
 
-    asyncio.run(main())
+    asyncio.run(main(DEBUG=DEBUG, ENVIAR_CORREO_TEST=ENVIAR_CORREO_TEST))

@@ -2,6 +2,15 @@
 
 Proyecto para realizar la revisión de los DFE de las jurisdicciones de la República Argentina.
 
+# Ejecución
+
+El archivo principal es **[main.py](main.py)** para correrlo en modo productivo
+
+Desde **[config.py](config.py)** puede setearse el modo Debug con sus respectivas variables.
+
+Si debemos correr desde main.py entonces colocar DEBUG = False en config.py.
+Por el momento el headless se configura unicamente desde config.py
+
 # Estructura
 
 Pasos para utilizar:
@@ -24,6 +33,8 @@ Pasos para utilizar:
 5. Configurar la tarea programada para que se ejecute el archivo bat
 
 # Testing
+
+Archivo de [test unitarios](test_unit.py)
 
 Para realizar los test unitarios de cada jurisdiccion se debe ejecutar el siguiente comando:
 

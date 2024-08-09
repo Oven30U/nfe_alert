@@ -28,6 +28,7 @@ class Nacional(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
         )
+
         self.cuit_cliente_input = str(cuit_cliente_input)
         self.hay_screenshots_filtrados = False
         return self

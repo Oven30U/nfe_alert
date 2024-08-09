@@ -30,4 +30,4 @@ from .salta import Salta  # 19
 from .san_juan import SanJuan  # 20
 from .san_luis import SanLuis  # 21
 from .santiago_del_estero import SantiagoDelEstero  # 22
-from .tucuman import Tucuman  # 23
+from .tucuman import Tucuman  # 23|

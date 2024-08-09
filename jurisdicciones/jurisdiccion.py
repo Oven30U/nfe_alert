@@ -115,7 +115,7 @@ class Jurisdiccion(ABC):
             cuit_cliente_input=None,
             razon_social_cliente_input=None,
             texto_notificacion=None,
-    ):
+        ):
         self = cls()
         self.nombre = nombre
         self.codigo = codigo
