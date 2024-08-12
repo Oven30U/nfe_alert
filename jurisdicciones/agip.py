@@ -3,6 +3,10 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError, ConsultarNotif
 
 
 class Agip(Jurisdiccion):
+    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None, razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input, texto_notificacion, headless)
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
     @classmethod
     async def create(
             cls,
@@ -13,6 +17,9 @@ class Agip(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True
     ):
         self = await super().create(
             playwright,
@@ -24,10 +31,12 @@ class Agip(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
-
     async def consultar_notificaciones(self):
         try:
             await self.page.goto("https://claveciudad.agip.gob.ar/")
@@ -127,6 +136,7 @@ async def main():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            headless=False
         )
         await agip.procesar_jurisdiccion()
 

@@ -6,16 +6,25 @@ from jurisdicciones.jurisdiccion import (
 
 
 class Mendoza(Jurisdiccion):
+    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+                         razon_social_cliente_input, texto_notificacion, headless)
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
     @classmethod
     async def create(
-        cls,
-        playwright: Playwright,
-        cliente,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input,
+            cls,
+            playwright: Playwright,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True
     ):
         self = await super().create(
             playwright,
@@ -27,6 +36,9 @@ class Mendoza(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -81,7 +93,7 @@ class Mendoza(Jurisdiccion):
             "css=[class*='z-listitem']"
         ).count()
         notificaciones_totales = (
-            notificaciones_con_vencimiento + intimaciones + comunicaciones
+                notificaciones_con_vencimiento + intimaciones + comunicaciones
         )
         if notificaciones_totales > 0:
             self.hay_notificacion = True
@@ -127,9 +139,9 @@ class Mendoza(Jurisdiccion):
             raise Exception(f"Error taking screenshot en seccion {seccion}: {e}") from e
 
         if (
-            self.hay_screenshot_notificaciones
-            and self.hay_screenshot_intimaciones
-            and self.hay_screenshot_comunicaciones
+                self.hay_screenshot_notificaciones
+                and self.hay_screenshot_intimaciones
+                and self.hay_screenshot_comunicaciones
         ):
             self.hay_screenshot = True
         return self.hay_screenshot

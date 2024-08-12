@@ -4,6 +4,12 @@ from datetime import datetime
 
 
 class SanJuan(Jurisdiccion):
+    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+                         razon_social_cliente_input, texto_notificacion, headless)
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
     @classmethod
     async def create(
             cls,
@@ -14,6 +20,9 @@ class SanJuan(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True
     ):
         self = await super().create(
             playwright,
@@ -25,21 +34,43 @@ class SanJuan(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def consultar_notificaciones(self):
-        await self.page.goto("https://rentas.dgrsj.gob.ar/sesion/LoginCUR")
-        await self.page.locator("#CuitCUR").fill(f"{self._cuit}")
-        await self.page.locator("#PassCUR").fill(f"{self._clave_fiscal}")
-        await self.page.locator("#btnFormValidarCur").click()
+        async def iniciar_sesion_san_juan(self):
+            await self.page.goto("https://rentas.dgrsj.gob.ar/", wait_until="load")
+            await self.page.locator("(//button[contains(text(),'Iniciar Sesión')])[2]").click()
+            await self.page.locator("(//span[contains(text(),'Iniciar con CUR')])[2]").click()
+            await self.page.wait_for_selector("#CuitCUR", state="visible")
+            await self.page.locator("#CuitCUR").fill(f"{self._cuit}")
+            await self.page.wait_for_selector("#PassCUR", state="visible")
+            await self.page.locator("#PassCUR").fill(f"{self._clave_fiscal}")
+            await self.page.wait_for_selector("#btnFormValidarCur", state="visible")
+            await self.page.wait_for_load_state("networkidle")
+            await self.page.locator("#btnFormValidarCur").click()
+
+        await iniciar_sesion_san_juan(self)
+        retry_limit = 3
+        retries = 0
+        while await self.page.is_visible("//span[contains(text(), 'Validar CUR')]") and retries < retry_limit:
+            await iniciar_sesion_san_juan(self)
+            retries += 1
+
         if (
                 await  self.page.is_visible("text=El N° de CUIT no es válido")
         ):
             raise LoginError(
                 "Error de login en San Juan, al autorizar al usuario", self.cliente
             )
+
+        if (await  self.page.is_visible("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]")):
+            await self.page.locator("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]").click()
+
         await self.page.wait_for_load_state("networkidle")
         await self.page.goto("https://rentas.dgrsj.gob.ar/Notificaciones/getListadoDeNotificaciones")
         await self.page.wait_for_load_state("networkidle")

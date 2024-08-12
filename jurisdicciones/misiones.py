@@ -3,16 +3,25 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Misiones(Jurisdiccion):
+    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+                         razon_social_cliente_input, texto_notificacion, headless)
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
     @classmethod
     async def create(
-        cls,
-        playwright: Playwright,
-        cliente,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input,
+            cls,
+            playwright: Playwright,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True
     ):
         self = await super().create(
             playwright,
@@ -24,7 +33,11 @@ class Misiones(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless
         )
+        self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def consultar_notificaciones(self):
@@ -72,7 +85,7 @@ class Misiones(Jurisdiccion):
             ('notificaciones', 'a#tab_notif'),
             ('avisos', 'a#tab_comun')
         ]
-        self.hay_screenshot = await super().tomar_varias_screenshots(secciones, self.page, delay = 2)
+        self.hay_screenshot = await super().tomar_varias_screenshots(secciones, self.page, delay=2)
         return self.hay_screenshot
 
     async def procesar_jurisdiccion(self):

@@ -4,6 +4,10 @@ from datetime import datetime
 
 
 class Catamarca(Jurisdiccion):
+    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None, razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input, texto_notificacion, headless)
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
     @classmethod
     async def create(
             cls,
@@ -14,6 +18,9 @@ class Catamarca(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True
     ):
         self = await super().create(
             playwright,
@@ -25,6 +32,9 @@ class Catamarca(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -102,6 +112,7 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
+                headless=False,
             )
             await catamarca.procesar_jurisdiccion()
 

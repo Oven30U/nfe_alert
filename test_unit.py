@@ -2,6 +2,9 @@ import pytest
 from playwright.async_api import async_playwright
 
 
+# headless_state = True
+
+
 class BaseTest:
     """
     Clase base para pruebas unitarias.
@@ -35,7 +38,7 @@ class BaseTest:
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
-            cuit_cliente_input,
+            cuit_cliente_input,  # headless=headless_state,
     ):
         async with async_playwright() as playwright:
             jurisdiccion = await Jurisdiccion.create(
@@ -45,7 +48,7 @@ class BaseTest:
                 clave_fiscal,
                 fecha_desde,
                 fecha_hasta,
-                cuit_cliente_input,
+                cuit_cliente_input,  # headless=headless_state,
             )
             await jurisdiccion.procesar_jurisdiccion()
 
@@ -103,7 +106,7 @@ class ErrorTest:
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
-            cuit_cliente_input,
+            cuit_cliente_input,  # headless=headless_state,
     ):
         async with async_playwright() as playwright:
             jurisdiccion = await Jurisdiccion.create(
@@ -113,7 +116,7 @@ class ErrorTest:
                 clave_fiscal,
                 fecha_desde,
                 fecha_hasta,
-                cuit_cliente_input,
+                cuit_cliente_input,  # headless=headless_state,
             )
             await jurisdiccion.procesar_jurisdiccion()
 
@@ -131,7 +134,7 @@ class TestNacional(BaseTest, ErrorTest):
         self.client = "EDGE ARGENTINA S.R.L"
         self.cuit = "20386165476"
         self.clave_fiscal = "Gabriel1994"
-        self.fecha_desde = "01052024"
+        self.fecha_desde = "28052024"
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
 
@@ -145,7 +148,7 @@ class TestNacional(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -158,7 +161,7 @@ class TestNacional(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -184,7 +187,7 @@ class TestArba(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -197,7 +200,7 @@ class TestArba(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -223,7 +226,7 @@ class TestAgip(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -236,7 +239,7 @@ class TestAgip(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -262,7 +265,7 @@ class TestMendoza(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -275,7 +278,7 @@ class TestMendoza(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -301,7 +304,7 @@ class TestCordoba(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -314,7 +317,7 @@ class TestCordoba(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -340,7 +343,7 @@ class TestNeuquen(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -353,7 +356,7 @@ class TestNeuquen(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -379,7 +382,7 @@ class TestRioNegro(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -392,7 +395,7 @@ class TestRioNegro(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -418,7 +421,7 @@ class TestTucuman(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -431,7 +434,7 @@ class TestTucuman(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -457,7 +460,7 @@ class TestMisiones(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -470,7 +473,7 @@ class TestMisiones(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -496,7 +499,7 @@ class TestEntreRios(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -509,7 +512,7 @@ class TestEntreRios(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -535,7 +538,7 @@ class TestJujuy(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -548,7 +551,7 @@ class TestJujuy(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -574,7 +577,7 @@ class TestChubut(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -587,7 +590,7 @@ class TestChubut(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -613,7 +616,7 @@ class TestLaPampa(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
@@ -626,7 +629,7 @@ class TestLaPampa(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
 
@@ -652,12 +655,12 @@ class TestChaco(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
         )
 
     @pytest.mark.error
     @pytest.mark.asyncio
-    async def test_la_pampa_error(self):
+    async def test_chaco_error(self):
         await self.run_error_test(
             self.Jurisdiccion,
             self.client,
@@ -665,5 +668,395 @@ class TestChaco(BaseTest, ErrorTest):
             self.clave_fiscal,
             self.fecha_desde,
             self.fecha_hasta,
-            self.cuit_cliente_input,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+
+class TestSanLuis(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.san_luis import SanLuis
+
+        self.Jurisdiccion = SanLuis
+        self.client = "EDGE ARGENTINA S.R.L"
+        self.cuit = "20104314075"
+        self.clave_fiscal = "Edge2021"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30714604356"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_san_luis(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_san_luis_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+
+class TestSantiagoDelEstero(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.santiago_del_estero import SantiagoDelEstero
+
+        self.Jurisdiccion = SantiagoDelEstero
+        self.client = "EDGE ARGENTINA S.R.L"
+        self.cuit = "30714604356"
+        self.clave_fiscal = "Edge2023"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30714604356"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_santiago_del_estero(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_santiago_del_estero_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+
+class TestSicnea(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.sicnea import Sicnea
+
+        self.Jurisdiccion = Sicnea
+        self.client = "EDGE ARGENTINA S.R.L"
+        self.cuit = "20386165476"
+        self.clave_fiscal = "Gabriel1994"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30714604356"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_sicnea(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_sicnea_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+
+class TestTucuman(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.tucuman import Tucuman
+
+        self.Jurisdiccion = Tucuman
+        self.client = "EDGE ARGENTINA S.R.L"
+        self.cuit = "20386165476"
+        self.clave_fiscal = "Gabriel1994"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30714604356"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_tucuman(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_tucuman_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+
+class TestCatamarca(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.catamarca import Catamarca
+
+        self.Jurisdiccion = Catamarca
+        self.client = "EDGE ARGENTINA S.R.L"
+        self.cuit = "20408964823"
+        self.clave_fiscal = "Elcolo_1998&"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30714604356"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_catamarca(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_catamarca_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+
+class TestCorrientes(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.corrientes import Corrientes
+
+        self.Jurisdiccion = Corrientes
+        self.client = "NATURA COSMETICOS S.A"
+        self.cuit = "30677757295"
+        self.clave_fiscal = "natura18"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30677757295"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_corrientes(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_corrientes_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+
+class TestFormosa(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.formosa import Formosa
+
+        self.Jurisdiccion = Formosa
+        self.client = "NATURA COSMETICOS S.A"
+        self.cuit = "30677757295"
+        self.clave_fiscal = "natura2014"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30677757295"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_formosa(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_formosa_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+
+class TestLaRioja(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.la_rioja import LaRioja
+
+        self.Jurisdiccion = LaRioja
+        self.client = "NATURA COSMETICOS S.A"
+        self.cuit = "30677757295"
+        self.clave_fiscal = "Natura2024"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30677757295"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_la_rioja(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_la_rioja_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+
+class TestSalta(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.salta import Salta
+
+        self.Jurisdiccion = Salta
+        self.client = "NATURA COSMETICOS S.A"
+        self.cuit = "30677757295"
+        self.clave_fiscal = "natura18"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30677757295"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_salta(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_salta_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+
+class TestSanJuan(BaseTest, ErrorTest):
+    def setup_method(self, method):
+        from jurisdicciones.san_juan import SanJuan
+
+        self.Jurisdiccion = SanJuan
+        self.client = "NATURA COSMETICOS S.A"
+        self.cuit = "30677757295"
+        self.clave_fiscal = "GJdd0x"
+        self.fecha_desde = "01052024"
+        self.fecha_hasta = "30052024"
+        self.cuit_cliente_input = "30677757295"
+
+    @pytest.mark.base
+    @pytest.mark.asyncio
+    async def test_san_juan(self):
+        await self.run_base_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
+        )
+
+    @pytest.mark.error
+    @pytest.mark.asyncio
+    async def test_san_juan_error(self):
+        await self.run_error_test(
+            self.Jurisdiccion,
+            self.client,
+            self.cuit,
+            self.clave_fiscal,
+            self.fecha_desde,
+            self.fecha_hasta,
+            self.cuit_cliente_input,  # headless=headless_state,
         )

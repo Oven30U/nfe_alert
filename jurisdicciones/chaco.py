@@ -16,6 +16,34 @@ async def wait_for_selector_with_retry(page, selector, retries=3, timeout=30000)
 
 
 class Chaco(Jurisdiccion):
+    def __init__(
+            self,
+            nombre,
+            codigo,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input=None,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=False,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless
+        )
+
     @classmethod
     async def create(
             cls,
@@ -26,6 +54,9 @@ class Chaco(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=False,
     ):
         self = await super().create(
             playwright,
@@ -37,12 +68,30 @@ class Chaco(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless,
         )
-        self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def consultar_notificaciones(self):
-        await self.page.goto("https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/iniciocontribuyente", wait_until="load")
+        await self.page.goto("https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/iniciocontribuyente",
+                             wait_until="networkidle")
+        # # Minimizar la ventana del navegador usando la API de DevTools
+        # client = await self.page.context.new_cdp_session(self.page)
+        # window_info = await client.send('Browser.getWindowForTarget')
+        # window_id = window_info['windowId']
+        # await client.send('Browser.setWindowBounds', {
+        #     'windowId': window_id,
+        #     'bounds': {'windowState': 'minimized'}
+        # })
+
+        # await self.page.evaluate("window.moveTo(0, 0); window.resizeTo(0, 0);")
+        # await self.page.add_style_tag(
+        # content="*, *::before, *::after { transition: none !important; animation: none !important; }")
+        # await self.context.newPage({'viewport': {'width': 1280, 'height': 800}})
+        await self.page.goto("https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/iniciocontribuyente",
+                             wait_until="networkidle")
         # await self.page.wait_for_selector("#vCONCUIT")
         # await wait_for_selector_with_retry(self.page, "#vCONCUIT")
         await self.page.locator("#vCONCUIT").fill(f"{self._cuit}")
@@ -55,16 +104,24 @@ class Chaco(Jurisdiccion):
                 "Error de login en Chaco, al autorizar al usuario", self.cliente
             )
         await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("load")
         await self.page.locator("//input[@name='BTNACEPTAR']").click()
-        await self.page.wait_for_selector("//a[contains(text(), 'Mi Ventanilla')]")
+        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("load")
+        # max_retry = 3
+        # retry = 0
+        # while not await self.page.is_visible("//a[contains(text(), 'Mi Ventanilla')]") and retry < max_retry:
+        #     await self.page.locator("//input[@name='BTNACEPTAR']").click()
+        #     retry += 1
         # await self.page.locator("//a[contains(text(), 'Mi Ventanilla')]").click()
         # await self.page.wait_for_selector("//a[contains(text(), 'Avisos')]")
         # await self.page.locator("//a[contains(text(), 'Avisos')]").click()
         # https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?4DIYuQQKBgi01OQ3HlzQLKcqdGG8GOUC+DXfz/HUZVGImNMPi1vQi9WjdGcyGpPE
         # https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?4DIYuQQKBgi01OQ3HlzQLKcqdGG8GOUC+DXfz/HUZVGImNMPi1vQi9WjdGcyGpPE
         # https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?IHG7CHvg0lUSUr4E6VSOdtFhvggPU869hfJNFv5nLM8AuDif3N+XuysFAgIsNd80
-        await self.page.goto("https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?")
-        await self.page.wait_for_load_state("load")
+        await self.page.goto("https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?",
+                             wait_until="networkidle")
+        await self.page.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
         await self.page.is_visible("text=Avisos - Mi Ventanilla Electrónica")
@@ -116,6 +173,7 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
+                # headless=False
             )
             await chaco.procesar_jurisdiccion()
 

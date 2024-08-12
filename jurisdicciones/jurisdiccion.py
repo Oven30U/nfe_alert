@@ -65,58 +65,54 @@ class TomarScreenshotError(LoggedException):
 
 class Jurisdiccion(ABC):
     """
-    Clase abstracta que representa una jurisdicción. Esta clase define la estructura y los métodos comunes
-    que deben implementar las clases que representan a las diferentes jurisdicciones.
-
-    Atributos:
-        nombre (str): Nombre de la jurisdicción.
-        codigo (str): Código de la jurisdicción.
-        cliente (str): Nombre del cliente.
-        _cuit (str): CUIT del cliente.
-        _clave_fiscal (str): Clave fiscal del cliente.
-        fecha_desde (str): Fecha de inicio del periodo a consultar.
-        fecha_hasta (str): Fecha de fin del periodo a consultar.
-        _cuit_cliente_input (str): CUIT del cliente a ingresar en la consulta.
-        _razon_social_cliente_input (str): Razón social del cliente a ingresar en la consulta.
-        texto_notificacion (str): Texto de la notificación a buscar.
-        browser (Browser): Instancia del navegador a utilizar.
-        context (BrowserContext): Contexto del navegador.
-        page (Page): Página actual del navegador.
-        hay_notificacion (bool): Indica si se encontró una notificación.
-        hay_screenshot (bool): Indica si se tomó un screenshot.
-        hora_actual (str): Hora actual en formato HHMMSS.
-        error (LoggedException): Error ocurrido durante el procesamiento de la jurisdicción.
+    Clase base abstracta para representar una jurisdicción.
 
     Métodos:
-        create: Método de clase para crear una instancia de la jurisdicción.
-        AFIP_login: Realiza el inicio de sesión en AFIP.
-        consultar_notificaciones: Navega hasta la sección de notificaciones de la jurisdicción.
-        buscar_notificacion: Busca una notificación en la página.
+        __init__: Inicializa una instancia de la clase Jurisdiccion.
+        create: Método de clase asíncrono para crear e inicializar una instancia de Jurisdiccion.
+        AFIP_login: Realiza el inicio de sesión en el portal de AFIP.
+        consultar_notificaciones: Método abstracto para navegar hasta la sección de notificaciones de la jurisdicción.
+        buscar_notificacion: Busca una notificación específica en la página.
         buscar_notificacion_texto_visible: Verifica si un texto específico es visible en la página.
         buscar_notificacion_xpath_visible: Verifica si un elemento específico es visible en la página utilizando un XPath.
         tomar_screenshot: Toma un screenshot de la sección de notificaciones de la jurisdicción.
         tomar_varias_screenshots: Toma varios screenshots de diferentes secciones de la jurisdicción.
         cerrar_navegador: Cierra el navegador.
-        procesar_jurisdiccion: Procesa la jurisdicción, consultando notificaciones, buscando una notificación y tomando un screenshot.
-        enviar_correo_errores: Envía un correo electrónico con los errores ocurridos durante el procesamiento de la jurisdicción.
-    """
+        procesar_jurisdiccion: Procesa la jurisdicción, consultando notificaciones, buscando notificaciones y tomando screenshots.
+        enviar_correo_errores: Envía un correo electrónico con los errores detectados.
 
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
-            nombre,
-            codigo,
-            cliente,
-            cuit,
-            clave_fiscal,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input=None,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-        ):
-        self = cls()
+    Métodos a implementar en clases hijas:
+        consultar_notificaciones: Método utilizado para navegar hasta la sección de notificaciones de la jurisdicción.
+
+    Ejemplo de implementación en una clase hija:
+
+    class Chaco(Jurisdiccion):
+        def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None, razon_social_cliente_input=None, texto_notificacion=None):
+            super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input, texto_notificacion)
+
+        @classmethod
+        async def create(cls, playwright: Playwright, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+            self = await super().create(playwright, "Chaco", "906 CHACO", cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input, texto_notificacion, headless=headless)
+            return self
+
+        async def consultar_notificaciones(self):
+            # Implementación específica para la jurisdicción de Chaco
+            pass
+    """
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
         self.nombre = nombre
         self.codigo = codigo
         self.cliente = cliente
@@ -127,21 +123,59 @@ class Jurisdiccion(ABC):
         self._cuit_cliente_input = str(cuit_cliente_input)
         self._razon_social_cliente_input = razon_social_cliente_input
         self.texto_notificacion = texto_notificacion
-
-        # Modificar el headless a False para ver la navegación y a True para que sea invisible en entorno de producción
-        # True = Producción
-        # False = Desarrollo
-        # self.browser = await playwright.chromium.launch(headless=True)
-        self.browser = await playwright.chromium.launch(headless=headless_state)
-
-        self.context = await self.browser.new_context()
-        self.page = await self.context.new_page()
+        self.browser = None
+        self.context = None
+        self.page = None
         self.hay_notificacion = False
         self.hay_screenshot = False
         self.hora_actual = datetime.now().strftime("%H%M%S")
-        self.error = None
-        return self
+        self.error = None,
+        self.headless = headless
 
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        self = cls(
+            nombre,
+            codigo,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.browser = await playwright.chromium.launch(headless=headless)
+        self.context = await self.browser.new_context()
+        self.page = await self.context.new_page()
+        # if not headless:
+        #     # Minimizar la ventana del navegador usando la API de DevTools
+        #     client = await self.page.context.new_cdp_session(self.page)
+        #     window_info = await client.send('Browser.getWindowForTarget')
+        #     window_id = window_info['windowId']
+        #     await client.send('Browser.setWindowBounds', {
+        #         'windowId': window_id,
+        #         'bounds': {'windowState': 'minimized'}
+        #     })
+        if not headless:
+            await self.minimizar_ventana()
+        return self
     async def AFIP_login(
             self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
     ):
@@ -250,7 +284,9 @@ class Jurisdiccion(ABC):
             contador += 1
         try:
             await page.wait_for_load_state("domcontentloaded")
-            await page.screenshot(path=nombre_archivo, full_page=True)
+            await page.wait_for_load_state("networkidle")
+            await page.wait_for_timeout(5000)  # Wait an additional 5 seconds to ensure everything is loaded
+            await page.screenshot(path=nombre_archivo, full_page=True, timeout=60000)  # Increase timeout to 60 seconds
             self.hay_screenshot = True
         except Exception as e:
             print(f"Error taking screenshot: {e}")
@@ -281,6 +317,36 @@ class Jurisdiccion(ABC):
 
     async def cerrar_navegador(self):
         await self.browser.close()
+
+    async def maximizar_ventana(self):
+        if not self.headless:
+            client = await self.page.context.new_cdp_session(self.page)
+            window_info = await client.send('Browser.getWindowForTarget')
+            window_id = window_info['windowId']
+
+            # Restaurar a estado normal si está minimizado o en pantalla completa
+            await client.send('Browser.setWindowBounds', {
+                'windowId': window_id,
+                'bounds': {'windowState': 'normal'}
+            })
+
+            # Maximizar la ventana
+            await client.send('Browser.setWindowBounds', {
+                'windowId': window_id,
+                'bounds': {'windowState': 'maximized'}
+            })
+
+    async def minimizar_ventana(self):
+        if not self.headless:
+            client = await self.page.context.new_cdp_session(self.page)
+            window_info = await client.send('Browser.getWindowForTarget')
+            window_id = window_info['windowId']
+
+            # Minimizar la ventana
+            await client.send('Browser.setWindowBounds', {
+                'windowId': window_id,
+                'bounds': {'windowState': 'minimized'}
+            })
 
     async def procesar_jurisdiccion(
             self,

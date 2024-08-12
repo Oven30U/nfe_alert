@@ -3,6 +3,12 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class LaPampa(Jurisdiccion):
+    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+                         razon_social_cliente_input, texto_notificacion, headless)
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
     @classmethod
     async def create(
             cls,
@@ -13,6 +19,9 @@ class LaPampa(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True
     ):
         self = await super().create(
             playwright,
@@ -24,9 +33,14 @@ class LaPampa(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
+
+    # Existing methods...
 
     async def consultar_notificaciones(self):
         await self.page.goto("https://dgr.lapampa.gob.ar/ServiciosEnLinea/?programa=MenuCuenta")

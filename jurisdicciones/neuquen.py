@@ -4,16 +4,25 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Neuquen(Jurisdiccion):
+    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+                         razon_social_cliente_input, texto_notificacion, headless)
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
     @classmethod
     async def create(
-        cls,
-        playwright: Playwright,
-        cliente,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input,
+            cls,
+            playwright: Playwright,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True
     ):
         self = await super().create(
             playwright,
@@ -25,7 +34,11 @@ class Neuquen(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless
         )
+        self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def consultar_notificaciones(self):
@@ -39,9 +52,9 @@ class Neuquen(Jurisdiccion):
         await self.page.get_by_placeholder("Contraseña").fill(f"{self._clave_fiscal}")
         await self.page.get_by_role("button", name="Ingresar").click()
         if (
-            await self.page.locator(
-                "text='Acción prohibida, por favor ingrese nuevamente al sistema.'"
-            ).count()
+                await self.page.locator(
+                    "text='Acción prohibida, por favor ingrese nuevamente al sistema.'"
+                ).count()
         ) > 0:
             raise LoginError("Login error con mensajde de accion prohibida")
 

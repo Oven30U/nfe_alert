@@ -4,6 +4,13 @@ from datetime import datetime
 
 
 class Corrientes(Jurisdiccion):
+    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+                         razon_social_cliente_input, texto_notificacion, headless)
+        self.cuit_cliente_input = str(cuit_cliente_input)
+        # self.headless = headless
+
     @classmethod
     async def create(
             cls,
@@ -14,6 +21,9 @@ class Corrientes(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True
     ):
         self = await super().create(
             playwright,
@@ -25,8 +35,12 @@ class Corrientes(Jurisdiccion):
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
+        self.headless = headless
         return self
 
     async def consultar_notificaciones(self):
@@ -47,8 +61,6 @@ class Corrientes(Jurisdiccion):
         await self.page.goto("https://miportal.dgrcorrientes.gov.ar/bandejadfe#")
         await self.page.wait_for_load_state("networkidle")
 
-
-
     async def buscar_notificacion(self):
         filas = await self.page.locator("//div[@class='listCuerpo']//p[3]").all()
         fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
@@ -63,8 +75,26 @@ class Corrientes(Jurisdiccion):
                 continue
         return False
 
-
     async def tomar_screenshot(self):
+        if not self.headless:
+            await super().maximizar_ventana()
+        # if not self.headless:
+        #     # Maximizar la ventana del navegador usando la API de DevTools
+        #     client = await self.page.context.new_cdp_session(self.page)
+        #     window_info = await client.send('Browser.getWindowForTarget')
+        #     window_id = window_info['windowId']
+        #
+        #     # Restaurar a estado normal si está minimizado o en pantalla completa
+        #     await client.send('Browser.setWindowBounds', {
+        #         'windowId': window_id,
+        #         'bounds': {'windowState': 'normal'}
+        #     })
+        #
+        #     # Maximizar la ventana
+        #     await client.send('Browser.setWindowBounds', {
+        #         'windowId': window_id,
+        #         'bounds': {'windowState': 'maximized'}
+        #     })
         return await super().tomar_screenshot(self.page)
 
     async def procesar_jurisdiccion(self):
@@ -93,6 +123,7 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
+                headless=False
             )
             await corrientes.procesar_jurisdiccion()
 

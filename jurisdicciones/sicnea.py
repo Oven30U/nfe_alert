@@ -4,6 +4,12 @@ from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class Sicnea(Jurisdiccion):
+    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+                         razon_social_cliente_input, texto_notificacion, headless)
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
     @classmethod
     async def create(
             cls,
@@ -13,7 +19,10 @@ class Sicnea(Jurisdiccion):
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
-            cuit_cliente_input=None,
+            cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True
     ):
         # Convertir las fechas al formato dd/mm/yyyy
         fecha_desde = datetime.strptime(fecha_desde, "%d%m%Y").strftime("%d/%m/%Y")
@@ -27,6 +36,10 @@ class Sicnea(Jurisdiccion):
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
+            cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -135,7 +148,8 @@ class Sicnea(Jurisdiccion):
                 # await self.new_page_2.screenshot(
                 #     path=f"{nombre_archivo_notificadas}_{cantidad_paginas_notificadas}.png",
                 #     full_page=True)
-                await super().tomar_screenshot(self.new_page_2, nombre_extra=f"_notificadas_{cantidad_paginas_notificadas}")
+                await super().tomar_screenshot(self.new_page_2,
+                                               nombre_extra=f"_notificadas_{cantidad_paginas_notificadas}")
                 cantidad_paginas_notificadas += 1
 
                 # a  # lnkSiguiente
@@ -151,9 +165,6 @@ class Sicnea(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-
 
 
 if __name__ == "__main__":
@@ -181,5 +192,6 @@ if __name__ == "__main__":
                 cuit_cliente_input,
             )
             await sicnea.procesar_jurisdiccion()
+
 
     asyncio.run(main())

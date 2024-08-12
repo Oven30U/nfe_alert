@@ -4,6 +4,12 @@ from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class Nacional(Jurisdiccion):
+    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+                         razon_social_cliente_input, texto_notificacion, headless)
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
     @classmethod
     async def create(
             cls,
@@ -13,11 +19,11 @@ class Nacional(Jurisdiccion):
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
-            cuit_cliente_input=None,
+            cuit_cliente_input,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True
     ):
-        # Convertir las fechas al formato dd/mm/yyyy
-        fecha_desde = datetime.strptime(fecha_desde, "%d%m%Y").strftime("%d/%m/%Y")
-        fecha_hasta = datetime.strptime(fecha_hasta, "%d%m%Y").strftime("%d/%m/%Y")
         self = await super().create(
             playwright,
             "Nacional",
@@ -27,10 +33,12 @@ class Nacional(Jurisdiccion):
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
+            cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless
         )
-
         self.cuit_cliente_input = str(cuit_cliente_input)
-        self.hay_screenshots_filtrados = False
         return self
 
     async def AFIP_login(
@@ -98,7 +106,8 @@ class Nacional(Jurisdiccion):
             except Exception:
                 continue
 
-            no_hay_notificaciones = await super().buscar_notificacion(self.new_page, "No hay comunicaciones para mostrar")
+            no_hay_notificaciones = await super().buscar_notificacion(self.new_page,
+                                                                      "No hay comunicaciones para mostrar")
 
             if not no_hay_notificaciones:
                 contador_filtro_hay_notificacion += 1

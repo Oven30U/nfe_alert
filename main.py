@@ -77,6 +77,7 @@ async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_s
                             fecha_desde,
                             fecha_hasta,
                             cuit_cliente,
+                            headless=headless_state,
                         )
                         instances[jurisdiction] = instance
 
@@ -103,7 +104,8 @@ async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_s
                         for _, row in df_input_por_cliente.get_group(cliente).iterrows():
                             if row["Jurisdiccion"] == jurisdiction:
                                 JurisdictionClass = globals()[jurisdiction]
-                                for intento in range(LIMITES_REINTENTO):  # Limitar a 15 intentos por Error
+                                for intento in range(LIMITES_REINTENTO):  # Limitar a intentos en config.py
+                                    # headless = intento % 2 == 0  # Itera entre headless y head full
                                     instance = await JurisdictionClass.create(
                                         playwright,
                                         row["Cliente"],
@@ -112,6 +114,7 @@ async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_s
                                         row["fecha_desde"].replace("/", ""),
                                         row["fecha_hasta"].replace("/", ""),
                                         int(row["cuit_cliente"]),
+                                        # headless=headless,
                                     )
                                     resultado = await instance.procesar_jurisdiccion()
 

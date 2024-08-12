@@ -24,12 +24,13 @@ Para ejecutar el script desde `config.py` se toman los valores de:
 Desde main.py estos dos valores son siempre False, pero desde config.py se pueden cambiar a True para probar el envío de correos y los clientes deseados. No actualiza última vez en System-Clientes.
 """
 
-# DEBUG = True
-DEBUG = False
+DEBUG = True
+# DEBUG = False
+
 
 # headless_state = False if DEBUG else True
-# headless_state = True  # Para no ver el navegador
-headless_state = False  # Para ver el navegador
+headless_state = True  # Para no ver el navegador
+# headless_state = False  # Para ver el navegador
 
 # (DEBUG) & (EJECUTAR_TODOS_CLIENTES)  ≥ Todos los clientes
 # (DEBUG) & (NOT EJECUTAR_TODOS_CLIENTES) ≥ Clientes de la lista
@@ -49,8 +50,8 @@ clientes_si_verificar_config = [
     # "SIMPLOT ARGENTINA S.R.L",
 ]
 
-# ENVIAR_CORREO_TEST = True
-ENVIAR_CORREO_TEST = False
+ENVIAR_CORREO_TEST = True
+# ENVIAR_CORREO_TEST = False
 CORREO_TEST = 'lmarinaro@deloitte.com'
 
 # configurar nombres para el df_final de input.py,
@@ -58,7 +59,7 @@ CORREO_TEST = 'lmarinaro@deloitte.com'
 # el value es el nombre de la clase de python
 # También se deben importar en __init__.py
 jurisdiccion_clases = {
-    "CABA": "Agip",
+      "CABA": "Agip",
     "Buenos Aires": "Arba",
     "Rio Negro": "RioNegro",
     "Entre Rios": "EntreRios",
@@ -90,4 +91,4 @@ if __name__ == "__main__":
     import asyncio
     from main import main
 
-    asyncio.run(main(DEBUG=DEBUG, ENVIAR_CORREO_TEST=ENVIAR_CORREO_TEST))
+    asyncio.run(main(DEBUG=DEBUG, ENVIAR_CORREO_TEST=ENVIAR_CORREO_TEST, headless_state=headless_state))
