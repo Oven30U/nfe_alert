@@ -41,13 +41,10 @@ Activar entorno virtual con el siguiente comando:
 ```bash
 # Activar entorno virtual
 .venv\Scripts\activate
-```
 
-```bash
 
 Para realizar los test unitarios de cada jurisdiccion se debe ejecutar el siguiente comando:
 
-```bash
 # Ejecutar todos los tests
 pytest
 

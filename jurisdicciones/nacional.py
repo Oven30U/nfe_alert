@@ -67,9 +67,11 @@ class Nacional(Jurisdiccion):
         except Exception:
             pass
         # await self.new_page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
+        self.fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y").strftime("%d/%m/%Y")
         await self.new_page.fill("xpath=(//label[contains(text(), 'Desde')]/following::input[1])[2]",
                                  f"{self.fecha_desde}")
         # await self.new_page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}") #\t\n
+        self.fecha_hasta = datetime.strptime(self.fecha_hasta, "%d%m%Y").strftime("%d/%m/%Y")
         await self.new_page.fill("xpath=(//label[contains(text(), 'Hasta')]/following::input[1])[2]",
                                  f"{self.fecha_hasta}")  # \t\n
         await self.new_page.locator('//button[contains(text(), "Aplicar")]').nth(1).click()
@@ -185,6 +187,7 @@ async def main():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            headless=False
         )
         await nacional.procesar_jurisdiccion()
 

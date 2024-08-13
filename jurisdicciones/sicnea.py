@@ -101,10 +101,10 @@ class Sicnea(Jurisdiccion):
                 encontrado = True
                 # Si se encuentra alguno de los textos, se imprime cuál fue encontrado
                 if texto_notificaciones:
-                    print("No hay datos relacionados a la busqueda")
+                    print("Notificacion SICNEA: No hay datos relacionados a la busqueda")
                     self.hay_notificacion = False
                 else:
-                    print("Hay datos relacionados a la busqueda")
+                    print("Notificacion SICNEA: Hay datos relacionados a la busqueda")
                     self.hay_notificacion = True
             else:
                 # await asyncio.sleep(0.5) # Esperar 0.5 segundos antes de volver a intentar

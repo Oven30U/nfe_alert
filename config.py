@@ -28,8 +28,8 @@ DEBUG = True
 # DEBUG = False
 
 
-# headless_state = False if DEBUG else True
-headless_state = True  # Para no ver el navegador
+headless_state = False if DEBUG else True
+# headless_state = True  # Para no ver el navegador
 # headless_state = False  # Para ver el navegador
 
 # (DEBUG) & (EJECUTAR_TODOS_CLIENTES)  ≥ Todos los clientes
@@ -42,10 +42,10 @@ EJECUTAR_CLIENTES_LISTA = True
 # EJECUTAR_CLIENTES_LISTA = False
 clientes_si_verificar_config = [
     # "FACEBOOK ARGENTINA S.R.L",
-    # "EDGE ARGENTINA S.R.L",
+    "EDGE ARGENTINA S.R.L",
     # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
     # "MAGNETI MARELLI REPUESTOS S.A",
-    "NATURA COSMETICOS S.A",
+    # "NATURA COSMETICOS S.A",
     # "ABBOTT LABORATORIES ARG. S.A",
     # "SIMPLOT ARGENTINA S.R.L",
 ]

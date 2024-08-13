@@ -67,18 +67,20 @@ async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_s
 
                         JurisdictionClass = globals()[jurisdiction]
 
-                        # Use the globals() function to get the class by name
-                        # JurisdictionClass = globals()[jurisdiction]
-                        instance = await JurisdictionClass.create(
-                            playwright,
-                            cliente,
-                            usuario,
-                            password,
-                            fecha_desde,
-                            fecha_hasta,
-                            cuit_cliente,
-                            headless=headless_state,
-                        )
+                        create_args = {
+                            "playwright": playwright,
+                            "cliente": cliente,
+                            "cuit": usuario,
+                            "clave_fiscal": password,
+                            "fecha_desde": fecha_desde,
+                            "fecha_hasta": fecha_hasta,
+                            "cuit_cliente_input": cuit_cliente,
+                        }
+                        # Sólo en DEBUG se considera el argumento headless_state, en producción se utiliza el valor por defecto
+                        if DEBUG:
+                            create_args["headless"] = headless_state
+
+                        instance = await JurisdictionClass.create(**create_args)
                         instances[jurisdiction] = instance
 
                     print(f"Jurisdicciones encontradas: {jurisdicciones_encontradas}")
@@ -106,6 +108,7 @@ async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_s
                                 JurisdictionClass = globals()[jurisdiction]
                                 for intento in range(LIMITES_REINTENTO):  # Limitar a intentos en config.py
                                     # headless = intento % 2 == 0  # Itera entre headless y head full
+                                    # Se utiliza el headless definido por defecto en cada Clase de jurisdicciones
                                     instance = await JurisdictionClass.create(
                                         playwright,
                                         row["Cliente"],
