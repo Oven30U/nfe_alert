@@ -8,8 +8,7 @@ from datetime import datetime
 import pandas as pd
 from playwright.async_api import async_playwright
 
-from config import PATH_ESTRUCTURA_ROBOT, CORREO_TEST, LIMITES_REINTENTO, EJECUTAR_TODOS_CLIENTES, \
-    EJECUTAR_CLIENTES_LISTA, clientes_si_verificar_config, jurisdiccion_clases
+from config import PATH_ESTRUCTURA_ROBOT, CORREO_TEST, LIMITES_REINTENTO, jurisdiccion_clases
 from functions.delete_backs import delete_zip_files_in_backup
 from conectar_db import conectar_db
 from inputs import obtener_clientes
@@ -19,9 +18,14 @@ from mapa_plot import crear_mapa, crear_mapa_argentina
 from jurisdicciones import *
 
 
-async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_state: bool = True):
+async def main(debug: bool = False, enviar_correo_test: bool = False, headless_state: bool = True,
+               ejecutar_todos_clientes: bool = False, ejecutar_clientes_lista: bool = False,
+               sin_debug_ejecutar_lista: bool = False,
+               clientes_si_verificar_config=None):
+    if clientes_si_verificar_config is None:
+        clientes_si_verificar_config = []
     async with async_playwright() as playwright:
-        df_input = obtener_clientes(DEBUG, EJECUTAR_TODOS_CLIENTES, EJECUTAR_CLIENTES_LISTA,
+        df_input = obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, sin_debug_ejecutar_lista,
                                     clientes_si_verificar_config, jurisdiccion_clases)
         if not df_input.empty:
             # print("df_input esta vacio, finaliza el programa.")
@@ -76,8 +80,9 @@ async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_s
                             "fecha_hasta": fecha_hasta,
                             "cuit_cliente_input": cuit_cliente,
                         }
-                        # Sólo en DEBUG se considera el argumento headless_state, en producción se utiliza el valor por defecto
-                        if DEBUG:
+                        # Sólo en debug se considera el argumento headless_state,
+                        # en producción se utiliza el valor por defecto
+                        if debug:
                             create_args["headless"] = headless_state
 
                         instance = await JurisdictionClass.create(**create_args)
@@ -174,7 +179,8 @@ async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_s
                     correo_enviado_exitosamente = False
 
                     # Con al menos un Incorrecto se envía siempre al correo test
-                    if DEBUG and ENVIAR_CORREO_TEST:
+                    # if debug and enviar_correo_test:
+                    if enviar_correo_test:
                         correo_output = CORREO_TEST
                     try:
                         enviar_correo(
@@ -195,7 +201,7 @@ async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_s
                         print(f"Error al enviar correo: {e}")
 
                     # Actualizar 'Última verificación' sólo si se envio el correo y estado Correcto, sin debug.
-                    if correo_enviado_exitosamente and estado_value == "Correcto" and DEBUG is False:
+                    if correo_enviado_exitosamente and estado_value == "Correcto" and debug is False:
                         # Actualiza hora de Última verificación
                         PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
                         df_cliente_system = pd.read_excel(PATH_CLIENTES)
@@ -213,6 +219,7 @@ async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_s
         elif df_input.empty:
             inicio_value = datetime.now()
             estado_value = "Correcto"
+            correo_enviado_exitosamente = True  # No se envia correo en este caso
             username = 'TaxTech'
             cliente = 'TaxTech'
 
@@ -225,6 +232,12 @@ async def main(DEBUG: bool = False, ENVIAR_CORREO_TEST: bool = False, headless_s
         # Eliminar los archivos .zip en la carpeta de Backup
         delete_zip_files_in_backup(PATH_ESTRUCTURA_ROBOT)
 
+        return estado_value, correo_enviado_exitosamente
+
 
 if __name__ == "__main__":
-    asyncio.run(main(DEBUG=False, ENVIAR_CORREO_TEST=False, headless_state=True))
+    import asyncio
+
+    estado_value, correo_enviado_exitosamente = asyncio.run(main(debug=False, enviar_correo_test=False))
+
+    print(f"Estado: {estado_value}, Correo enviado exitosamente: {correo_enviado_exitosamente}")

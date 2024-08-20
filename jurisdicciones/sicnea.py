@@ -124,9 +124,38 @@ class Sicnea(Jurisdiccion):
             # await self.new_page_2.screenshot(path=nombre_archivo_enviadas, full_page=True)
             await super().tomar_screenshot(self.new_page_2, nombre_extra="_enviadas")
 
-            # nombre_archivo_notificadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_notificadas"
-            await self.frame.select_option("select#ddlEstado", value="NOTI")
-            await self.frame.click("input[name='btnBuscar']")
+            # Si aparece el botón siguiente, entonces navega y toma screenshots, si no aparece, entonces no navega
+            cantidad_paginas_enviadas = 1
+            while await self.frame.query_selector("a#lnkSiguiente"):
+                await self.frame.click("a#lnkSiguiente")
+                await self.frame.wait_for_selector("input#btnBuscar")
+                # await self.new_page_2.screenshot(
+                #     path=f"{nombre_archivo_enviadas}_{cantidad_paginas_enviadas}.png",
+                #     full_page=True)
+                await super().tomar_screenshot(self.new_page_2,
+                                               nombre_extra=f"_enviadas_{cantidad_paginas_enviadas}")
+                cantidad_paginas_enviadas += 1
+
+            await self.frame.wait_for_selector("select#ddlEstado")
+            # Check if the select element is disabled
+            is_disabled = await self.frame.evaluate("document.querySelector('select#ddlEstado').disabled")
+            if is_disabled:
+                fecha_desde_filtro = f"{self.fecha_desde[:2]}/{self.fecha_desde[2:4]}/{self.fecha_desde[4:]}"
+                fecha_hasta_filtro = f"{self.fecha_hasta[:2]}/{self.fecha_hasta[2:4]}/{self.fecha_hasta[4:]}"
+                await self.frame.click("input#btnLimpiar")
+                await self.frame.wait_for_load_state('networkidle')
+                await self.frame.wait_for_selector("select#ddlEstado")
+                await self.frame.select_option("select#ddlEstado", value="NOTI")
+                await self.frame.fill("input[name='txtFechaNotificacionDesde']", fecha_desde_filtro)
+                await self.frame.fill("input[name='txtFechaNotificacionHasta']", fecha_hasta_filtro)
+                await self.frame.click("input[name='btnBuscar']")
+                await self.new_page_2.wait_for_load_state('networkidle')
+                await self.frame.wait_for_load_state('networkidle')
+            else:
+                # nombre_archivo_notificadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_notificadas"
+                await self.frame.select_option("select#ddlEstado", value="NOTI")
+                await self.frame.click("input[name='btnBuscar']")
+
             # Inicializar una variable para controlar el bucle
             notificado_cargado = False
             # Bucle que se ejecuta hasta que se encuentre alguno de los textos
@@ -153,7 +182,7 @@ class Sicnea(Jurisdiccion):
                 cantidad_paginas_notificadas += 1
 
                 # a  # lnkSiguiente
-            # await self.new_page_2.screenshot(path=nombre_archivo_notificadas, full_page=True)
+                # await self.new_page_2.screenshot(path=nombre_archivo_notificadas, full_page=True)
             self.hay_screenshot = True
 
         except Exception as e:
@@ -180,8 +209,8 @@ if __name__ == "__main__":
 
             clave_fiscal_Sicnea = "MaiS14822788"
             cuit_Sicnea = "27291463385"
-            fecha_desde = "01052024"
-            fecha_hasta = "30052024"
+            fecha_desde = "21072024"
+            fecha_hasta = "20082024"
             sicnea = await Sicnea.create(
                 playwright,
                 client,
@@ -190,6 +219,7 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
+                headless=False
             )
             await sicnea.procesar_jurisdiccion()
 

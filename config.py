@@ -2,11 +2,12 @@
 Este módulo `config.py` contiene configuraciones globales para el sistema.
 
 Variables:
-- `DEBUG`: Booleano que indica si el modo debug está activado. Impacta en el comportamiento de la aplicación, como la visibilidad del navegador y la ejecución de clientes.
-- `headless_state`: Booleano que determina si el navegador se ejecuta en modo headless. Depende del valor de `DEBUG`.
-- `EJECUTAR_TODOS_CLIENTES`: Booleano que indica si se deben ejecutar todos los clientes. Utilizado en `inputs.py` para determinar la lista de clientes a verificar.
-- `EJECUTAR_CLIENTES_LISTA`: Booleano que indica si se deben ejecutar los clientes de la lista `clientes_si_verificar_config`. Utilizado en `inputs.py` para determinar la lista de clientes a verificar.
-- `clientes_si_verificar_config`: Lista de nombres de clientes que se deben verificar si `EJECUTAR_CLIENTES_LISTA` es `True`. Utilizado en `inputs.py` para filtrar clientes.
+- `debug`: Booleano que indica si el modo debug está activado. Impacta en el comportamiento de la aplicación, como la visibilidad del navegador y la ejecución de clientes.
+- `headless_state`: Booleano que determina si el navegador se ejecuta en modo headless. Depende del valor de `debug`.
+- `ejecutar_todos_clientes`: Booleano que indica si se deben ejecutar todos los clientes. Utilizado en `inputs.py` para determinar la lista de clientes a verificar.
+- `ejecutar_clientes_lista`: Booleano que indica si se deben ejecutar los clientes de la lista `clientes_si_verificar_config`. Utilizado en `inputs.py` para determinar la lista de clientes a verificar.
+- 'sin_debug_ejecutar_lista': Booleano que indica si se deben ejecutar los clientes de la lista `clientes_si_verificar_config` sin importar el valor de `debug`. Utilizado en `inputs.py` para determinar la lista de clientes a verificar.
+- `clientes_si_verificar_config`: Lista de nombres de clientes que se deben verificar si `ejecutar_clientes_lista` es `True`. Utilizado en `inputs.py` para filtrar clientes.
 - `jurisdiccion_clases`: Diccionario que mapea nombres de jurisdicciones a nombres de clases de Python. Utilizado en `inputs.py` para reemplazar nombres en el DataFrame final.
 - `mapa_jurisdiccion_clases`: Diccionario inverso de `jurisdiccion_clases` para el uso en `mapa_plot.py` y `mail.py`.
 - `link_system`: Ruta al directorio del sistema.
@@ -14,44 +15,45 @@ Variables:
 - `PATH_ESTRUCTURA_ROBOT`: Ruta al directorio de la estructura del robot.
 - `log_file_path`: Ruta al archivo de log del sistema.
 - `LIMITES_REINTENTO`: Número máximo de reintentos permitidos.
+- 'enviar_correo_test': Booleano que indica si se debe enviar un correo de prueba. Utilizado en `main.py` para enviar correos de prueba.
 
 Uso:
 Estas variables son importadas y utilizadas en varios módulos del sistema, principalmente en `inputs.py` para la verificación y ejecución de clientes, y en `main.py` para la configuración general del sistema.
 
 Ejemplo de uso:
 Para ejecutar el script desde `config.py` se toman los valores de:
-    DEBUG y ENVIAR_CORREO_TEST
+    debug y enviar_correo_test
 Desde main.py estos dos valores son siempre False, pero desde config.py se pueden cambiar a True para probar el envío de correos y los clientes deseados. No actualiza última vez en System-Clientes.
 """
 
 DEBUG = True
 # DEBUG = False
 
-
 headless_state = False if DEBUG else True
 # headless_state = True  # Para no ver el navegador
 # headless_state = False  # Para ver el navegador
 
-# (DEBUG) & (EJECUTAR_TODOS_CLIENTES)  ≥ Todos los clientes
-# (DEBUG) & (NOT EJECUTAR_TODOS_CLIENTES) ≥ Clientes de la lista
-# (NOT DEBUG)  ≥ Clientes Productivos
-EJECUTAR_TODOS_CLIENTES = True
-# EJECUTAR_TODOS_CLIENTES = False
+# (debug) & (ejecutar_todos_clientes)  ≥ Todos los clientes
+# (debug) & (NOT ejecutar_todos_clientes) ≥ Clientes de la lista
+# (NOT debug)  ≥ Clientes Productivos
+# ejecutar_todos_clientes = True
+EJECUTAR_TODOS_CLIENTES = False
 
-EJECUTAR_CLIENTES_LISTA = True
-# EJECUTAR_CLIENTES_LISTA = False
+# ejecutar_clientes_lista = True
+EJECUTAR_CLIENTES_LISTA = False
 clientes_si_verificar_config = [
-    # "FACEBOOK ARGENTINA S.R.L",
+    "FACEBOOK ARGENTINA S.R.L",
     "EDGE ARGENTINA S.R.L",
-    # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
-    # "MAGNETI MARELLI REPUESTOS S.A",
-    # "NATURA COSMETICOS S.A",
-    # "ABBOTT LABORATORIES ARG. S.A",
-    # "SIMPLOT ARGENTINA S.R.L",
+    "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
+    "MAGNETI MARELLI REPUESTOS S.A",
+    "NATURA COSMETICOS S.A",
+    "ABBOTT LABORATORIES ARG. S.A",
+    "SIMPLOT ARGENTINA S.R.L",
 ]
+SIN_DEBUG_EJECUTAR_LISTA = False  # Dejar siempre en False, saltea debug y ejecuta la lista de clientes
 
-ENVIAR_CORREO_TEST = True
-# ENVIAR_CORREO_TEST = False
+# enviar_correo_test = True
+ENVIAR_CORREO_TEST = False
 CORREO_TEST = 'lmarinaro@deloitte.com'
 
 # configurar nombres para el df_final de input.py,
@@ -59,7 +61,7 @@ CORREO_TEST = 'lmarinaro@deloitte.com'
 # el value es el nombre de la clase de python
 # También se deben importar en __init__.py
 jurisdiccion_clases = {
-      "CABA": "Agip",
+    "CABA": "Agip",
     "Buenos Aires": "Arba",
     "Rio Negro": "RioNegro",
     "Entre Rios": "EntreRios",
@@ -91,4 +93,14 @@ if __name__ == "__main__":
     import asyncio
     from main import main
 
-    asyncio.run(main(DEBUG=DEBUG, ENVIAR_CORREO_TEST=ENVIAR_CORREO_TEST, headless_state=headless_state))
+    estado_value, correo_enviado_exitosamente = asyncio.run(main(
+        debug=DEBUG,
+        enviar_correo_test=ENVIAR_CORREO_TEST,
+        headless_state=headless_state,
+        ejecutar_todos_clientes=EJECUTAR_TODOS_CLIENTES,
+        ejecutar_clientes_lista=EJECUTAR_CLIENTES_LISTA,
+        sin_debug_ejecutar_lista=SIN_DEBUG_EJECUTAR_LISTA,
+        clientes_si_verificar_config=clientes_si_verificar_config
+    ))
+
+    print(f"Estado: {estado_value}, Correo enviado exitosamente: {correo_enviado_exitosamente}")

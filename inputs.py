@@ -58,7 +58,8 @@ def verificar_cliente(cliente_system, archivo_input_a_verificar, clientes_si_ver
 
 
 def verificar_clientes(cliente_system, archivo_input_a_verificar, debug, ejecutar_todos_clientes,
-                       ejecutar_clientes_lista, clientes_si_verificar_config, clientes_si_verificar,
+                       ejecutar_clientes_lista, sin_debug_ejecutar_ejecutar_lista, clientes_si_verificar_config,
+                       clientes_si_verificar,
                        clientes_no_verificar):
     """
     Verifica los clientes según las configuraciones y los agrega a las listas correspondientes.
@@ -66,7 +67,7 @@ def verificar_clientes(cliente_system, archivo_input_a_verificar, debug, ejecuta
     Parámetros:
     - cliente_system: Objeto ClienteSystem que representa al cliente a verificar.
     - archivo_input_a_verificar: Ruta del archivo de input a verificar.
-    - DEBUG: Booleano que indica si el modo debug está activado.
+    - debug: Booleano que indica si el modo debug está activado.
     - ejecutar_todos_clientes: Booleano que indica si se deben ejecutar todos los clientes.
     - ejecutar_clientes_lista: Booleano que indica si se deben ejecutar los clientes de la lista.
     - clientes_si_verificar_config: Lista de nombres de clientes que se deben verificar.
@@ -83,13 +84,17 @@ def verificar_clientes(cliente_system, archivo_input_a_verificar, debug, ejecuta
             verificar_cliente(cliente_system, archivo_input_a_verificar, clientes_si_verificar_config,
                               clientes_si_verificar, clientes_no_verificar)
     else:
-        if cliente_system.verificar_ejecucion(archivo_input_a_verificar):
+        if sin_debug_ejecutar_ejecutar_lista:
+            verificar_cliente(cliente_system, archivo_input_a_verificar, clientes_si_verificar_config,
+                              clientes_si_verificar, clientes_no_verificar)
+        elif cliente_system.verificar_ejecucion(archivo_input_a_verificar):
             clientes_si_verificar.append(cliente_system)
         else:
             clientes_no_verificar.append(cliente_system)
 
 
-def obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, clientes_si_verificar_config,
+def obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, sin_debug_ejecutar_ejecutar_lista,
+                     clientes_si_verificar_config,
                      jurisdiccion_clases):
     PATH_BOT = "Estructura-robot/"
     PATH_SYSTEM = "Estructura-robot/System/"
@@ -126,7 +131,8 @@ def obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, cl
         archivo_input_a_verificar = f"{PATH_BOT}{cliente_system.nombre}/Input"
 
         verificar_clientes(cliente_system, archivo_input_a_verificar, debug, ejecutar_todos_clientes,
-                           ejecutar_clientes_lista, clientes_si_verificar_config, clientes_si_verificar,
+                           ejecutar_clientes_lista, sin_debug_ejecutar_ejecutar_lista, clientes_si_verificar_config,
+                           clientes_si_verificar,
                            clientes_no_verificar)
 
     df_final = pd.DataFrame()

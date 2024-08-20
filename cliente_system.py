@@ -12,7 +12,7 @@ La clase ClienteSystem tiene los siguientes métodos:
 Este módulo también incluye un bloque de código de prueba que crea un objeto ClienteSystem y verifica si se debe ejecutar la verificación del cliente.
 """
 
-from datetime import datetime
+from datetime import datetime, time
 import shutil
 import os
 
@@ -30,6 +30,15 @@ class ClienteSystem:
     """
 
     # link_clientes = "Estructura-robot/System/System-Clientes.xlsx"
+    @staticmethod
+    def parse_time(time_input):
+        if isinstance(time_input, time):
+            time_input = time_input.strftime("%H:%M:%S")
+        elif not isinstance(time_input, str):
+            raise ValueError("Unsupported time input type")
+
+        return datetime.strptime(time_input, "%H:%M:%S").time()
+
     def __init__(
         self,
         nombre,
@@ -58,7 +67,7 @@ class ClienteSystem:
         self.personas_autorizadas = personas_autorizadas
         self.schedule = schedule
         self.dias_de_ejecucion = dias_de_ejecucion
-        self.hora_de_inicio = hora_de_inicio
+        self.hora_de_inicio = self.parse_time(hora_de_inicio)
         self.ultima_verificacion = ultima_verificacion
 
     def __str__(self):
@@ -101,9 +110,10 @@ class ClienteSystem:
                     hora_actual = datetime.strptime(
                         datetime.now().strftime("%H:%M"), "%H:%M"
                     ).time()
-                    hora_de_inicio = datetime.strptime(
-                        self.hora_de_inicio, "%H:%M:%S"
-                    ).time()
+                    # hora_de_inicio = datetime.strptime(
+                    #     self.hora_de_inicio, "%H:%M:%S"
+                    # ).time()
+                    hora_de_inicio = self.hora_de_inicio
                     if self.ultima_verificacion is not None and self.ultima_verificacion != '':
                         if isinstance(self.ultima_verificacion, pd.Timestamp):
                             ultima_verificacion = self.ultima_verificacion.to_pydatetime()

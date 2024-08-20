@@ -1,72 +1,36 @@
-# import pandas as pd
-# import main
-# import pytest
-#
-#
-# @pytest.mark.main
-# @pytest.mark.error
-# @pytest.mark.asyncio
-# async def test_no_errors():
-#     # Ejecutar la función principal y capturar el DataFrame resultante
-#     df = await main.main()
-#
-#     # Verificar que df no sea None antes de intentar acceder a sus elementos
-#     assert df is not None, "main no retornó un dataframe"
-#
-#     # Verificar que ninguna fila en la columna 'Error' tenga un valor distinto de None
-#     for error in df["Error"]:
-#         assert error is None, "Hay valor en Error de alguna jurisdiccion"
-#
-#     for notificacion in df["Notificacion"]:
-#         assert notificacion in ["Hay notificaciones", "No hay notificaciones"], "Hay valor erroneo en Notificaciones"
-#
-#     for screenshot in df["Screenshot"]:
-#         assert screenshot in ["Se realizó Screenshot", "No se realizó Screenshot"], "Hay valor erroneo en Screenshot"
-import asyncio
-import unittest
-from unittest.mock import patch
+import pytest
+import random
 from main import main
 
-class TestMain(unittest.TestCase):
-    @patch('main.Jujuy.create')
-    @patch('main.Chubut.create')
-    @patch('main.Misiones.create')
-    @patch('main.Tucuman.create')
-    @patch('main.RioNegro.create')
-    @patch('main.Neuquen.create')
-    @patch('main.Cordoba.create')
-    @patch('main.Mendoza.create')
-    @patch('main.Arba.create')
-    @patch('main.Agip.create')
-    @patch('main.Nacional.create')
-    def test_main(self, nacional_mock, agip_mock, arba_mock, mendoza_mock, cordoba_mock, neuquen_mock, rionegro_mock, tucuman_mock, misiones_mock, chubut_mock, jujuy_mock):
-        nacional_mock.return_value = MockInstance()
-        agip_mock.return_value = MockInstance()
-        arba_mock.return_value = MockInstance()
-        mendoza_mock.return_value = MockInstance()
-        cordoba_mock.return_value = MockInstance()
-        neuquen_mock.return_value = MockInstance()
-        rionegro_mock.return_value = MockInstance()
-        tucuman_mock.return_value = MockInstance()
-        misiones_mock.return_value = MockInstance()
-        chubut_mock.return_value = MockInstance()
-        jujuy_mock.return_value = MockInstance()
+@pytest.mark.asyncio
+async def test_main():
+    from config import clientes_si_verificar_config
 
-        try:
-            asyncio.run(main())
-            self.assertTrue(True)
-        except Exception as e:
-            self.fail(f"main() raised {type(e).__name__} unexpectedly!")
+    # Seleccionar un valor aleatorio de la lista clientes_si_verificar_config
+    cliente_random = random.choice(clientes_si_verificar_config)
 
-class MockInstance:
-    async def procesar_jurisdiccion(self):
-        return ["Nombre", "Notificacion", "Screenshot", None]
+    # Configurar los argumentos necesarios
+    DEBUG = False
+    SIN_DEBUG_EJECUTAR_LISTA = True
+    ENVIAR_CORREO_TEST = True
+    headless_state = False if DEBUG else True
+    EJECUTAR_TODOS_CLIENTES = False
+    EJECUTAR_CLIENTES_LISTA = False
 
-    async def browser(self):
-        class MockBrowser:
-            async def close(self):
-                pass
-        return MockBrowser()
+    # Ejecutar la función main con los argumentos configurados
+    try:
+        estado_value, correo_enviado_exitosamente = await main(
+            debug=DEBUG,
+            enviar_correo_test=ENVIAR_CORREO_TEST,
+            headless_state=headless_state,
+            ejecutar_todos_clientes=EJECUTAR_TODOS_CLIENTES,
+            ejecutar_clientes_lista=EJECUTAR_CLIENTES_LISTA,
+            sin_debug_ejecutar_lista=SIN_DEBUG_EJECUTAR_LISTA,
+            clientes_si_verificar_config=clientes_si_verificar_config
+        )
+    except Exception as e:
+        pytest.fail(f"main() raised an exception: {e}")
 
-if __name__ == '__main__':
-    unittest.main()
+    # Aserciones para verificar el comportamiento esperado
+    assert estado_value == "Correcto", "estado_value debe ser  'Correcto'"
+    assert correo_enviado_exitosamente is True, "correo_enviado_exitosamente debe ser True"
