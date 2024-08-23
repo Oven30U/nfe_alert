@@ -94,19 +94,19 @@ def verificar_clientes(cliente_system, archivo_input_a_verificar, debug, ejecuta
 
 
 def obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, sin_debug_ejecutar_ejecutar_lista,
-                     clientes_si_verificar_config,
-                     jurisdiccion_clases):
+                     clientes_si_verificar_config, jurisdiccion_clases):
     PATH_BOT = "Estructura-robot/"
     PATH_SYSTEM = "Estructura-robot/System/"
     PATH_ERRORES = "Estructura-robot/System/errores/"
     PATH_CLIENTES = f"{PATH_SYSTEM}System-Clientes.xlsx"
-    PATH_CREDENCIALES = f"{PATH_SYSTEM}System-Credenciales.xlsm"
+    PATH_CREDENCIALES_DIR = f"{PATH_SYSTEM}credenciales/"
 
     nombres_archivos_excel = [
         "System-Clientes.xlsx",
-        "System-Credenciales.xlsm",
         "DFE - Input - Cliente.xlsx"
     ]
+    # for file in os.listdir(PATH_CREDENCIALES_DIR):
+    #     nombres_archivos_excel.append(file)
     cerrar_excel(nombres_archivos_excel)
 
     try:
@@ -118,22 +118,21 @@ def obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, si
     clientes_si_verificar = []
     clientes_no_verificar = []
 
-    for cliente_system in df_clientes.iterrows():
+    for _, row in df_clientes.iterrows():
         cliente_system = ClienteSystem(
-            cliente_system[1]["Cliente"],
-            cliente_system[1]["Correo Output"],
-            cliente_system[1]["Personas autorizadas"],
-            cliente_system[1]["Schedule"],
-            cliente_system[1]["Dia/s de ejecución"],
-            cliente_system[1]["Hora de inicio"],
-            cliente_system[1]["Última verificación"],
+            row["Cliente"],
+            row["Correo Output"],
+            row["Personas autorizadas"],
+            row["Schedule"],
+            row["Dia/s de ejecución"],
+            row["Hora de inicio"],
+            row["Última verificación"],
         )
         archivo_input_a_verificar = f"{PATH_BOT}{cliente_system.nombre}/Input"
 
         verificar_clientes(cliente_system, archivo_input_a_verificar, debug, ejecutar_todos_clientes,
                            ejecutar_clientes_lista, sin_debug_ejecutar_ejecutar_lista, clientes_si_verificar_config,
-                           clientes_si_verificar,
-                           clientes_no_verificar)
+                           clientes_si_verificar, clientes_no_verificar)
 
     df_final = pd.DataFrame()
     if not clientes_si_verificar:
@@ -147,11 +146,23 @@ def obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, si
             f"\nClientes NO verificar: {', '.join([cliente.nombre for cliente in clientes_no_verificar])}\n"
         )
 
-    try:
-        df_credenciales = pd.read_excel(PATH_CREDENCIALES)
-    except Exception as e:
-        raise InputException(f"No se pudo acceder al archivo {PATH_CREDENCIALES}, {e}")
-        print("No se pudo acceder al archivo %s: %s", PATH_CREDENCIALES, str(e))
+    df_credenciales = pd.DataFrame()
+    for cliente in clientes_si_verificar:
+        try:
+            credenciales_files = [
+                f for f in os.listdir(PATH_CREDENCIALES_DIR)
+                if cliente.nombre in f
+            ]
+            if not credenciales_files:
+                raise InputException(f"No se encontró archivo de credenciales para {cliente.nombre}")
+            credenciales_file = os.path.join(PATH_CREDENCIALES_DIR, credenciales_files[0])
+            cerrar_excel(credenciales_file)
+            df_nuevas_credenciales = pd.read_excel(credenciales_file)
+            df_credenciales = pd.concat([df_credenciales, df_nuevas_credenciales], ignore_index=True)
+        except Exception as e:
+            raise InputException(f"No se pudo acceder al archivo de credenciales para {cliente.nombre}, {e}")
+            print("No se pudo acceder al archivo de credenciales para %s: %s", cliente.nombre, str(e))
+
     df_credenciales["Cliente"] = df_credenciales["Cliente"].str.rstrip('.')
 
     # Obtiene una lista de todos los nombres de las carpetas en el directorio
@@ -164,11 +175,11 @@ def obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, si
     if "System" in folder_names:
         folder_names.remove("System")
 
-    clientes_si_verificar = [
+    clientes_si_verificar_dict = [
         {"Cliente": cliente.nombre, "Correo Output": cliente.correo_output}
         for cliente in clientes_si_verificar
     ]
-    df_clientes_si_verificar = pd.DataFrame(clientes_si_verificar)
+    df_clientes_si_verificar = pd.DataFrame(clientes_si_verificar_dict)
 
     fecha_actual = datetime.today()
     for index, row in df_clientes_si_verificar.iterrows():
@@ -188,7 +199,8 @@ def obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, si
             )
             print("No se pudo acceder al archivo")
 
-        df_input = df_input[df_input["Consultar"] == "Si"]
+        # Definir que jurisdicciones se deben consultar
+        df_input = df_input[df_input["Consultar"].str.strip().str.lower() != "no"]
         df_input["Cliente"] = cliente_nombre
         df_input["Correo Output"] = correo_output
         df_input["fecha_hasta"] = fecha_actual
@@ -204,18 +216,28 @@ def obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, si
     # Resetea el índice del DataFrame final
     df_final.reset_index(drop=True, inplace=True)
 
+    # Aplicamos stripa las columnas relevantes para el merge en ambos df
+    df_final["Cliente"] = df_final["Cliente"].str.strip()
+    df_final["Jurisdiccion"] = df_final["Jurisdiccion"].str.strip()
+    df_credenciales["Cliente"] = df_credenciales["Cliente"].str.strip()
+    df_credenciales["Jurisdiccion"] = df_credenciales["Jurisdiccion"].str.strip()
+
+    # Perform the merge operation
     df_final = df_final.merge(
         df_credenciales[["Cliente", "Jurisdiccion", "Usuario", "Password"]],
         on=["Cliente", "Jurisdiccion"],
         how="left",
     )
-    # Crear df_sin_credenciales con las filas donde 'Usuario' y 'Password' son NaN
+    # Crear df_sin_credenciales con las filas donde 'Usuario' o 'Password' son NaN
     df_sin_credenciales = df_final[
-        df_final["Usuario"].isna() & df_final["Password"].isna()
-        ]
+        df_final["Usuario"].isna() | df_final["Password"].isna()
+    ]
+    # Check si hay filas en df_sin_credenciales
+    if not df_sin_credenciales.empty:
+        print(df_sin_credenciales)
 
-    # Eliminar las filas de df_final donde 'Usuario' y 'Password' son NaN
-    df_final = df_final.dropna(subset=["Usuario", "Password"])
+    # Eliminar las filas de df_final donde 'Usuario' o 'Password' son NaN
+    df_final = df_final.dropna(subset=["Usuario", "Password"], how='any')
 
     # Reemplazamos df_final['Jurisdiccion'], por el nombre de la clase
     df_final['Jurisdiccion'] = df_final['Jurisdiccion'].replace(jurisdiccion_clases)

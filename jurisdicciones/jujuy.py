@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from playwright.async_api import Playwright, async_playwright
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
@@ -50,50 +52,47 @@ class Jujuy(Jurisdiccion):
         return fecha_formateada
 
     async def consultar_notificaciones(self):
-        while True:
-            await self.page.goto("https://www.rentasjujuyonline.gob.ar/")
-            await self.page.wait_for_load_state("networkidle")
-            await self.page.fill("#vUSUID", self._cuit)
-            await self.page.fill("#vCONTRING", self._clave_fiscal)
-            await self.page.click("#vBTN_INGRESAR")
-            await self.page.wait_for_load_state("networkidle")
-            incorrect_login = self.page.locator(
-                'xpath=//div[text()="Verifique el Usuario-Contraseña ingresados!"]'
-            )
-            if await incorrect_login.count() > 0:
-                raise LoginError("Login CUIT incorrecto", self.cliente)
+        # while True:
+        await self.page.goto("https://www.rentasjujuyonline.gob.ar/")
+        await self.page.wait_for_load_state("networkidle")
+        await self.page.fill("#vUSUID", self._cuit)
+        await self.page.fill("#vCONTRING", self._clave_fiscal)
+        await self.page.click("#vBTN_INGRESAR")
+        await self.page.wait_for_load_state("networkidle")
+        incorrect_login = self.page.locator(
+            'xpath=//div[text()="Verifique el Usuario-Contraseña ingresados!"]'
+        )
+        if await incorrect_login.count() > 0:
+            raise LoginError("Login CUIT incorrecto", self.cliente)
 
-            while True:
-                await self.page.wait_for_load_state("networkidle")
-                title = await self.page.title()
-                if title == "Inicio":
-                    break
-
-            await self.page.wait_for_load_state("networkidle")
-
-            title = await self.page.title()
-            if title != "Página de Autenticación":
-                break
-
+        await self.page.locator('text="DOMICILIO FISCAL ELECTRONICO"').wait_for(state="visible", timeout=60000)
         await self.page.goto(
             "https://www.rentasjujuyonline.gob.ar/cedulavirtual/HCon_NotDFEwwRes.aspx"
         )
         await self.page.wait_for_load_state("networkidle")
-        await self.page.fill(
-            "#vFECDESDE", await self.formatear_fechas(self.fecha_desde)
-        )
-        await self.page.fill(
-            "#vFECHASTA", await self.formatear_fechas(self.fecha_hasta)
-        )
-        await self.page.click("#IMAGE1")  # boton de buscar
+        await self.page.locator('text="NOTIFICACIONES DE DOMICILIO FISCAL ELECTRONICO"').wait_for(state="visible",
+                                                                                                  timeout=60000)
         await self.page.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
-        filas_de_notificaciones = await self.page.query_selector(
-            'xpath=//*[@id="Grid1ContainerTbl"]/tbody/tr'
-        )
-        self.hay_notificaciones = filas_de_notificaciones is not None
-        return self.hay_notificacion
+        await self.page.wait_for_load_state("networkidle")
+        await self.page.locator('table#Grid1ContainerTbl').wait_for(state='visible', timeout=60000)
+        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("load")
+        await self.page.wait_for_load_state("domcontentloaded")
+        await self.page.wait_for_selector('table#Grid1ContainerTbl', state='visible', timeout=60000)
+
+        self.hay_notificaciones = False
+
+        fecha_columna = await self.page.locator(
+            'xpath=//table[@id="Grid1ContainerTbl"]//tbody//tr[1]/td[7]').inner_text()
+        fecha_columna = datetime.strptime(fecha_columna, "%d/%m/%Y")
+        fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
+
+        if fecha_columna > fecha_desde:
+            self.hay_notificaciones = True
+
+        return self.hay_notificaciones
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)
@@ -102,27 +101,36 @@ class Jujuy(Jurisdiccion):
         return await super().procesar_jurisdiccion()
 
 
-async def main():
-    async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
-        cuit_Jujuy = "30714604356"
-        clave_fiscal_Jujuy = "Edge2021!"
-        cuit_cliente_input = "30714604356"
-        jujuy = await Jujuy.create(
-            playwright,
-            client,
-            cuit_Jujuy,
-            clave_fiscal_Jujuy,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await jujuy.procesar_jurisdiccion()
-
-
 if __name__ == "__main__":
     import asyncio
+
+
+    async def main():
+        async with async_playwright() as playwright:
+            fecha_desde = "01012023"
+            fecha_hasta = "30082024"
+
+            # client = "EDGE ARGENTINA S.R.L"
+            # cuit_Jujuy = "30714604356"
+            # clave_fiscal_Jujuy = "Edge2021!"
+            # cuit_cliente_input = "30714604356"
+
+            client = "NATURA COSMETICOS S.A"
+            cuit_Jujuy = "30677757295"
+            clave_fiscal_Jujuy = "Na12345$"
+            cuit_cliente_input = "30677757295"
+
+            jujuy = await Jujuy.create(
+                playwright,
+                client,
+                cuit_Jujuy,
+                clave_fiscal_Jujuy,
+                fecha_desde,
+                fecha_hasta,
+                cuit_cliente_input,
+                headless=False
+            )
+            await jujuy.procesar_jurisdiccion()
+
 
     asyncio.run(main())

@@ -29,31 +29,31 @@ Desde main.py estos dos valores son siempre False, pero desde config.py se puede
 DEBUG = True
 # DEBUG = False
 
-headless_state = False if DEBUG else True
+# headless_state = False if DEBUG else True
 # headless_state = True  # Para no ver el navegador
 # headless_state = False  # Para ver el navegador
 
 # (debug) & (ejecutar_todos_clientes)  ≥ Todos los clientes
 # (debug) & (NOT ejecutar_todos_clientes) ≥ Clientes de la lista
 # (NOT debug)  ≥ Clientes Productivos
-# ejecutar_todos_clientes = True
+# EJECUTAR_TODOS_CLIENTES = True
 EJECUTAR_TODOS_CLIENTES = False
 
-# ejecutar_clientes_lista = True
-EJECUTAR_CLIENTES_LISTA = False
+EJECUTAR_CLIENTES_LISTA = True
+# EJECUTAR_CLIENTES_LISTA = False
 clientes_si_verificar_config = [
-    "FACEBOOK ARGENTINA S.R.L",
+    # "FACEBOOK ARGENTINA S.R.L",
     "EDGE ARGENTINA S.R.L",
-    "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
-    "MAGNETI MARELLI REPUESTOS S.A",
-    "NATURA COSMETICOS S.A",
-    "ABBOTT LABORATORIES ARG. S.A",
-    "SIMPLOT ARGENTINA S.R.L",
+    # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
+    # "MAGNETI MARELLI REPUESTOS S.A",
+    # "NATURA COSMETICOS S.A",
+    # "ABBOTT LABORATORIES ARG. S.A",
+    # "SIMPLOT ARGENTINA S.R.L",
 ]
-SIN_DEBUG_EJECUTAR_LISTA = False  # Dejar siempre en False, saltea debug y ejecuta la lista de clientes
+SIN_DEBUG_EJECUTAR_LISTA = False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes
 
-# enviar_correo_test = True
-ENVIAR_CORREO_TEST = False
+ENVIAR_CORREO_TEST = True
+# ENVIAR_CORREO_TEST = False
 CORREO_TEST = 'lmarinaro@deloitte.com'
 
 # configurar nombres para el df_final de input.py,
@@ -63,15 +63,17 @@ CORREO_TEST = 'lmarinaro@deloitte.com'
 jurisdiccion_clases = {
     "CABA": "Agip",
     "Buenos Aires": "Arba",
-    "Rio Negro": "RioNegro",
-    "Entre Rios": "EntreRios",
     "SICNEA": "Sicnea",
-    "Rio Negro": "RioNegro",
     "La Pampa": "LaPampa",
     "La Rioja": "LaRioja",
     "San Juan": "SanJuan",
     "San Luis": "SanLuis",
     "Santiago del Estero": "SantiagoDelEstero",
+    "Entre Ríos": "EntreRios",
+    "Río Negro": "RioNegro",
+    "Córdoba": "Cordoba",
+    "Neuquén": "Neuquen",
+    "Tucumán": "Tucuman",
 }
 
 # configurar nombres para mapa_plot.py y la tabla en mail.py
@@ -93,14 +95,18 @@ if __name__ == "__main__":
     import asyncio
     from main import main
 
-    estado_value, correo_enviado_exitosamente = asyncio.run(main(
-        debug=DEBUG,
-        enviar_correo_test=ENVIAR_CORREO_TEST,
-        headless_state=headless_state,
-        ejecutar_todos_clientes=EJECUTAR_TODOS_CLIENTES,
-        ejecutar_clientes_lista=EJECUTAR_CLIENTES_LISTA,
-        sin_debug_ejecutar_lista=SIN_DEBUG_EJECUTAR_LISTA,
-        clientes_si_verificar_config=clientes_si_verificar_config
-    ))
+    kwargs = {
+        'debug': DEBUG,
+        'enviar_correo_test': ENVIAR_CORREO_TEST,
+        'ejecutar_todos_clientes': EJECUTAR_TODOS_CLIENTES,
+        'ejecutar_clientes_lista': EJECUTAR_CLIENTES_LISTA,
+        'sin_debug_ejecutar_lista': SIN_DEBUG_EJECUTAR_LISTA,
+        'clientes_si_verificar_config': clientes_si_verificar_config
+    }
+
+    if 'headless_state' in globals():
+        kwargs['headless_state'] = headless_state
+
+    estado_value, correo_enviado_exitosamente = asyncio.run(main(**kwargs))
 
     print(f"Estado: {estado_value}, Correo enviado exitosamente: {correo_enviado_exitosamente}")

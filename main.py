@@ -88,6 +88,7 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                         instance = await JurisdictionClass.create(**create_args)
                         instances[jurisdiction] = instance
 
+                    print(f"El cliente {cliente} tiene las siguientes jurisdicciones:")
                     print(f"Jurisdicciones encontradas: {jurisdicciones_encontradas}")
                     print(f"Jurisdicciones no encontradas: {jurisdicciones_no_encontradas}")
                     # Crear una lista de tareas

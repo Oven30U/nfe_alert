@@ -3,7 +3,7 @@
   "features": [
     {
       "type": "Feature",
-      "properties": { "nombre": "Tucuman" },
+      "properties": { "nombre": "Tucumán" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -332,7 +332,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Cordoba" },
+      "properties": { "nombre": "Córdoba" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -395,7 +395,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Entre Rios" },
+      "properties": { "nombre": "Entre Ríos" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -961,7 +961,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Neuquen" },
+      "properties": { "nombre": "Neuquén" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1043,7 +1043,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Rio Negro" },
+      "properties": { "nombre": "Río Negro" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [

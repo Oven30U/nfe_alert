@@ -13,7 +13,8 @@ from playwright.async_api import Playwright, Page
 import logging
 import os
 
-from config import  headless_state, log_file_path, PATH_ESTRUCTURA_ROBOT
+from config import log_file_path, PATH_ESTRUCTURA_ROBOT  # headless_state
+
 
 class LoggedException(Exception):
     """Excepción base que registra errores."""
@@ -99,19 +100,20 @@ class Jurisdiccion(ABC):
             # Implementación específica para la jurisdicción de Chaco
             pass
     """
+
     def __init__(
-        self,
-        nombre,
-        codigo,
-        cliente,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input=None,
-        razon_social_cliente_input=None,
-        texto_notificacion=None,
-        headless=True,
+            self,
+            nombre,
+            codigo,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input=None,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True,
     ):
         self.nombre = nombre
         self.codigo = codigo
@@ -134,19 +136,19 @@ class Jurisdiccion(ABC):
 
     @classmethod
     async def create(
-        cls,
-        playwright: Playwright,
-        nombre,
-        codigo,
-        cliente,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input=None,
-        razon_social_cliente_input=None,
-        texto_notificacion=None,
-        headless=True,
+            cls,
+            playwright: Playwright,
+            nombre,
+            codigo,
+            cliente,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input=None,
+            razon_social_cliente_input=None,
+            texto_notificacion=None,
+            headless=True,
     ):
         self = cls(
             nombre,
@@ -176,6 +178,7 @@ class Jurisdiccion(ABC):
         if not headless:
             await self.minimizar_ventana()
         return self
+
     async def AFIP_login(
             self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
     ):
