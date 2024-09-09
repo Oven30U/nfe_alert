@@ -112,7 +112,7 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
-                headless=True
+                headless=False
             )
             await santiago_del_estero.procesar_jurisdiccion()
 

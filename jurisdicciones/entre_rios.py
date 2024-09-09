@@ -118,7 +118,7 @@ async def main():
         fecha_desde = "01052024"
         fecha_hasta = "30052024"
         cuit_EntreRios = "20386165476"
-        clave_fiscal_EntreRios = "Gabriel1994"
+        clave_fiscal_EntreRios = "1994Gabriel"
         cuit_cliente_input = "30714604356"
         entre_rios = await EntreRios.create(
             playwright,

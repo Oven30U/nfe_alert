@@ -39,7 +39,7 @@ class Agip(Jurisdiccion):
         return self
     async def consultar_notificaciones(self):
         try:
-            await self.page.goto("https://claveciudad.agip.gob.ar/")
+            await self.page.goto("https://claveciudad.agip.gob.ar/", timeout=1200000)
             await self.page.fill('xpath=//*[@id="cuit"]', f"{self._cuit}")
             await self.page.fill('xpath=//*[@id="clave"]', f"{self._clave_fiscal}")
             await self.page.click("xpath=//a[normalize-space()='Ingresar']")

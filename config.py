@@ -26,12 +26,13 @@ Para ejecutar el script desde `config.py` se toman los valores de:
 Desde main.py estos dos valores son siempre False, pero desde config.py se pueden cambiar a True para probar el envío de correos y los clientes deseados. No actualiza última vez en System-Clientes.
 """
 
-DEBUG = True
-# DEBUG = False
+# DEBUG = True
+DEBUG = False
 
-# headless_state = False if DEBUG else True
-# headless_state = True  # Para no ver el navegador
-# headless_state = False  # Para ver el navegador
+if DEBUG:
+    headless_state = False if DEBUG else True
+    # headless_state = True  # Para no ver el navegador
+    # headless_state = False  # Para ver el navegador
 
 # (debug) & (ejecutar_todos_clientes)  ≥ Todos los clientes
 # (debug) & (NOT ejecutar_todos_clientes) ≥ Clientes de la lista
@@ -42,7 +43,7 @@ EJECUTAR_TODOS_CLIENTES = False
 EJECUTAR_CLIENTES_LISTA = True
 # EJECUTAR_CLIENTES_LISTA = False
 clientes_si_verificar_config = [
-    # "FACEBOOK ARGENTINA S.R.L",
+    "FACEBOOK ARGENTINA S.R.L",
     "EDGE ARGENTINA S.R.L",
     # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
     # "MAGNETI MARELLI REPUESTOS S.A",
@@ -52,8 +53,8 @@ clientes_si_verificar_config = [
 ]
 SIN_DEBUG_EJECUTAR_LISTA = False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes
 
-ENVIAR_CORREO_TEST = True
-# ENVIAR_CORREO_TEST = False
+# ENVIAR_CORREO_TEST = True
+ENVIAR_CORREO_TEST = False
 CORREO_TEST = 'lmarinaro@deloitte.com'
 
 # configurar nombres para el df_final de input.py,
@@ -89,7 +90,7 @@ link_clientes = f"{link_system}System-Clientes.xlsx"
 PATH_ESTRUCTURA_ROBOT = "C:/Users/lmarinaro/OneDrive - Deloitte (O365D)/Documents/Proyectos/test_robot_framework/dfe/Estructura-robot"
 log_file_path = f"{PATH_ESTRUCTURA_ROBOT}/System/logfile.log"
 
-LIMITES_REINTENTO = 15
+LIMITES_REINTENTO = 5
 
 if __name__ == "__main__":
     import asyncio

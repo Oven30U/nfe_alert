@@ -133,7 +133,7 @@ class TestNacional(BaseTest, ErrorTest):
         self.Jurisdiccion = Nacional
         self.client = "EDGE ARGENTINA S.R.L"
         self.cuit = "20386165476"
-        self.clave_fiscal = "Gabriel1994"
+        self.clave_fiscal = "1994Gabriel"
         self.fecha_desde = "28052024"
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
@@ -289,7 +289,7 @@ class TestCordoba(BaseTest, ErrorTest):
         self.Jurisdiccion = Cordoba
         self.client = "EDGE ARGENTINA S.R.L"
         self.cuit = "20386165476"
-        self.clave_fiscal = "Gabriel1994"
+        self.clave_fiscal = "1994Gabriel"
         self.fecha_desde = "01052024"
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
@@ -367,7 +367,7 @@ class TestRioNegro(BaseTest, ErrorTest):
         self.Jurisdiccion = RioNegro
         self.client = "EDGE ARGENTINA S.R.L"
         self.cuit = "20386165476"
-        self.clave_fiscal = "Gabriel1994"
+        self.clave_fiscal = "1994Gabriel"
         self.fecha_desde = "01052024"
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
@@ -406,7 +406,7 @@ class TestTucuman(BaseTest, ErrorTest):
         self.Jurisdiccion = Tucuman
         self.client = "EDGE ARGENTINA S.R.L"
         self.cuit = "20386165476"
-        self.clave_fiscal = "Gabriel1994"
+        self.clave_fiscal = "1994Gabriel"
         self.fecha_desde = "01052024"
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
@@ -484,7 +484,7 @@ class TestEntreRios(BaseTest, ErrorTest):
         self.Jurisdiccion = EntreRios
         self.client = "EDGE ARGENTINA S.R.L"
         self.cuit = "20386165476"
-        self.clave_fiscal = "Gabriel1994"
+        self.clave_fiscal = "1994Gabriel"
         self.fecha_desde = "01052024"
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
@@ -757,7 +757,7 @@ class TestSicnea(BaseTest, ErrorTest):
         self.Jurisdiccion = Sicnea
         self.client = "EDGE ARGENTINA S.R.L"
         self.cuit = "20386165476"
-        self.clave_fiscal = "Gabriel1994"
+        self.clave_fiscal = "1994Gabriel"
         self.fecha_desde = "01052024"
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"
@@ -796,7 +796,7 @@ class TestTucuman(BaseTest, ErrorTest):
         self.Jurisdiccion = Tucuman
         self.client = "EDGE ARGENTINA S.R.L"
         self.cuit = "20386165476"
-        self.clave_fiscal = "Gabriel1994"
+        self.clave_fiscal = "1994Gabriel"
         self.fecha_desde = "01052024"
         self.fecha_hasta = "30052024"
         self.cuit_cliente_input = "30714604356"

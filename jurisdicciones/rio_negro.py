@@ -88,7 +88,7 @@ async def main():
         fecha_desde = "01052024"
         fecha_hasta = "30052024"
         cuit_RioNegro = "20386165476"
-        clave_fiscal_RioNegro = "Gabriel1994"
+        clave_fiscal_RioNegro = "1994Gabriel"
         cuit_cliente_input = "30714604356"
         rio_negro = await RioNegro.create(
             playwright,

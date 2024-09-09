@@ -82,7 +82,7 @@ async def main():
         fecha_desde = "01052024"
         fecha_hasta = "30052024"
         cuit_Tucuman = "20386165476"
-        clave_fiscal_Tucuman = "Gabriel1994"
+        clave_fiscal_Tucuman = "1994Gabriel"
         cuit_cliente_input = "30714604356"
         tucuman = await Tucuman.create(
             playwright,

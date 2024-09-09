@@ -239,7 +239,7 @@ if __name__ == "__main__":
 
             client = "EDGE ARGENTINA S.R.L"
             cuit_Cordoba = "20386165476"
-            clave_fiscal_Cordoba = "Gabriel1994"
+            clave_fiscal_Cordoba = "1994Gabriel"
             cuit_cliente_input = "30714604356"
 
             # client = "MAGNETI MARELLI CONJ.DE ESCAPE S.A"

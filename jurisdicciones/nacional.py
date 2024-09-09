@@ -169,12 +169,12 @@ class Nacional(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        # client = "EDGE ARGENTINA S.R.L"
-        # cuit_cliente_input = "30714604356"
-        client = "FACEBOOK ARGENTINA S.R.L"
-        cuit_cliente_input = "30712132554"
+        client = "EDGE ARGENTINA S.R.L"
+        cuit_cliente_input = "30714604356"
+        # client = "FACEBOOK ARGENTINA S.R.L"
+        # cuit_cliente_input = "30712132554"
 
-        clave_fiscal_Nacional = "Gabriel1994"
+        clave_fiscal_Nacional = "1994Gabriel"
         cuit_Nacional = "20386165476"
         fecha_desde = "01052024"
         fecha_hasta = "30052024"

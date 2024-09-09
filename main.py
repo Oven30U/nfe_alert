@@ -159,7 +159,7 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                     })
 
                     if df_final_cliente["Error"].notna().any():
-                        correo_output = CORREO_TEST
+                        correo_output = CORREO_TEST  #  Si hay errores, enviar correo a otro correo de test,
                         estado_value = "Proceso terminado con errores"
                     else:
                         estado_value = "Correcto"
@@ -201,8 +201,9 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                     except Exception as e:
                         print(f"Error al enviar correo: {e}")
 
-                    # Actualizar 'Última verificación' sólo si se envio el correo y estado Correcto, sin debug.
-                    if correo_enviado_exitosamente and estado_value == "Correcto" and debug is False:
+                    # Actualizar 'Última verificación' solo si se envio el correo y estado Correcto, sin debug.
+                    # if correo_enviado_exitosamente and estado_value == "Correcto" and debug is False:
+                    if correo_enviado_exitosamente and debug is False:
                         # Actualiza hora de Última verificación
                         PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
                         df_cliente_system = pd.read_excel(PATH_CLIENTES)
