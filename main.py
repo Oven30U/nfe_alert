@@ -8,7 +8,12 @@ from datetime import datetime
 import pandas as pd
 from playwright.async_api import async_playwright
 
-from config import PATH_ESTRUCTURA_ROBOT, CORREO_TEST, LIMITES_REINTENTO, jurisdiccion_clases
+from config import (
+    PATH_ESTRUCTURA_ROBOT,
+    CORREO_TEST,
+    LIMITES_REINTENTO,
+    jurisdiccion_clases,
+)
 from functions.delete_backs import delete_zip_files_in_backup
 from conectar_db import conectar_db
 from inputs import obtener_clientes
@@ -18,15 +23,26 @@ from mapa_plot import crear_mapa, crear_mapa_argentina
 from jurisdicciones import *
 
 
-async def main(debug: bool = False, enviar_correo_test: bool = False, headless_state: bool = True,
-               ejecutar_todos_clientes: bool = False, ejecutar_clientes_lista: bool = False,
-               sin_debug_ejecutar_lista: bool = False,
-               clientes_si_verificar_config=None):
+async def main(
+    debug: bool = False,
+    enviar_correo_test: bool = False,
+    headless_state: bool = True,
+    ejecutar_todos_clientes: bool = False,
+    ejecutar_clientes_lista: bool = False,
+    sin_debug_ejecutar_lista: bool = False,
+    clientes_si_verificar_config=None,
+):
     if clientes_si_verificar_config is None:
         clientes_si_verificar_config = []
     async with async_playwright() as playwright:
-        df_input = obtener_clientes(debug, ejecutar_todos_clientes, ejecutar_clientes_lista, sin_debug_ejecutar_lista,
-                                    clientes_si_verificar_config, jurisdiccion_clases)
+        df_input = obtener_clientes(
+            debug,
+            ejecutar_todos_clientes,
+            ejecutar_clientes_lista,
+            sin_debug_ejecutar_lista,
+            clientes_si_verificar_config,
+            jurisdiccion_clases,
+        )
         if not df_input.empty:
             # print("df_input esta vacio, finaliza el programa.")
             # return
@@ -50,8 +66,12 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                         cliente = row["Cliente"]
                         usuario = int(row["Usuario"])
                         password = row["Password"]
-                        fecha_desde = row["fecha_desde"].replace("/", "")
-                        fecha_hasta = row["fecha_hasta"].replace("/", "")
+                        # fecha_desde = row["fecha_desde"].replace("/", "")
+                        # fecha_hasta = row["fecha_hasta"].replace("/", "")
+                        # fecha_desde = row["fecha_desde"].strftime("%d%m%Y")
+                        # fecha_hasta = row["fecha_hasta"].strftime("%d%m%Y")
+                        fecha_desde = row["fecha_desde"]
+                        fecha_hasta = row["fecha_hasta"]
                         cuit_cliente = int(row["cuit_cliente"])
                         correo_output = row["Correo Output"]
 
@@ -64,8 +84,10 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                         files = os.listdir(output_folder)
                         # Move each .zip file to the backup folder and delete the rest
                         for file in files:
-                            if file.endswith('.zip'):
-                                shutil.move(os.path.join(output_folder, file), backup_folder)
+                            if file.endswith(".zip"):
+                                shutil.move(
+                                    os.path.join(output_folder, file), backup_folder
+                                )
                             else:
                                 os.remove(os.path.join(output_folder, file))
 
@@ -90,10 +112,13 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
 
                     print(f"El cliente {cliente} tiene las siguientes jurisdicciones:")
                     print(f"Jurisdicciones encontradas: {jurisdicciones_encontradas}")
-                    print(f"Jurisdicciones no encontradas: {jurisdicciones_no_encontradas}")
+                    print(
+                        f"Jurisdicciones no encontradas: {jurisdicciones_no_encontradas}"
+                    )
                     # Crear una lista de tareas
                     tareas = [
-                        instance.procesar_jurisdiccion() for instance in instances.values()
+                        instance.procesar_jurisdiccion()
+                        for instance in instances.values()
                     ]
 
                     # Ejecutar todas las tareas de manera concurrente
@@ -102,17 +127,22 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                     # Convertir resultados de tupla a lista y en DataFrame
                     resultados = [list(res) for res in resultados]
                     df_final_cliente = pd.DataFrame(
-                        resultados, columns=["Nombre", "Notificacion", "Screenshot", "Error"]
+                        resultados,
+                        columns=["Nombre", "Notificacion", "Screenshot", "Error"],
                     )
 
                     # Verificar si hay errores
                     errores = df_final_cliente[df_final_cliente["Error"].notna()]
                     for _, error_row in errores.iterrows():
                         jurisdiction = error_row["Nombre"]
-                        for _, row in df_input_por_cliente.get_group(cliente).iterrows():
+                        for _, row in df_input_por_cliente.get_group(
+                            cliente
+                        ).iterrows():
                             if row["Jurisdiccion"] == jurisdiction:
                                 JurisdictionClass = globals()[jurisdiction]
-                                for intento in range(LIMITES_REINTENTO):  # Limitar a intentos en config.py
+                                for intento in range(
+                                    LIMITES_REINTENTO
+                                ):  # Limitar a intentos en config.py
                                     # headless = intento % 2 == 0  # Itera entre headless y head full
                                     # Se utiliza el headless definido por defecto en cada Clase de jurisdicciones
                                     instance = await JurisdictionClass.create(
@@ -128,18 +158,28 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                                     resultado = await instance.procesar_jurisdiccion()
 
                                     # Actualizar el DataFrame con el nuevo resultado
-                                    df_final_cliente.loc[df_final_cliente["Nombre"] == jurisdiction] = list(resultado)
+                                    df_final_cliente.loc[
+                                        df_final_cliente["Nombre"] == jurisdiction
+                                    ] = list(resultado)
 
                                     # Verificar si "Error" es none
                                     if pd.isnull(
-                                            df_final_cliente.loc[
-                                                df_final_cliente["Nombre"] == jurisdiction, "Error"]).all():
+                                        df_final_cliente.loc[
+                                            df_final_cliente["Nombre"] == jurisdiction,
+                                            "Error",
+                                        ]
+                                    ).all():
                                         break  # Si "Error" is None, break el loop
 
                     print(f"{cliente} \n {df_final_cliente}")
 
-                    crear_mapa(df_final_cliente, f"{output_folder}/mapa_jurisdicciones_{cliente}.png")
-                    crear_mapa_argentina(df_final_cliente, f"{output_folder}/mapa_nacional_{cliente}.png")
+                    crear_mapa(
+                        df_final_cliente,
+                        f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
+                    )
+                    crear_mapa_argentina(
+                        df_final_cliente, f"{output_folder}/mapa_nacional_{cliente}.png"
+                    )
 
                     now = datetime.now()
                     fecha_actual = now.strftime("%Y%m%d")
@@ -151,15 +191,19 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                         for file in png_files:
                             zipf.write(file, os.path.basename(file))
 
-                    df_adjunto_correo = df_final_cliente[["Nombre", "Notificacion", "Screenshot"]].copy()
-                    df_adjunto_correo = df_adjunto_correo.rename(columns={
-                        "Nombre": "Jurisdicción",
-                        "Notificacion": "Notificaciones",
-                        "Screenshot": "Screenshot"
-                    })
+                    df_adjunto_correo = df_final_cliente[
+                        ["Nombre", "Notificacion", "Screenshot"]
+                    ].copy()
+                    df_adjunto_correo = df_adjunto_correo.rename(
+                        columns={
+                            "Nombre": "Jurisdicción",
+                            "Notificacion": "Notificaciones",
+                            "Screenshot": "Screenshot",
+                        }
+                    )
 
                     if df_final_cliente["Error"].notna().any():
-                        correo_output = CORREO_TEST  #  Si hay errores, enviar correo a otro correo de test,
+                        # correo_output = CORREO_TEST  #  Si hay errores, enviar correo a otro correo de test,
                         estado_value = "Proceso terminado con errores"
                     else:
                         estado_value = "Correcto"
@@ -210,8 +254,12 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                         now = datetime.now()
                         current_time = now.strftime("%d/%m/%Y %H:%M:%S")
                         df_cliente_system.loc[
-                            df_cliente_system['Cliente'] == cliente, 'Última verificación'] = current_time
-                        df_cliente_system.to_excel(PATH_CLIENTES, sheet_name="System-Clientes", index=False)
+                            df_cliente_system["Cliente"] == cliente,
+                            "Última verificación",
+                        ] = current_time
+                        df_cliente_system.to_excel(
+                            PATH_CLIENTES, sheet_name="System-Clientes", index=False
+                        )
 
                     username = str(correo_output)
 
@@ -222,8 +270,8 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
             inicio_value = datetime.now()
             estado_value = "Correcto"
             correo_enviado_exitosamente = True  # No se envia correo en este caso
-            username = 'TaxTech'
-            cliente = 'TaxTech'
+            username = "TaxTech"
+            cliente = "TaxTech"
 
             proceso = "Revision de Domicilios Fiscales Electronicos"
             conectar_db(proceso, cliente, username, inicio_value, estado_value)
@@ -240,6 +288,10 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
 if __name__ == "__main__":
     import asyncio
 
-    estado_value, correo_enviado_exitosamente = asyncio.run(main(debug=False, enviar_correo_test=False))
+    estado_value, correo_enviado_exitosamente = asyncio.run(
+        main(debug=False, enviar_correo_test=False)
+    )
 
-    print(f"Estado: {estado_value}, Correo enviado exitosamente: {correo_enviado_exitosamente}")
+    print(
+        f"Estado: {estado_value}, Correo enviado exitosamente: {correo_enviado_exitosamente}"
+    )
