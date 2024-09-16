@@ -1,10 +1,10 @@
 from os import getlogin
-from datetime import datetime
+from datetime import datetime, timedelta
 from pyodbc import connect, OperationalError
 from time import sleep
 from typing import List
-
-# import pyodbc
+import random
+import string
 
 SERVER = "ARBAS0228\\RPA"
 DATABASE = "Tecnologia"
@@ -25,21 +25,16 @@ def conectar_db(
     for i in range(max_reintentos_conn):
         try:
             conn = connect(
-                f"Driver={DRIVER};"
-                f"Server={SERVER};"
-                f"Database={DATABASE};"
-                f"UID={USERNAME};"
-                f"PWD={PASSWORD};"
+                f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
             )
-        except (
-            Exception
-        ) as e:  # ? En caso de que se haya desconectado de la vpn, se registrará en el Log de errores
+            break
+        except Exception as e:
             print(f"Error de conexión num {i + 1}: {e}")
             if i < max_reintentos_conn - 1:
                 sleep(3)
             else:
                 print(
-                    "Error Verifique mantenerse conectado a la VPN durante la ejecución del programa."
+                    "Error: Verifique mantenerse conectado a la VPN durante la ejecución del programa."
                 )
                 return
 
@@ -48,7 +43,7 @@ def conectar_db(
     usernames = username.split(";")
     for user in usernames:
         user_name = user.split("@")[0].strip()
-        if user_name != "":
+        if user_name:
             cursor.execute(
                 """
                 INSERT INTO monitoreo_bots (username, proceso, estado, iniciado, finalizado, cliente)
@@ -56,20 +51,15 @@ def conectar_db(
                 """,
                 (user_name, proceso, estado_value, inicio_value, fin_value, cliente),
             )
-
     conn.commit()
+    conn.close()
 
 
-# ToDo - Revisar si no esta depreciada esta función por get_clientes_ejecutados_hoy
 def get_ultimo_finalizado(cliente):
     """Obtiene el valor de 'finalizado' más reciente para el proceso y cliente especificados."""
     try:
         conn = connect(
-            f"Driver={DRIVER};"
-            f"Server={SERVER};"
-            f"Database={DATABASE};"
-            f"UID={USERNAME};"
-            f"PWD={PASSWORD};"
+            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
         )
         cursor = conn.cursor()
         cursor.execute(
@@ -84,10 +74,7 @@ def get_ultimo_finalizado(cliente):
             (cliente,),
         )
         result = cursor.fetchone()
-        if result:
-            return result[0]
-        else:
-            return None
+        return result[0] if result else None
     except Exception as e:
         print(f"Error al obtener el último 'finalizado': {e}")
         return None
@@ -98,10 +85,7 @@ def get_ultimo_finalizado(cliente):
 def get_clientes_ejecutados_hoy_with_retries(
     clientes_si_verificar: List[str], retries=10, delay=30
 ) -> List[str]:
-    """
-    Intenta obtener los clientes ejecutados hoy hasta 10 veces con intervalos de 30 segundos.
-    Si falla, devuelve clientes_si_verificar.
-    """
+    """Intenta obtener los clientes ejecutados hoy hasta 10 veces con intervalos de 30 segundos."""
     for attempt in range(retries):
         try:
             return get_clientes_ejecutados_hoy(clientes_si_verificar)
@@ -115,25 +99,13 @@ def get_clientes_ejecutados_hoy_with_retries(
 
 
 def get_clientes_ejecutados_hoy(clientes: List[str]) -> List[str]:
-    """
-    Verifica si hay datos en 'finalizado' para
-    una lista de clientes el dia de hoy
-    y trae el más reciente de cada uno.
-    """
+    """Verifica si hay datos en 'finalizado' para una lista de clientes el día de hoy y trae el más reciente de cada uno."""
     try:
         conn = connect(
-            f"Driver={DRIVER};"
-            f"Server={SERVER};"
-            f"Database={DATABASE};"
-            f"UID={USERNAME};"
-            f"PWD={PASSWORD};"
+            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
         )
         cursor = conn.cursor()
-
-        # Crear una cadena de marcadores de posición para la lista de clientes
         placeholders = ", ".join(["?"] * len(clientes))
-
-        # Modificar la consulta SQL para usar los marcadores de posición
         query = f"""
             SELECT cliente, MAX(finalizado) AS finalizado
             FROM monitoreo_bots
@@ -142,20 +114,10 @@ def get_clientes_ejecutados_hoy(clientes: List[str]) -> List[str]:
             AND cliente IN ({placeholders})
             GROUP BY cliente
         """
-
-        # Ejecutar la consulta con la lista de clientes
         cursor.execute(query, clientes)
         results = cursor.fetchall()
-
-        # Procesar los resultados
         clientes_hoy = [row.cliente for row in results]
-        # Crear una lista de clientes que no se encuentran en clientes_hoy
-        clientes_no_ejecutados_hoy = [
-            cliente for cliente in clientes if cliente not in clientes_hoy
-        ]
-
-        return clientes_no_ejecutados_hoy
-
+        return [cliente for cliente in clientes if cliente not in clientes_hoy]
     except Exception as e:
         print(f"Error al obtener el último 'finalizado': {e}")
         return []
@@ -163,26 +125,80 @@ def get_clientes_ejecutados_hoy(clientes: List[str]) -> List[str]:
         conn.close()
 
 
-# ? Función para crear un error en un 'log de errores'
-# def crear_error(titulo, conexion=True):
-#     """Registra el error pasado como parámetro en un txt dentro de la carpeta System"""
-#     #* Hace un conteo de la cantidad de errores que hay registrados (si el archivo existe)
-#     registro = 1
-#     if exists(ARCHIVO_ERRORES):
-#         with open(ARCHIVO_ERRORES, "r") as archivo_error:
-#             for linea in archivo_error:
-#                 if "Registro" in linea:
-#                     registro += 1
+# ToDo luego de setear un password, se debe dar aviso por mail al usuario principal del clte
+def set_pass(cliente: str) -> str:
+    """Genera una nueva contraseña, actualiza la base de datos y devuelve la nueva contraseña."""
+    new_pass = "".join(random.choices(string.ascii_letters + string.digits, k=12))
+    fecha_actualizacion = datetime.now().strftime("%d-%m-%Y")
+    try:
+        conn = connect(
+            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
+        )
+        cursor = conn.cursor()
 
-#     #* Abre el archivo y escribe el error con el número de registro actual
-#     error_text = format_exc()
-#     fecha_error = datetime.now()
-#     fecha_error_form = fecha_error.strftime(f"%d-%m-%Y (%H:%M:%S)") # Formatea la fecha
-#     with open(ARCHIVO_ERRORES, "a") as archivo_error: # Abre el archivo en modo adición (no sobreescribe el texto existente)
-#         archivo_error.write(f"Registro {registro}: {titulo}\n")
-#         archivo_error.write(f"Fecha del error: {fecha_error_form}\n")
-#         archivo_error.write(error_text)
-#         archivo_error.write("\n----------------------------------------------------\n\n")
+        # Asegurarse de que los valores no excedan las longitudes permitidas
+        cliente = cliente[:255]
+        new_pass = new_pass[:255]
 
-#     if conexion: # Registra el error en la base de datos si conexion = True
-#         conectar_db()
+        query = """
+            UPDATE clientes
+            SET [pass] = ?, [fecha_actualizacion_pass] = ?
+            WHERE nombre = ?
+        """
+        cursor.execute(query, (new_pass, fecha_actualizacion, cliente))
+        if (
+            cursor.rowcount == 0
+        ):  # Si no se actualizó ninguna fila, insertar un nuevo cliente
+            query = """
+                INSERT INTO clientes (nombre, pass, fecha_actualizacion_pass)
+                VALUES (?, ?, ?)
+            """
+            cursor.execute(query, (cliente, new_pass, fecha_actualizacion))
+        conn.commit()
+        return new_pass
+    except Exception as e:
+        print(f"Error al actualizar la contraseña: {e}")
+        return None
+    finally:
+        conn.close()
+
+
+def get_pass_zip(cliente: str) -> str:
+    """Consulta el valor de [pass] y [fecha_actualizacion_pass] para el cliente especificado."""
+    try:
+        conn = connect(
+            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
+        )
+        cursor = conn.cursor()
+
+        # Asegurarse de que el valor no exceda la longitud permitida
+        cliente = cliente[:255]
+
+        query = """
+            SELECT TOP 1 [pass], [fecha_actualizacion_pass]
+            FROM clientes
+            WHERE nombre = ?
+            ORDER BY id DESC
+        """
+        cursor.execute(query, (cliente,))
+        result = cursor.fetchone()
+        if result:
+            pass_value, fecha_actualizacion_pass = result
+            if fecha_actualizacion_pass:
+                fecha_actualizacion_pass = datetime.strptime(
+                    fecha_actualizacion_pass, "%d-%m-%Y"
+                )
+                if fecha_actualizacion_pass >= datetime.now() - timedelta(days=90):
+                    return pass_value
+                else:
+                    return set_pass(cliente)
+            else:
+                return set_pass(cliente)
+        else:
+            print(f"No se encontró el cliente: {cliente}, se procederá a crearlo.")
+            return set_pass(cliente)
+    except Exception as e:
+        print(f"Error al obtener la contraseña: {e}")
+        return None
+    finally:
+        conn.close()

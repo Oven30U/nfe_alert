@@ -3,6 +3,7 @@ import glob
 import os
 import shutil
 import zipfile
+import pyzipper
 from datetime import datetime
 
 import pandas as pd
@@ -15,7 +16,7 @@ from config import (
     jurisdiccion_clases,
 )
 from functions.delete_backs import delete_zip_files_in_backup
-from conectar_db import conectar_db
+from conectar_db import conectar_db, get_pass_zip
 from inputs import obtener_clientes
 from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
@@ -187,7 +188,10 @@ async def main(
                     zip_filename = f"{cliente}_{fecha_actual}_{hora_actual}.zip"
                     zip_filepath = f"{output_folder}/{zip_filename}"
                     png_files = glob.glob(f"{output_folder}/*.png")
-                    with zipfile.ZipFile(zip_filepath, "w") as zipf:
+                    
+                    pass_zip = get_pass_zip(cliente)
+                    with pyzipper.AESZipFile(zip_filepath, 'w', compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES) as zipf:
+                        zipf.setpassword(pass_zip.encode('utf-8'))
                         for file in png_files:
                             zipf.write(file, os.path.basename(file))
 
