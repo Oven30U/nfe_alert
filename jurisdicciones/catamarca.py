@@ -1,6 +1,8 @@
-from playwright.async_api import Playwright, async_playwright
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 from datetime import datetime
+
+from playwright.async_api import Playwright, async_playwright
+
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Catamarca(Jurisdiccion):

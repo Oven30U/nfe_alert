@@ -1,7 +1,11 @@
 import asyncio
+
 import pytest
-from test_unit import TestNacional, TestArba, TestAgip, TestMendoza, TestCordoba, TestNeuquen, TestRioNegro, \
-    TestTucuman, TestMisiones, TestEntreRios, TestJujuy, TestChubut, TestLaPampa, TestChaco
+
+from test_unit import (TestAgip, TestArba, TestChaco, TestChubut, TestCordoba,
+                       TestEntreRios, TestJujuy, TestLaPampa, TestMendoza,
+                       TestMisiones, TestNacional, TestNeuquen, TestRioNegro,
+                       TestTucuman)
 
 
 class TestAll:

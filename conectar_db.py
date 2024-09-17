@@ -1,13 +1,11 @@
 import os
-
-# from os import getlogin, path
-from datetime import datetime, timedelta
-import os
-from pyodbc import connect, OperationalError
-from time import sleep
-from typing import List
 import random
 import string
+from datetime import datetime, timedelta
+from time import sleep
+
+from pyodbc import connect
+
 from pruebas.correo_cli import send_email_smtp
 
 SERVER = "ARBAS0228\\RPA"
@@ -87,8 +85,8 @@ def get_ultimo_finalizado(cliente):
 
 
 def get_clientes_ejecutados_hoy_with_retries(
-    clientes_si_verificar: List[str], retries=10, delay=30
-) -> List[str]:
+    clientes_si_verificar: list[str], retries=10, delay=30
+) -> list[str]:
     """Intenta obtener los clientes ejecutados hoy hasta 10 veces con intervalos de 30 segundos."""
     for attempt in range(retries):
         try:
@@ -102,7 +100,7 @@ def get_clientes_ejecutados_hoy_with_retries(
                 return clientes_si_verificar
 
 
-def get_clientes_ejecutados_hoy(clientes: List[str]) -> List[str]:
+def get_clientes_ejecutados_hoy(clientes: list[str]) -> list[str]:
     """Verifica si hay datos en 'finalizado' para una lista de clientes el día de hoy y trae el más reciente de cada uno."""
     try:
         conn = connect(
@@ -129,8 +127,101 @@ def get_clientes_ejecutados_hoy(clientes: List[str]) -> List[str]:
         conn.close()
 
 
-# ToDo luego de setear un password, se debe dar aviso por mail al usuario principal del clte
-def set_pass(cliente: str, correo_output: List[str]) -> str:
+def read_and_modify_html(cliente: str, new_pass: str) -> str:
+    """Lee y modifica el contenido HTML."""
+    html_template_path = os.path.join("pruebas", "enviando_img.html")
+    with open(html_template_path, "r", encoding="utf-8") as file:
+        html_content = file.read()
+    html_content = html_content.replace("{{cliente}}", cliente)
+    html_content = html_content.replace("{{new_pass}}", new_pass)
+    return html_content
+
+
+def verify_and_add_users(correo_output: list[str]):
+    """Verifica si los items de correo_output se encuentran en la tabla usuarios_autorizados. Si falta alguno, lo agrega."""
+    try:
+        with connect(
+            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
+        ) as conn:
+            with conn.cursor() as cursor:
+                # Split the string by semicolons to get individual email addresses
+                if isinstance(correo_output, str):
+                    correo_output = correo_output.split(";")
+
+                usernames = [email.split("@")[0] for email in correo_output]
+
+                # Verificar si los usuarios existen en usuarios_autorizados
+                query = "SELECT username FROM usuarios_autorizados WHERE username IN ({})".format(
+                    ",".join("?" * len(usernames))
+                )
+                cursor.execute(query, usernames)
+                existing_users = {row[0] for row in cursor.fetchall()}
+
+                # Agregar los usuarios que no existen
+                missing_users = [
+                    user for user in usernames if user not in existing_users
+                ]
+                fecha_autorizacion = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                for user in missing_users:
+                    query = "INSERT INTO usuarios_autorizados (username, fecha_autorizacion) VALUES (?, ?)"
+                    cursor.execute(query, (user, fecha_autorizacion))
+
+                conn.commit()
+    except Exception as e:
+        print(f"Error al verificar y agregar usuarios: {e}")
+
+
+def verify_and_add_user_client_relationship(cliente_id: int, correo_output: list[str], cliente: str, new_pass: str):
+    """Verifica que todos los usuarios_autorizados tengan relación con el cliente. Si no tienen relación, la agrega y envía un correo."""
+    try:
+        with connect(
+            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
+        ) as conn:
+            with conn.cursor() as cursor:
+                # Split the string by semicolons to get individual email addresses
+                if isinstance(correo_output, str):
+                    correo_output = correo_output.split(";")
+
+                usernames = [email.split("@")[0] for email in correo_output]
+
+                # Obtener los ids de los usuarios autorizados
+                query = "SELECT id, username FROM usuarios_autorizados WHERE username IN ({})".format(
+                    ",".join("?" * len(usernames))
+                )
+                cursor.execute(query, usernames)
+                usuarios_autorizados = cursor.fetchall()
+                usuarios_ids = {row[1]: row[0] for row in usuarios_autorizados}
+
+                # Insertar en usuario_cliente si no existe la relación
+                for username in usernames:
+                    usuario_id = usuarios_ids.get(username)
+                    if usuario_id:
+                        query = """
+                            SELECT COUNT(*)
+                            FROM usuario_cliente
+                            WHERE id_cliente = ? AND id_usuario = ?
+                        """
+                        cursor.execute(query, (cliente_id, usuario_id))
+                        if cursor.fetchone()[0] == 0:
+                            query = "INSERT INTO usuario_cliente (id_cliente, id_usuario) VALUES (?, ?)"
+                            cursor.execute(query, (cliente_id, usuario_id))
+                            # Enviar correo solo si hubo un insert
+                            correo = f"{username}@deloitte.com"
+                            send_email_smtp(
+                                sender_email="robot-Tax-AR@deloitte.com",
+                                receiver_emails=[correo],
+                                subject=f"Actualización de clave de seguridad para Revisión de Domicilios Fiscales Electrónicos - {cliente}",
+                                html_file_path=None,
+                                image_paths=None,
+                                html_content=read_and_modify_html(cliente, new_pass),
+                            )
+
+                conn.commit()
+    except Exception as e:
+        print(f"Error al verificar y agregar relación usuario-cliente: {e}")
+
+
+def set_pass(cliente: str, correo_output: list[str]) -> str:
     """Genera una nueva contraseña, actualiza la base de datos y devuelve la nueva contraseña."""
     new_pass = "".join(random.choices(string.ascii_letters + string.digits, k=12))
     fecha_actualizacion = datetime.now().strftime("%d-%m-%Y")
@@ -164,53 +255,12 @@ def set_pass(cliente: str, correo_output: List[str]) -> str:
                 cursor.execute(query, (cliente,))
                 cliente_id = cursor.fetchone()[0]
 
-                # Extraer usernames de las direcciones de correo
-                usernames = [email.split("@")[0] for email in correo_output]
+                # Verificar y agregar usuarios
+                verify_and_add_users(correo_output)
 
-                # Obtener los ids de los usuarios autorizados
-                query = (
-                    "SELECT id FROM usuarios_autorizados WHERE username IN ({})".format(
-                        ",".join("?" * len(usernames))
-                    )
-                )
-                cursor.execute(query, usernames)
-                usuarios_ids = cursor.fetchall()
+                # Verificar y agregar relación usuario-cliente
+                verify_and_add_user_client_relationship(cliente_id, correo_output, cliente, new_pass)
 
-                # Insertar en usuario_cliente
-                for usuario_id in usuarios_ids:
-                    query = "INSERT INTO usuario_cliente (id_cliente, id_usuario) VALUES (?, ?)"
-                    cursor.execute(query, (cliente_id, usuario_id[0]))
-
-                # Obtener los correos de los usuarios autorizados
-                query = """
-                    SELECT DISTINCT ua.username 
-                    FROM usuarios_autorizados ua
-                    INNER JOIN usuario_cliente uc ON ua.id = uc.id_usuario
-                    WHERE uc.id_cliente = ?
-                """
-                cursor.execute(query, (cliente_id,))
-                correos = [row[0] for row in cursor.fetchall()]
-
-                # Leer y modificar el contenido HTML
-                html_template_path = os.path.join("pruebas", "enviando_img.html")
-                with open(html_template_path, "r", encoding="utf-8") as file:
-                    html_content = file.read()
-                html_content = html_content.replace("{{cliente}}", cliente)
-                html_content = html_content.replace("{{new_pass}}", new_pass)
-
-                # Enviar correos
-                for correo in correos:
-                    correo = f"{correo}@deloitte.com"
-                    send_email_smtp(
-                        sender_email="robot-Tax-AR@deloitte.com",
-                        receiver_emails=[correo],
-                        subject=f"Actualización de clave de seguridad para Revisión de Domicilios Fiscales Electrónicos - {cliente}",
-                        html_file_path=None,
-                        image_paths=None,
-                        html_content=html_content,
-                    )
-
-                conn.commit()
         return new_pass
     except Exception as e:
         print(f"Error al actualizar la contraseña: {e}")
@@ -244,7 +294,19 @@ def get_pass_zip(
                 fecha_actualizacion_pass = datetime.strptime(
                     fecha_actualizacion_pass, "%d-%m-%Y"
                 )
+                # Si la contraseña se actualizó hace menos de 90 días, devolverla
                 if fecha_actualizacion_pass >= datetime.now() - timedelta(days=90):
+                    # Obtener el id del cliente
+                    query = "SELECT id FROM clientes WHERE nombre = ?"
+                    cursor.execute(query, (cliente,))
+                    cliente_id = cursor.fetchone()[0]
+
+                    # Verificar y agregar usuarios
+                    verify_and_add_users(correo_output)
+
+                    # Verificar y agregar relación usuario-cliente
+                    verify_and_add_user_client_relationship(cliente_id, correo_output, cliente, pass_value)
+
                     return pass_value
                 else:
                     return set_pass(cliente, correo_output)

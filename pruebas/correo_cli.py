@@ -1,12 +1,13 @@
-import win32com.client as win32
 import os
 import re
-from typing import Optional
-
 import smtplib
+from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
+from typing import Optional
+
+import win32com.client as win32
+
 
 def send_email_outlook(
     sender_email: str = "lmarinaro@deloitte.com",

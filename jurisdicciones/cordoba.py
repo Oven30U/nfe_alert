@@ -1,7 +1,10 @@
 from datetime import datetime
-from playwright.async_api import Playwright, async_playwright
+
 from playwright._impl._errors import TimeoutError
-from jurisdicciones.jurisdiccion import Jurisdiccion, ConsultarNotificacionesError
+from playwright.async_api import Playwright, async_playwright
+
+from jurisdicciones.jurisdiccion import (ConsultarNotificacionesError,
+                                         Jurisdiccion)
 
 
 class Cordoba(Jurisdiccion):

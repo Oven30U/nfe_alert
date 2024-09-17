@@ -1,8 +1,7 @@
-from playwright.async_api import Playwright, async_playwright
 from playwright._impl._errors import TimeoutError
-from jurisdicciones.jurisdiccion import (
-    Jurisdiccion,
-)
+from playwright.async_api import Playwright, async_playwright
+
+from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class Mendoza(Jurisdiccion):

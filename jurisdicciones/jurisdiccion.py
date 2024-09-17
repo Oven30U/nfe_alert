@@ -2,18 +2,19 @@
 Este modulo contiene la clase Jurisdiccion y las clases correspondientes a excepciones.
 """
 
-from typing import Tuple, Optional, Union, List
 import asyncio
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from abc import ABC, abstractmethod
-from datetime import datetime
-from playwright.async_api import Playwright, Page
 import logging
 import os
+import smtplib
+from abc import ABC, abstractmethod
+from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import List, Optional, Tuple, Union
 
-from config import log_file_path, PATH_ESTRUCTURA_ROBOT  # headless_state
+from playwright.async_api import Page, Playwright
+
+from config import PATH_ESTRUCTURA_ROBOT, log_file_path  # headless_state
 
 
 class LoggedException(Exception):

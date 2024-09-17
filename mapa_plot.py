@@ -1,10 +1,10 @@
 import geopandas as gpd
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib.image as mpimg
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 
 from config import mapa_jurisdiccion_clases
 

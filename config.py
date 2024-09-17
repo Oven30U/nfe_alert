@@ -45,7 +45,7 @@ EJECUTAR_CLIENTES_LISTA = True
 # EJECUTAR_CLIENTES_LISTA = False
 clientes_si_verificar_config = [
     "FACEBOOK ARGENTINA S.R.L",
-    "EDGE ARGENTINA S.R.L",
+    # "EDGE ARGENTINA S.R.L",
     # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
     # "MAGNETI MARELLI REPUESTOS S.A",
     # "NATURA COSMETICOS S.A",
@@ -104,7 +104,7 @@ link_clientes = f"{link_system}System-Clientes.xlsx"
 
 # Constantes de archivos que corresponden a cada cliente
 PATH_ESTRUCTURA_ROBOT = "C:/Users/lmarinaro/OneDrive - Deloitte (O365D)/Documents/Proyectos/test_robot_framework/dfe/Estructura-robot"
-NOMBRE_ARCHIVO_CLIENTE = "Input_nfe.xlsm"
+NOMBRE_ARCHIVO_CLIENTE = "Template_input_NFE_Alert.xlsm"
 SHEET_ARCHIVO_CLIENTE = "Configuracion"
 log_file_path = f"{PATH_ESTRUCTURA_ROBOT}/System/logfile.log"
 
@@ -113,6 +113,7 @@ LIMITES_REINTENTO = 5
 
 if __name__ == "__main__":
     import asyncio
+
     from main import main
 
     kwargs = {

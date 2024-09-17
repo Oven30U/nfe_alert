@@ -294,10 +294,10 @@ from usuarios_autorizados ua
   inner join clientes cli on uc.id_cliente = cli.id
   WHERE uc.id_cliente = 1
 
-
+select * from usuarios_autorizados where username in ('lmarinaro', 'rtolaba')
 select * from usuario_cliente
 select * from clientes
-delete from usuario_cliente where id = 7
+-- delete from usuario_cliente where id = 7
 
 update clientes
 set fecha_actualizacion_pass = '01-01-2020' where nombre = 'FACEBOOK ARGENTINA S.R.L' 
@@ -327,3 +327,7 @@ INSERT INTO usuario_cliente (id_cliente, id_usuario) VALUES (1, 1041);
 -- -- Agregar la columna id como autoincremental y establecerla como clave primaria
 -- ALTER TABLE usuario_cliente
 -- ADD id INT IDENTITY(1,1) PRIMARY KEY;
+
+select * from monitoreo_bots where proceso like ('Revisi%') order by id desc
+
+-- delete from usuario_cliente

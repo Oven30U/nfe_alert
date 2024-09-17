@@ -1,24 +1,23 @@
+import logging
 import os
-import pandas as pd
 from datetime import datetime
+
+import pandas as pd
 from win32com.client import Dispatch
 
-from jurisdicciones.jurisdiccion import LoggedException
+from cliente_system import ClienteSystem
 from conectar_db import (
     get_clientes_ejecutados_hoy_with_retries,
-)  # get_ultimo_finalizado,
-
-# from openpyxl import load_workbook
-from cliente_system import ClienteSystem
-import logging
-from config import (
-    PATH_ESTRUCTURA_ROBOT,
-    NOMBRE_ARCHIVO_CLIENTE,
-    SHEET_ARCHIVO_CLIENTE,
-    log_file_path,
-    EJECUTAR_CLIENTES_LISTA,
-    clientes_si_verificar_config,
 )
+from config import (
+    EJECUTAR_CLIENTES_LISTA,
+    NOMBRE_ARCHIVO_CLIENTE,
+    PATH_ESTRUCTURA_ROBOT,
+    SHEET_ARCHIVO_CLIENTE,
+    clientes_si_verificar_config,
+    log_file_path,
+)
+from jurisdicciones.jurisdiccion import LoggedException
 
 
 class InputException(LoggedException):
@@ -41,11 +40,11 @@ def cargar_excels():
                 # Verificar si la hoja existe
                 if SHEET_ARCHIVO_CLIENTE in xls.sheet_names:
                     # Especificar manualmente el rango de filas y columnas para las tablas
-                    skiprows_jurisdiccion = 4
+                    skiprows_jurisdiccion = 5
                     nrows_jurisdiccion = 27
                     usecols_jurisdiccion = "A:D"
 
-                    skiprows_cliente = 0
+                    skiprows_cliente = 1
                     nrows_cliente = 2
                     usecols_cliente = "A:G"
 
@@ -129,77 +128,6 @@ def cerrar_excel(nombres_archivos):
         pass
 
 
-# def verificar_cliente(
-#     cliente_system,
-#     archivo_input_a_verificar,
-#     clientes_si_verificar_config,
-#     clientes_si_verificar,
-#     clientes_no_verificar,
-# ):
-#     if cliente_system.nombre in clientes_si_verificar_config:
-#         clientes_si_verificar.append(cliente_system)
-#     else:
-#         clientes_no_verificar.append(cliente_system)
-
-
-# def verificar_clientes(
-#     cliente_system,
-#     archivo_input_a_verificar,
-#     debug,
-#     ejecutar_todos_clientes,
-#     ejecutar_clientes_lista,
-#     sin_debug_ejecutar_ejecutar_lista,
-#     clientes_si_verificar_config,
-#     clientes_si_verificar,
-#     clientes_no_verificar,
-# ):
-#     """
-#     Verifica los clientes según las configuraciones y los agrega a las listas correspondientes.
-
-#     Parámetros:
-#     - cliente_system: Objeto ClienteSystem que representa al cliente a verificar.
-#     - archivo_input_a_verificar: Ruta del archivo de input a verificar.
-#     - debug: Booleano que indica si el modo debug está activado.
-#     - ejecutar_todos_clientes: Booleano que indica si se deben ejecutar todos los clientes.
-#     - ejecutar_clientes_lista: Booleano que indica si se deben ejecutar los clientes de la lista.
-#     - clientes_si_verificar_config: Lista de nombres de clientes que se deben verificar.
-#     - clientes_si_verificar: Lista donde se agregarán los clientes que se deben verificar.
-#     - clientes_no_verificar: Lista donde se agregarán los clientes que no se deben verificar.
-#     """
-#     if debug:
-#         if ejecutar_todos_clientes:
-#             clientes_si_verificar.append(cliente_system)
-#         elif ejecutar_clientes_lista:
-#             verificar_cliente(
-#                 cliente_system,
-#                 archivo_input_a_verificar,
-#                 clientes_si_verificar_config,
-#                 clientes_si_verificar,
-#                 clientes_no_verificar,
-#             )
-#         else:
-#             verificar_cliente(
-#                 cliente_system,
-#                 archivo_input_a_verificar,
-#                 clientes_si_verificar_config,
-#                 clientes_si_verificar,
-#                 clientes_no_verificar,
-#             )
-#     else:
-#         if sin_debug_ejecutar_ejecutar_lista:
-#             verificar_cliente(
-#                 cliente_system,
-#                 archivo_input_a_verificar,
-#                 clientes_si_verificar_config,
-#                 clientes_si_verificar,
-#                 clientes_no_verificar,
-#             )
-#         elif cliente_system.verificar_ejecucion(archivo_input_a_verificar):
-#             clientes_si_verificar.append(cliente_system)
-#         else:
-#             clientes_no_verificar.append(cliente_system)
-
-
 def obtener_clientes(
     debug,
     ejecutar_todos_clientes,
@@ -208,11 +136,6 @@ def obtener_clientes(
     clientes_si_verificar_config,
     jurisdiccion_clases,
 ):
-    # PATH_BOT = "Estructura-robot/"
-    # PATH_SYSTEM = "Estructura-robot/System/"
-    # PATH_ERRORES = "Estructura-robot/System/errores/"
-    # PATH_CLIENTES = f"{PATH_SYSTEM}System-Clientes.xlsx"
-    # PATH_CREDENCIALES_DIR = f"{PATH_SYSTEM}credenciales/"
 
     cerrar_excel(NOMBRE_ARCHIVO_CLIENTE)
 
@@ -277,10 +200,6 @@ def obtener_clientes(
             },
             inplace=True,
         )
-        # Index(['Jurisdiccion', 'Consultar', 'Usuario', 'Password', 'Cliente', 'CUIT',
-        #    'Socio responsable', 'Correos destinatarios',
-        #    'Rango de consulta dias anteriores', 'Schedule', 'Dia/s de ejecución'],
-        #   dtype='object')
 
         # Convertir la columna 'Rango de consulta dias anteriores' a tipo entero
         df_clientes["Rango de consulta dias anteriores"] = df_clientes[

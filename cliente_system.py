@@ -12,15 +12,15 @@ La clase ClienteSystem tiene los siguientes métodos:
 Este módulo también incluye un bloque de código de prueba que crea un objeto ClienteSystem y verifica si se debe ejecutar la verificación del cliente.
 """
 
-from datetime import datetime, time
-import shutil
+import math
 import os
+import shutil
+from datetime import datetime, time
 
+import numpy as np
 # from genericpath import isdir
 import pandas as pd
 import unidecode
-import math
-import numpy as np
 
 from config import link_clientes
 
