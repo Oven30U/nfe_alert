@@ -189,7 +189,7 @@ async def main(
                     zip_filepath = f"{output_folder}/{zip_filename}"
                     png_files = glob.glob(f"{output_folder}/*.png")
                     
-                    pass_zip = get_pass_zip(cliente)
+                    pass_zip = get_pass_zip(cliente, correo_output)
                     with pyzipper.AESZipFile(zip_filepath, 'w', compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES) as zipf:
                         zipf.setpassword(pass_zip.encode('utf-8'))
                         for file in png_files:

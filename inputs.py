@@ -263,50 +263,51 @@ def obtener_clientes(
     else:
         clientes_pendientes_verificar = clientes_si_verificar_config
 
-    # Filtrar las filas donde el cliente no se haya ejecutado hoy
-    df_clientes = df_clientes[
-        df_clientes["Cliente"].isin(clientes_pendientes_verificar)
-    ]
+    if not df_clientes.empty:
+        # Filtrar las filas donde el cliente no se haya ejecutado hoy
+        df_clientes = df_clientes[
+            df_clientes["Cliente"].isin(clientes_pendientes_verificar)
+        ]
 
-    df_clientes.rename(
-        columns={
-            "Código-Jurisdicción": "Jurisdiccion",
-            "CUIT": "cuit_cliente",
-            "Correos destinatarios": "Correo Output",
-        },
-        inplace=True,
-    )
-    # Index(['Jurisdiccion', 'Consultar', 'Usuario', 'Password', 'Cliente', 'CUIT',
-    #    'Socio responsable', 'Correos destinatarios',
-    #    'Rango de consulta dias anteriores', 'Schedule', 'Dia/s de ejecución'],
-    #   dtype='object')
+        df_clientes.rename(
+            columns={
+                "Código-Jurisdicción": "Jurisdiccion",
+                "CUIT": "cuit_cliente",
+                "Correos destinatarios": "Correo Output",
+            },
+            inplace=True,
+        )
+        # Index(['Jurisdiccion', 'Consultar', 'Usuario', 'Password', 'Cliente', 'CUIT',
+        #    'Socio responsable', 'Correos destinatarios',
+        #    'Rango de consulta dias anteriores', 'Schedule', 'Dia/s de ejecución'],
+        #   dtype='object')
 
-    # Convertir la columna 'Rango de consulta dias anteriores' a tipo entero
-    df_clientes["Rango de consulta dias anteriores"] = df_clientes[
-        "Rango de consulta dias anteriores"
-    ].astype(int)
+        # Convertir la columna 'Rango de consulta dias anteriores' a tipo entero
+        df_clientes["Rango de consulta dias anteriores"] = df_clientes[
+            "Rango de consulta dias anteriores"
+        ].astype(int)
 
-    # Agregar fecha_hasta' que sea de tipo datetime
-    df_clientes["fecha_hasta"] = pd.to_datetime(datetime.now().date())
+        # Agregar fecha_hasta' que sea de tipo datetime
+        df_clientes["fecha_hasta"] = pd.to_datetime(datetime.now().date())
 
-    # Agregar la columna fecha_desde restando el valor de 'Rango de consulta dias anteriores' a fecha_hasta
-    df_clientes["fecha_desde"] = df_clientes["fecha_hasta"] - pd.to_timedelta(
-        df_clientes["Rango de consulta dias anteriores"], unit="d"
-    )
+        # Agregar la columna fecha_desde restando el valor de 'Rango de consulta dias anteriores' a fecha_hasta
+        df_clientes["fecha_desde"] = df_clientes["fecha_hasta"] - pd.to_timedelta(
+            df_clientes["Rango de consulta dias anteriores"], unit="d"
+        )
 
-    # Convertimos los datetime a formato str
-    df_clientes["fecha_desde"] = df_clientes["fecha_desde"].apply(
-        lambda x: x.strftime("%d%m%Y")
-    )
+        # Convertimos los datetime a formato str
+        df_clientes["fecha_desde"] = df_clientes["fecha_desde"].apply(
+            lambda x: x.strftime("%d%m%Y")
+        )
 
-    df_clientes["fecha_hasta"] = df_clientes["fecha_hasta"].apply(
-        lambda x: x.strftime("%d%m%Y")
-    )
+        df_clientes["fecha_hasta"] = df_clientes["fecha_hasta"].apply(
+            lambda x: x.strftime("%d%m%Y")
+        )
 
-    df_clientes["cuit_cliente"] = df_clientes["cuit_cliente"].str.replace("-", "")
+        df_clientes["cuit_cliente"] = df_clientes["cuit_cliente"].str.replace("-", "")
 
-    df_clientes["Jurisdiccion"] = df_clientes["Jurisdiccion"].replace(
-        jurisdiccion_clases
-    )
+        df_clientes["Jurisdiccion"] = df_clientes["Jurisdiccion"].replace(
+            jurisdiccion_clases
+        )
 
     return df_clientes

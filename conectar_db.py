@@ -1,10 +1,14 @@
-from os import getlogin
+import os
+
+# from os import getlogin, path
 from datetime import datetime, timedelta
+import os
 from pyodbc import connect, OperationalError
 from time import sleep
 from typing import List
 import random
 import string
+from pruebas.correo_cli import send_email_smtp
 
 SERVER = "ARBAS0228\\RPA"
 DATABASE = "Tecnologia"
@@ -16,7 +20,7 @@ DRIVER = "{SQL Server}"
 def conectar_db(
     proceso,
     cliente,
-    username=getlogin(),
+    username=os.getlogin(),
     inicio_value=datetime.now(),
     estado_value="Erróneo",
 ):
@@ -126,44 +130,96 @@ def get_clientes_ejecutados_hoy(clientes: List[str]) -> List[str]:
 
 
 # ToDo luego de setear un password, se debe dar aviso por mail al usuario principal del clte
-def set_pass(cliente: str) -> str:
+def set_pass(cliente: str, correo_output: List[str]) -> str:
     """Genera una nueva contraseña, actualiza la base de datos y devuelve la nueva contraseña."""
     new_pass = "".join(random.choices(string.ascii_letters + string.digits, k=12))
     fecha_actualizacion = datetime.now().strftime("%d-%m-%Y")
+    correo_output = [correo_output] if isinstance(correo_output, str) else correo_output
     try:
-        conn = connect(
+        with connect(
             f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
-        )
-        cursor = conn.cursor()
+        ) as conn:
+            with conn.cursor() as cursor:
+                # Asegurarse de que los valores no excedan las longitudes permitidas
+                cliente = cliente[:255]
+                new_pass = new_pass[:255]
 
-        # Asegurarse de que los valores no excedan las longitudes permitidas
-        cliente = cliente[:255]
-        new_pass = new_pass[:255]
+                query = """
+                    UPDATE clientes
+                    SET [pass] = ?, [fecha_actualizacion_pass] = ?
+                    WHERE nombre = ?
+                """
+                cursor.execute(query, (new_pass, fecha_actualizacion, cliente))
+                if (
+                    cursor.rowcount == 0
+                ):  # Si no se actualizó ninguna fila, insertar un nuevo cliente
+                    query = """
+                        INSERT INTO clientes (nombre, pass, fecha_actualizacion_pass)
+                        VALUES (?, ?, ?)
+                    """
+                    cursor.execute(query, (cliente, new_pass, fecha_actualizacion))
 
-        query = """
-            UPDATE clientes
-            SET [pass] = ?, [fecha_actualizacion_pass] = ?
-            WHERE nombre = ?
-        """
-        cursor.execute(query, (new_pass, fecha_actualizacion, cliente))
-        if (
-            cursor.rowcount == 0
-        ):  # Si no se actualizó ninguna fila, insertar un nuevo cliente
-            query = """
-                INSERT INTO clientes (nombre, pass, fecha_actualizacion_pass)
-                VALUES (?, ?, ?)
-            """
-            cursor.execute(query, (cliente, new_pass, fecha_actualizacion))
-        conn.commit()
+                # Obtener el id del cliente
+                query = "SELECT id FROM clientes WHERE nombre = ?"
+                cursor.execute(query, (cliente,))
+                cliente_id = cursor.fetchone()[0]
+
+                # Extraer usernames de las direcciones de correo
+                usernames = [email.split("@")[0] for email in correo_output]
+
+                # Obtener los ids de los usuarios autorizados
+                query = (
+                    "SELECT id FROM usuarios_autorizados WHERE username IN ({})".format(
+                        ",".join("?" * len(usernames))
+                    )
+                )
+                cursor.execute(query, usernames)
+                usuarios_ids = cursor.fetchall()
+
+                # Insertar en usuario_cliente
+                for usuario_id in usuarios_ids:
+                    query = "INSERT INTO usuario_cliente (id_cliente, id_usuario) VALUES (?, ?)"
+                    cursor.execute(query, (cliente_id, usuario_id[0]))
+
+                # Obtener los correos de los usuarios autorizados
+                query = """
+                    SELECT DISTINCT ua.username 
+                    FROM usuarios_autorizados ua
+                    INNER JOIN usuario_cliente uc ON ua.id = uc.id_usuario
+                    WHERE uc.id_cliente = ?
+                """
+                cursor.execute(query, (cliente_id,))
+                correos = [row[0] for row in cursor.fetchall()]
+
+                # Leer y modificar el contenido HTML
+                html_template_path = os.path.join("pruebas", "enviando_img.html")
+                with open(html_template_path, "r", encoding="utf-8") as file:
+                    html_content = file.read()
+                html_content = html_content.replace("{{cliente}}", cliente)
+                html_content = html_content.replace("{{new_pass}}", new_pass)
+
+                # Enviar correos
+                for correo in correos:
+                    correo = f"{correo}@deloitte.com"
+                    send_email_smtp(
+                        sender_email="robot-Tax-AR@deloitte.com",
+                        receiver_emails=[correo],
+                        subject=f"Actualización de clave de seguridad para Revisión de Domicilios Fiscales Electrónicos - {cliente}",
+                        html_file_path=None,
+                        image_paths=None,
+                        html_content=html_content,
+                    )
+
+                conn.commit()
         return new_pass
     except Exception as e:
         print(f"Error al actualizar la contraseña: {e}")
         return None
-    finally:
-        conn.close()
 
 
-def get_pass_zip(cliente: str) -> str:
+def get_pass_zip(
+    cliente: str, correo_output: str | list[str] = ["lmarinaro@deloitte.com"]
+) -> str:
     """Consulta el valor de [pass] y [fecha_actualizacion_pass] para el cliente especificado."""
     try:
         conn = connect(
@@ -191,12 +247,12 @@ def get_pass_zip(cliente: str) -> str:
                 if fecha_actualizacion_pass >= datetime.now() - timedelta(days=90):
                     return pass_value
                 else:
-                    return set_pass(cliente)
+                    return set_pass(cliente, correo_output)
             else:
-                return set_pass(cliente)
+                return set_pass(cliente, correo_output)
         else:
             print(f"No se encontró el cliente: {cliente}, se procederá a crearlo.")
-            return set_pass(cliente)
+            return set_pass(cliente, correo_output)
     except Exception as e:
         print(f"Error al obtener la contraseña: {e}")
         return None
