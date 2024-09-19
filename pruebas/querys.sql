@@ -1,3 +1,29 @@
+select * from vw_usuario_cliente_info order by cliente desc, id_usuario_cliente desc
+
+select * from monitoreo_bots where proceso = 'Revision de Domicilios Fiscales Electronicos' order by id desc
+select * from clientes
+update clientes set fecha_actualizacion_pass = '12-01-2020' where nombre = 'FACEBOOK ARGENTINA S.R.L'
+
+SELECT fecha_actualizacion_pass FROM clientes WHERE id = 1
+select * from clientes
+select * from usuarios_autorizados order by id desc
+delete from usuarios_autorizados where id = 1057
+
+SELECT ua.username
+FROM usuario_cliente uc
+JOIN usuarios_autorizados ua ON uc.id_usuario = ua.id
+WHERE uc.id_cliente = 1
+
+
+-- CREATE VIEW vw_usuario_cliente_info AS
+-- select uc.id as id_usuario_cliente, ua.username, cli.nombre as cliente, cli.pass, cli.fecha_actualizacion_pass
+-- from usuarios_autorizados ua
+--   inner join usuario_cliente uc on ua.id = uc.id_usuario
+--   inner join clientes cli on uc.id_cliente = cli.id
+  -- WHERE uc.id_cliente = 1
+
+
+
 SELECT cliente, MAX(finalizado) AS finalizado
 FROM monitoreo_bots
 WHERE CAST(finalizado AS DATE) = CAST(GETDATE() AS DATE)

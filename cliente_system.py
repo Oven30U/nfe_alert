@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 import unidecode
 
-from config import link_clientes
+# from config import link_clientes
 
 
 class ClienteSystem:

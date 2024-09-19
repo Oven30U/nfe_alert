@@ -41,8 +41,8 @@ if DEBUG:
 # EJECUTAR_TODOS_CLIENTES = True
 EJECUTAR_TODOS_CLIENTES = False
 
-EJECUTAR_CLIENTES_LISTA = True
-# EJECUTAR_CLIENTES_LISTA = False
+# EJECUTAR_CLIENTES_LISTA = True
+EJECUTAR_CLIENTES_LISTA = False
 clientes_si_verificar_config = [
     "FACEBOOK ARGENTINA S.R.L",
     # "EDGE ARGENTINA S.R.L",
@@ -100,11 +100,11 @@ mapa_jurisdiccion_clases = {value: key for key, value in jurisdiccion_clases.ite
 
 link_system = "Estructura-robot/System/"
 
-link_clientes = f"{link_system}System-Clientes.xlsx"
+# link_clientes = f"{link_system}System-Clientes.xlsx"
 
 # Constantes de archivos que corresponden a cada cliente
 PATH_ESTRUCTURA_ROBOT = "C:/Users/lmarinaro/OneDrive - Deloitte (O365D)/Documents/Proyectos/test_robot_framework/dfe/Estructura-robot"
-NOMBRE_ARCHIVO_CLIENTE = "Template_input_NFE_Alert.xlsm"
+NOMBRE_ARCHIVO_CLIENTE = "Template_input"
 SHEET_ARCHIVO_CLIENTE = "Configuracion"
 log_file_path = f"{PATH_ESTRUCTURA_ROBOT}/System/logfile.log"
 

@@ -5,15 +5,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mail</title>
+    <style>
+        /* Add any specific styles from mail_plantilla.html here */
+        .CToWUd {
+            /* Example style */
+        }
+
+        .MsoNormal {
+            margin-bottom: 1.0pt;
+            text-align: center;
+        }
+
+        /* Add other styles as needed */
+    </style>
 </head>
 
 <body>
-    <p>Estimado usuario,</p>
-    <p>Se ha generado una nueva contraseña para el cliente <strong>{{cliente}}</strong>.</p>
-    <p>Para los siguientes 90 días, la nueva contraseña es: <strong>{{new_pass}}</strong></p>
-    <p>Por favor, asegúrese de únicamente almacenar su contraseña en un lugar seguro.</p>
-    <p>Saludos,</p>
-    <p>Equipo de Tecnología</p>
+    <div>
+        <table>
+            <tbody>
+                <tr>
+                    <td>
+                        <p>Estimado usuario,</p>
+                        <p>Se ha generado una nueva contraseña para el cliente <strong>{{cliente}}</strong>.</p>
+                        <p>Para los siguientes {{dias}} días, la nueva contraseña es: <strong>{{new_pass}}</strong></p>
+                        <p>Por favor, asegúrese de únicamente almacenar su contraseña en un lugar seguro.</p>
+                        <p>Saludos,</p>
+                        <p>Equipo de Tecnología</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm" valign="top" width="50">
+                        <p align="center" class="MsoNormal" style="margin-bottom:1.0pt;text-align:center">
+                            <span lang="EN-GB"><a
+                                    data-saferedirecturl="https://www.google.com/url?q=https://www.instagram.com/deloitte_ar/&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw1CWZ_3YEqDGRni2SspVb5_"
+                                    href="https://www.instagram.com/deloitte_ar/" target="_blank"><span lang="ES-MX"
+                                        style="color:black;text-decoration:none"><img border="0" class="CToWUd"
+                                            data-bit="iit" data-image-whitelisted="" height="30"
+                                            id="m_6009674123950023355Picture_x0020_11"
+                                            width="30" /></span></a><u></u><u></u></span>
+                        </p>
+                    </td>
+                    <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm" valign="top" width="50">
+                        <p align="center" class="MsoNormal" style="margin-bottom:1.0pt;text-align:center">
+                            <span lang="EN-GB"><a
+                                    data-saferedirecturl="https://www.google.com/url?q=https://twitter.com/deloittearg&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw3_qdrKJQabCYFCDvjU9Zmg"
+                                    href="https://twitter.com/deloittearg" target="_blank"><span lang="ES-MX"
+                                        style="color:black;text-decoration:none"><img border="0" class="CToWUd"
+                                            data-bit="iit" data-image-whitelisted="" height="30"
+                                            id="m_6009674123950023355Picture_x0020_9"
+                                            width="30" /></span></a><u></u><u></u></span>
+                        </p>
+                    </td>
+                    <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm" valign="top" width="50">
+                        <p align="center" class="MsoNormal" style="margin-bottom:1.0pt;text-align:center">
+                            <span lang="EN-GB"><a
+                                    data-saferedirecturl="https://www.google.com/url?q=https://www.linkedin.com/company/deloitte/&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw0wlG-HYYVTUseK7Js6JNXt"
+                                    href="https://www.linkedin.com/company/deloitte/" target="_blank"><span lang="ES-MX"
+                                        style="color:black;text-decoration:none"><img border="0" class="CToWUd"
+                                            data-bit="iit" data-image-whitelisted="" height="30"
+                                            id="m_6009674123950023355Picture_x0020_10"
+                                            width="30" /></span></a><u></u><u></u></span>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <p style="margin:0cm;vertical-align:baseline"><span lang="ES-MX"
+                                style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>© 2024
+                                Deloitte &amp; Co. S.A.</span></p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </body>
 
 </html>

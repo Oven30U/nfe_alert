@@ -138,564 +138,427 @@
                                                     <tr style="height:2.0cm">
                                                         <td style="width:14.0cm;padding:0cm 22.7pt 0cm 22.7pt;height:2.0cm"
                                                             valign="top" width="529">
-                                                            <p><a name="m_6009674123950023355__H1_Heading"></a><a
-                                                                    name="m_6009674123950023355__Título_1"></a><span
-                                                                    lang="ES-MX"
-                                                                    style='font-family:"Calibri Light",sans-serif;color:black'>Estimado
-                                                                    usuario,</span><span lang="ES-MX"
-                                                                    style='font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
+                                                            <p>Estimado {{username}},</p>
+                                                            <p>Se ha generado una nueva contraseña para el cliente
+                                                                <strong>{{cliente}}</strong>.
                                                             </p>
-                                                            <p><span lang="ES-MX" style="color:black">Se ha generado una
-                                                                    nueva contraseña para el cliente
-                                                                    <strong>{{cliente}}</strong>.</span><span
-                                                                    lang="ES-MX"><u></u><u></u></span></p>
-                                                            <p>Para los siguientes 90 días, la nueva contraseña es:
-                                                                <strong>{{new_pass}}</strong></p>
+                                                            <p>Para los siguientes {{dias}} días, la contraseña es:
+                                                                <strong>{{new_pass}}</strong>
+                                                            </p>
                                                             <p>Por favor, asegúrese de únicamente almacenar su
                                                                 contraseña en un lugar seguro.</p>
+                                                            <p>Saludos,</p>
+                                                            <p>Equipo de Tecnología</p>
                                                             <p class="MsoNormal"><span
                                                                     lang="ES-MX"><u></u> <u></u></span></p>
                                                             <p class="MsoNormal"><span
                                                                     lang="ES-MX"><u></u> <u></u></span></p>
-
-                                                        <td style="width:408.8pt;padding:5.65pt 5.65pt 5.65pt 5.65pt"
-                                                            valign="top" width="545">
-                                                            <div align="center">
-                                                                <table border="0" cellpadding="0" cellspacing="0"
-                                                                    style="background:white;border-collapse:collapse"
-                                                                    width="529">
-                                                                    <tbody>
-                                                                        <tr style="height:42.55pt">
-                                                                            <td style="width:14.0cm;padding:0cm 22.7pt 0cm 22.7pt;height:42.55pt"
-                                                                                width="529">
-                                                                                <div align="center">
-                                                                                    <table border="0" cellpadding="0"
-                                                                                        cellspacing="0"
-                                                                                        style="border-collapse:collapse"
-                                                                                        width="252">
-                                                                                        <tbody>
-                                                                                            <tr>
-                                                                                                <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm"
-                                                                                                    valign="top"
-                                                                                                    width="50">
-                                                                                                    <p align="center"
-                                                                                                        class="MsoNormal"
-                                                                                                        style="margin-bottom:1.0pt;text-align:center">
-                                                                                                        <span
-                                                                                                            lang="EN-GB"><a
-                                                                                                                data-saferedirecturl="https://www.google.com/url?q=https://www.facebook.com/YourFutureatDeloitteArgentina/&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw00-h3vjI3Z4jQGk2cTZXbI"
-                                                                                                                href="https://www.facebook.com/YourFutureatDeloitteArgentina/"
-                                                                                                                target="_blank"><span
-                                                                                                                    lang="ES-MX"
-                                                                                                                    style="color:black;text-decoration:none"><img
-                                                                                                                        border="0"
-                                                                                                                        class="CToWUd"
-                                                                                                                        data-bit="iit"
-                                                                                                                        data-image-whitelisted=""
-                                                                                                                        height="30"
-                                                                                                                        id="m_6009674123950023355Picture_x0020_5"
-                                                                                                                        src="data:image/png;base64,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"
-                                                                                                                        width="30" /></span></a><u></u><u></u></span>
-                                                                                                    </p>
-                                                                                                </td>
-                                                                                                <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm"
-                                                                                                    valign="top"
-                                                                                                    width="50">
-                                                                                                    <p align="center"
-                                                                                                        class="MsoNormal"
-                                                                                                        style="margin-bottom:1.0pt;text-align:center">
-                                                                                                        <span
-                                                                                                            lang="EN-GB"><a
-                                                                                                                data-saferedirecturl="https://www.google.com/url?q=https://twitter.com/deloittearg&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw3_qdrKJQabCYFCDvjU9Zmg"
-                                                                                                                href="https://twitter.com/deloittearg"
-                                                                                                                target="_blank"><span
-                                                                                                                    lang="ES-MX"
-                                                                                                                    style="color:black;text-decoration:none"><img
-                                                                                                                        border="0"
-                                                                                                                        class="CToWUd"
-                                                                                                                        data-bit="iit"
-                                                                                                                        data-image-whitelisted=""
-                                                                                                                        height="30"
-                                                                                                                        id="m_6009674123950023355Picture_x0020_9"
-                                                                                                                        src="data:image/png;base64,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"
-                                                                                                                        width="30" /></span></a><u></u><u></u></span>
-                                                                                                    </p>
-                                                                                                </td>
-                                                                                                <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm"
-                                                                                                    valign="top"
-                                                                                                    width="50">
-                                                                                                    <p align="center"
-                                                                                                        class="MsoNormal"
-                                                                                                        style="margin-bottom:1.0pt;text-align:center">
-                                                                                                        <span
-                                                                                                            lang="EN-GB"><a
-                                                                                                                data-saferedirecturl="https://www.google.com/url?q=https://www.linkedin.com/company/deloitte/&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw0wlG-HYYVTUseK7Js6JNXt"
-                                                                                                                href="https://www.linkedin.com/company/deloitte/"
-                                                                                                                target="_blank"><span
-                                                                                                                    lang="ES-MX"
-                                                                                                                    style="color:black;text-decoration:none"><img
-                                                                                                                        border="0"
-                                                                                                                        class="CToWUd"
-                                                                                                                        data-bit="iit"
-                                                                                                                        data-image-whitelisted=""
-                                                                                                                        height="30"
-                                                                                                                        id="m_6009674123950023355Picture_x0020_10"
-                                                                                                                        src="data:image/png;base64,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"
-                                                                                                                        width="30" /></span></a><u></u><u></u></span>
-                                                                                                    </p>
-                                                                                                </td>
-                                                                                                <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm"
-                                                                                                    valign="top"
-                                                                                                    width="50">
-                                                                                                    <p align="center"
-                                                                                                        class="MsoNormal"
-                                                                                                        style="margin-bottom:1.0pt;text-align:center">
-                                                                                                        <span
-                                                                                                            lang="EN-GB"><a
-                                                                                                                data-saferedirecturl="https://www.google.com/url?q=https://www.instagram.com/deloitte_ar/&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw1CWZ_3YEqDGRni2SspVb5_"
-                                                                                                                href="https://www.instagram.com/deloitte_ar/"
-                                                                                                                target="_blank"><span
-                                                                                                                    lang="ES-MX"
-                                                                                                                    style="color:black;text-decoration:none"><img
-                                                                                                                        border="0"
-                                                                                                                        class="CToWUd"
-                                                                                                                        data-bit="iit"
-                                                                                                                        data-image-whitelisted=""
-                                                                                                                        height="30"
-                                                                                                                        id="m_6009674123950023355Picture_x0020_11"
-                                                                                                                        src="data:image/png;base64,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"
-                                                                                                                        width="30" /></span></a><u></u><u></u></span>
-                                                                                                    </p>
-                                                                                                </td>
-                                                                                                <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm"
-                                                                                                    valign="top"
-                                                                                                    width="50">
-                                                                                                    <p align="center"
-                                                                                                        class="MsoNormal"
-                                                                                                        style="margin-bottom:1.0pt;text-align:center">
-                                                                                                        <span
-                                                                                                            lang="EN-GB"><a
-                                                                                                                data-saferedirecturl="https://www.google.com/url?q=https://www.youtube.com/channel/UC7kV7N6crIrZkcCK4tpTSig&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw3ulVmcvH4l4ORCEkOTwln0"
-                                                                                                                href="https://www.youtube.com/channel/UC7kV7N6crIrZkcCK4tpTSig"
-                                                                                                                target="_blank"><span
-                                                                                                                    lang="ES-MX"
-                                                                                                                    style="color:black;text-decoration:none"><img
-                                                                                                                        border="0"
-                                                                                                                        class="CToWUd"
-                                                                                                                        data-bit="iit"
-                                                                                                                        data-image-whitelisted=""
-                                                                                                                        height="30"
-                                                                                                                        id="m_6009674123950023355Picture_x0020_13"
-                                                                                                                        src="data:image/png;base64,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"
-                                                                                                                        width="30" /></span></a></span><span
-                                                                                                            lang="ES-MX"><u></u><u></u></span>
-                                                                                                    </p>
-                                                                                                </td>
-                                                                                            </tr>
-                                                                                        </tbody>
-                                                                                    </table>
-                                                                                </div>
-                                                                                <p align="center" class="MsoNormal"
-                                                                                    style="text-align:center"><span
-                                                                                        lang="EN-GB"><u></u><u></u></span>
-                                                                                </p>
-                                                                            </td>
-                                                                        </tr>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
+                                                    <tr style="height:22.7pt">
+                                                        <td style="width:14.0cm;padding:0cm 22.7pt 0cm 22.7pt;height:22.7pt"
+                                                            valign="top" width="529">
                                                             <p class="MsoNormal"><span
-                                                                    lang="EN-GB"><u></u><u></u></span></p>
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td style="width:408.8pt;padding:5.65pt 5.65pt 5.65pt 5.65pt"
-                                                            valign="top" width="545">
-                                                            <div align="center">
-                                                                <table border="0" cellpadding="0" cellspacing="0"
-                                                                    style="background:white;border-collapse:collapse"
-                                                                    width="529">
-                                                                    <tbody>
-                                                                        <tr style="height:42.55pt">
-                                                                            <td style="width:14.0cm;padding:14.2pt 22.7pt 14.2pt 22.7pt;height:42.55pt"
-                                                                                width="529">
-                                                                                <p class="MsoNormal"><b><span
-                                                                                            lang="ES-AR"
-                                                                                            style='font-size:7.0pt;font-family:"Calibri",sans-serif'>Deloitte
-                                                                                            Argentina</span></b><b><span
-                                                                                            lang="ES-AR"
-                                                                                            style='font-size:7.0pt;font-family:"Calibri",sans-serif;color:black'><u></u><u></u></span></b>
-                                                                                </p>
-                                                                                <p class="MsoNormal"><span lang="ES-AR"
-                                                                                        style="font-size:7.0pt">Della
-                                                                                        Paolera 261, Piso
-                                                                                        4°</span><span lang="ES-AR"
-                                                                                        style="font-size:7.0pt"><u></u><u></u></span>
-                                                                                </p>
-                                                                                <p class="MsoNormal"><span lang="ES-AR"
-                                                                                        style="font-size:7.0pt">C1001ADA
-                                                                                        - CABA
-                                                                                        <u></u><u></u></span></p>
-                                                                                <p class="MsoNormal"><span lang="ES-AR"
-                                                                                        style="font-size:7.0pt">Argentina<u></u><u></u></span>
-                                                                                </p>
-                                                                                <p class="MsoNormal"><span lang="ES-AR"
-                                                                                        style="font-size:7.0pt;color:#7f7f7f"><u></u> <u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Deloitte
-                                                                                        se refiere a una o más entidades
-                                                                                        de Deloitte Touche
-                                                                                        Tohmatsu Limited (“DTTL”), su
-                                                                                        red global
-                                                                                        de firmas miembro y sus
-                                                                                        sociedades afiliadas a una
-                                                                                        firma miembro (en adelante
-                                                                                        “Entidades Relacionadas”)
-                                                                                        (colectivamente, la
-                                                                                        “organización Deloitte”). DTTL
-                                                                                        (también denominada como
-                                                                                        “Deloitte Global”) así como
-                                                                                        cada una de sus firmas miembro y
-                                                                                        sus Entidades
-                                                                                        Relacionadas
-                                                                                        son entidades legalmente
-                                                                                        separadas e independientes,
-                                                                                        que no pueden obligarse ni
-                                                                                        vincularse entre sí con
-                                                                                        respecto a terceros. DTTL y cada
-                                                                                        firma miembro de
-                                                                                        DTTL y su Entidad Relacionada es
-                                                                                        responsable
-                                                                                        únicamente de sus propios actos
-                                                                                        y omisiones, y no de
-                                                                                        los
-                                                                                        de las demás. DTTL no provee
-                                                                                        servicios a clientes.
-                                                                                        Consulte </span><span
-                                                                                        style="color:black"><a
-                                                                                            data-saferedirecturl="https://www.google.com/url?q=https://www2.deloitte.com/ar/conozcanos&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw0yAzBZh6YXahjxJw2H2acu"
-                                                                                            href="https://www2.deloitte.com/ar/conozcanos"
-                                                                                            target="_blank"><span
-                                                                                                lang="ES-MX"
-                                                                                                style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'>https://www2.deloitte.com/ar/<wbr/>conozcanos</span></a></span><span
-                                                                                        lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>
-                                                                                        para obtener más
-                                                                                        información.</span><span
-                                                                                        lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Deloitte
-                                                                                        presta servicios profesionales
-                                                                                        líderes de auditoría
-                                                                                        y assurance, impuestos y
-                                                                                        servicios
-                                                                                        legales, consultoría, asesoría
-                                                                                        financiera y asesoría
-                                                                                        en riesgos, a casi el 90% de las
-                                                                                        empresas Fortune
-                                                                                        Global 500® y a miles de
-                                                                                        empresas privadas. Nuestros
-                                                                                        profesionales brindan resultados
-                                                                                        medibles y
-                                                                                        duraderos que ayudan a reforzar
-                                                                                        la confianza pública
-                                                                                        en
-                                                                                        los mercados de capital,
-                                                                                        permiten a los clientes
-                                                                                        transformarse y prosperar, y
-                                                                                        liderar el camino hacia
-                                                                                        una economía más fuerte, una
-                                                                                        sociedad más equitativa
-                                                                                        y un mundo sostenible. Sobre la
-                                                                                        base de su historia
-                                                                                        de más de 175 años, Deloitte
-                                                                                        abarca más de 150
-                                                                                        países
-                                                                                        y territorios. Conozca cómo los
-                                                                                        aproximadamente
-                                                                                        457,000 profesionales de
-                                                                                        Deloitte en todo el mundo
-                                                                                        crean un impacto significativo
-                                                                                        en
-                                                                                    </span><span style="color:black"><a
-                                                                                            data-saferedirecturl="https://www.google.com/url?q=http://www.deloitte.com&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw3mnAcrYCcb_zcR1lrNdjmc"
-                                                                                            href="http://www.deloitte.com"
-                                                                                            target="_blank"><span
-                                                                                                lang="ES-MX"
-                                                                                                style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'>www.deloitte.com</span></a></span><span
-                                                                                        lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>.
-                                                                                    </span><span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Tal
-                                                                                        y como se usa en este documento,
-                                                                                        Deloitte &amp; Co.
-                                                                                        S.A., tiene el derecho legal
-                                                                                        exclusivo de
-                                                                                        involucrarse
-                                                                                        en, y limita sus negocios a, la
-                                                                                        prestación de
-                                                                                        servicios de auditoría y
-                                                                                        assurance, impuestos y
-                                                                                        servicios legales, consultoría,
-                                                                                        asesoría financiera
-                                                                                        y asesoría en riesgos y otros
-                                                                                        servicios
-                                                                                        profesionales bajo el nombre de
-                                                                                        “Deloitte”. Deloitte
-                                                                                        S.C., tiene el derecho
-                                                                                        legal exclusivo de involucrarse
-                                                                                        en, y limita sus
-                                                                                        negocios a, la prestación de
-                                                                                        servicios de auditoría
-                                                                                        y assurance, impuestos y
-                                                                                        servicios legales,
-                                                                                        consultoría, asesoría financiera
-                                                                                        y asesoría en
-                                                                                        riesgos y otros servicios
-                                                                                        profesionales bajo el
-                                                                                        nombre de “Deloitte”.
-                                                                                        Legal y Fiscal S.A., tiene el
-                                                                                        derecho legal
-                                                                                        exclusivo de involucrarse en, y
-                                                                                        limita sus negocios
-                                                                                        a, la prestación de servicios
-                                                                                        legales y fiscales y
-                                                                                        otros servicios profesionales
-                                                                                        bajo el nombre de
-                                                                                        “Deloitte”. Y Cybsec S.A.U.,
-                                                                                        tiene el derecho legal
-                                                                                        exclusivo
-                                                                                        de involucrarse en, y limita sus
-                                                                                        negocios a, la
-                                                                                        prestación de servicios de
-                                                                                        seguridad informática y
-                                                                                        otros servicios profesionales
-                                                                                        bajo el nombre de
-                                                                                        “Deloitte”.</span><span
-                                                                                        lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Esta
-                                                                                        comunicación contiene solamente
-                                                                                        información general
-                                                                                        y ni Touche Tohmatsu Limited
-                                                                                        (“DTTL”),
-                                                                                        su red global de firmas miembro
-                                                                                        o sus Entidades
-                                                                                        Relacionadas (colectivamente, la
-                                                                                        “organización
-                                                                                        Deloitte”) está, por medio de
-                                                                                        esta comunicación,
-                                                                                        prestando asesoramiento
-                                                                                        profesional o servicio
-                                                                                        alguno. Antes de tomar cualquier
-                                                                                        decisión o tomar
-                                                                                        cualquier medida
-                                                                                        que pueda afectar sus finanzas o
-                                                                                        su negocio, debe
-                                                                                        consultar a un asesor
-                                                                                        profesional calificado.
-                                                                                    </span><span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>No
-                                                                                        se proporciona ninguna
-                                                                                        representación, garantía o
-                                                                                        promesa (ni explícita ni
-                                                                                        implícita) sobre la
-                                                                                        veracidad ni la integridad de la
-                                                                                        información en esta
-                                                                                        comunicación, y ni DTTL, ni sus
-                                                                                        firmas miembro,
-                                                                                        Entidades Relacionadas,
-                                                                                        empleados o agentes será
-                                                                                        responsable de cualquier pérdida
-                                                                                        o daño alguno que
-                                                                                        surja directa o indirectamente
-                                                                                        en relación con
-                                                                                        cualquier
-                                                                                        persona que confíe en esta
-                                                                                        comunicación. DTTL y cada
-                                                                                        una de sus firmas miembro y sus
-                                                                                        Entidades
-                                                                                        Relacionadas, son entidades
-                                                                                        legalmente separadas e
-                                                                                        independientes.</span><span
-                                                                                        lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>DELOITTE
-                                                                                        ARGENTINA compuesta por:
-                                                                                        Deloitte &amp; Co. S.A.,
-                                                                                        domiciliada en calle Della
-                                                                                        Paolera 261, piso
-                                                                                        4, CABA, C1001ADA, Buenos Aires,
-                                                                                        Argentina; Deloitte
-                                                                                        S.C. domiciliada en calle
-                                                                                        Florida 234, piso 5, CABA,
-                                                                                        C1005AAF, Buenos Aires,
-                                                                                        Argentina; Cybsec S.A.U.,
-                                                                                        domiciliada en calle Della
-                                                                                        Paolera 261, piso 4,
-                                                                                        CABA, C1001ADA, Buenos Aires,
-                                                                                        Argentina y Legal y
-                                                                                        Fiscal
-                                                                                        S.A., domiciliada en calle Della
-                                                                                        Paolera 261, piso
-                                                                                        4, CABA, C1001ADA, Buenos Aires,
-                                                                                        Argentina, tratará
-                                                                                        sus datos personales para las
-                                                                                        siguientes
-                                                                                        finalidades: (i) establecer una
-                                                                                        relación comercial
-                                                                                        como Cliente o Tercero; (ii)
-                                                                                        participar en
-                                                                                        actividades de formación
-                                                                                        profesional o capacitación;
-                                                                                        (iii) participar en
-                                                                                        actividades de responsabilidad
-                                                                                        social; (iv)
-                                                                                        participar en eventos,
-                                                                                        capacitaciones, seminarios,
-                                                                                        cursos, entre otros; (v)
-                                                                                        elaborar material comercial
-                                                                                        e informativo; (vi) evaluar la
-                                                                                        calidad de nuestros
-                                                                                        servicios;
-                                                                                        (vii) remitir correos
-                                                                                        electrónicos solicitando
-                                                                                        información; (viii) contactarlo
-                                                                                        u organizar eventos
-                                                                                        con fines de marketing,
-                                                                                        publicitarios o de
-                                                                                        prospección comercial.
-                                                                                    </span><span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Si
-                                                                                        usted no está de acuerdo en
-                                                                                        seguir recibiendo estas
-                                                                                        comunicaciones, por favor envíe
-                                                                                        un correo
-                                                                                        electrónico a </span><span
-                                                                                        style="color:black"><a
-                                                                                            href="mailto:privacidad@deloittemx.com"
-                                                                                            target="_blank"><span
-                                                                                                lang="ES-MX"
-                                                                                                style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'>privacidad@deloittemx.com</span></a></span><span
-                                                                                        lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>
-                                                                                        solicitando la baja o
-                                                                                        cancelación de su información
-                                                                                        contacto y recibirá una
-                                                                                        respuesta confirmando que ha
-                                                                                        sido dado de baja de nuestras
-                                                                                        listas de distribución
-                                                                                        de contenidos.
-                                                                                    </span><span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Usted
-                                                                                        puede consultar nuestro Aviso de
-                                                                                        privacidad en
-                                                                                    </span><span style="color:black"><a
-                                                                                            data-saferedirecturl="https://www.google.com/url?q=http://www.deloitte.com/ar/AvisodePrivacidad&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw1hBj-7Hhb829gwG8J1TN5I"
-                                                                                            href="http://www.deloitte.com/ar/AvisodePrivacidad"
-                                                                                            target="_blank"><span
-                                                                                                lang="ES-MX"
-                                                                                                style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'>www.deloitte.com/ar/<wbr/>AvisodePrivacidad</span></a></span><span
-                                                                                        lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>
-                                                                                    </span><span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
-                                                                                </p>
-                                                                                <p
-                                                                                    style="margin:0cm;vertical-align:baseline">
-                                                                                    <span lang="ES-MX"
-                                                                                        style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>©
-                                                                                        2024 Deloitte &amp; Co.
-                                                                                        S.A.</span></p>
-                                                                            </td>
-                                                                        </tr>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                            <p><span lang="ES-AR"><u></u><u></u></span></p>
+                                                                    lang="ES-AR"><u></u> <u></u></span></p>
                                                         </td>
                                                     </tr>
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <p class="MsoNormal"><span lang="ES-AR"><u></u> <u></u></span></p>
+                                        <p class="MsoNormal"><span lang="ES-AR"><u></u><u></u></span></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:408.8pt;padding:5.65pt 5.65pt 5.65pt 5.65pt" valign="top"
+                                        width="545">
+                                        <div align="center">
+                                            <table border="0" cellpadding="0" cellspacing="0"
+                                                style="background:white;border-collapse:collapse" width="529">
+                                                <tbody>
+                                                    <tr style="height:42.55pt">
+                                                        <td style="width:14.0cm;padding:0cm 22.7pt 0cm 22.7pt;height:42.55pt"
+                                                            width="529">
+                                                            <div align="center">
+                                                                <table border="0" cellpadding="0" cellspacing="0"
+                                                                    style="border-collapse:collapse" width="252">
+                                                                    <tbody>
+                                                                        <tr>
+                                                                            <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm"
+                                                                                valign="top" width="50">
+                                                                                <p align="center" class="MsoNormal"
+                                                                                    style="margin-bottom:1.0pt;text-align:center">
+                                                                                    <span lang="EN-GB"><a
+                                                                                            data-saferedirecturl="https://www.google.com/url?q=https://www.facebook.com/YourFutureatDeloitteArgentina/&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw00-h3vjI3Z4jQGk2cTZXbI"
+                                                                                            href="https://www.facebook.com/YourFutureatDeloitteArgentina/"
+                                                                                            target="_blank"><span
+                                                                                                lang="ES-MX"
+                                                                                                style="color:black;text-decoration:none"><img
+                                                                                                    border="0"
+                                                                                                    class="CToWUd"
+                                                                                                    data-bit="iit"
+                                                                                                    data-image-whitelisted=""
+                                                                                                    height="30"
+                                                                                                    id="m_6009674123950023355Picture_x0020_5"
+                                                                                                    src="data:image/png;base64,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"
+                                                                                                    width="30" /></span></a><u></u><u></u></span>
+                                                                                </p>
+                                                                            </td>
+                                                                            <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm"
+                                                                                valign="top" width="50">
+                                                                                <p align="center" class="MsoNormal"
+                                                                                    style="margin-bottom:1.0pt;text-align:center">
+                                                                                    <span lang="EN-GB"><a
+                                                                                            data-saferedirecturl="https://www.google.com/url?q=https://twitter.com/deloittearg&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw3_qdrKJQabCYFCDvjU9Zmg"
+                                                                                            href="https://twitter.com/deloittearg"
+                                                                                            target="_blank"><span
+                                                                                                lang="ES-MX"
+                                                                                                style="color:black;text-decoration:none"><img
+                                                                                                    border="0"
+                                                                                                    class="CToWUd"
+                                                                                                    data-bit="iit"
+                                                                                                    data-image-whitelisted=""
+                                                                                                    height="30"
+                                                                                                    id="m_6009674123950023355Picture_x0020_9"
+                                                                                                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAAAtCAYAAAA6GuKaAAAABHNCSVQICAgIfAhkiAAACEpJREFUWIXdmW2MnFUVx3/n3udlZnZm2y42tN1KW0CxhFKtpFUhtHwTjMUIYqJISwGRFxEjGIkf0JiIwTci0IjSQgkxMZSEgsIHSBAKwTZQwUpAa4HWLaW20N2d2Xl5nufe44fpln2Z6c5uWzH+ksnuPs99+c/Zc+895x7haLj16WDuvLPOligfZ656oaiuESEGQAFpNlOloSLrA1vYpEmt0bfrxef54XnZVKeVqXSa+6Au8m7om8aaRcaGn5I4QBOHJjVQbTGLIFEeiSzayPAu/bN3fruxXXf2XSrbj6vouRsOnitB8ev49GKJ87EAvj4E6icxo8HkulBAG7UGJtyoWeU3fatmPHtMRU/75ZvTSyfMvAUbX2fjoMvXa+AcTR+YKgLWYnJ5XCMbwqV3l9/dd9vAtxf0H7Xo3vXVZVII11obLNGkgWaNTrpNAkWCGIlivMu2+Wp67Z41hS1H6nHE2WevP3hhEBXuN7louh+qcHSWnQjBdBXx9aQ/S6qr966Zsal9yzbMuX/gEhPn1hkTFLVWATmW1m2DKpIv4n1W8bWhK99e0/P7Vs1aKun97XsXmELXRrEmr41qu2bHCUXiApq6uq9XL9pzVc/jY1uMU9P7QHWZxOFjFjPT/7csPBZVTL6Iw+/XRvr5PZeN9nEz8o/ue7VHNLvP2uCDEwwggq9VsDaYKZrd132v9ox8PUp0lx38ni2UFvqhD1DwMCL4oQq2UFpYMv23jHo1/MvcDelSgvRZIybWNDnmGpyC1+b+YwAjzc9IVMfbSsIIVd/QLDy3b1W4FYYtfasaqN1k43ysaaPtxF6bk3eKHOpTSRUDlEKY0yXkg+bzofT9wSqpIjJetKYNTJyPoXZTU+chS/duSM4UGtuMtVZd6zjGa9MygYF61vw5EZmHTOH8kyzXnREzv9tgpfl8y76Mu7YnbN7rCA2smGOZVzI8+laGH2NxsQHeOafES/asiv4aNB/Xr7GFkvW1csvJFWh45aunRpxUEn70YoNcIESm/XGjCqlXvv/JmBsXx+Per1wQcu6cgMfeSpkRC8vnBFz6ZJWBROmORptbfYYtlGxWLV8DXBPwqx3d4nUpqm0VeIWcES7/WMjimZZyotz1twTnIReMX7AC9CfKyvkBN5w5XvAw02Pha6dFZF75wZYGYoR5JcOBumJHDqtNK4jTpazTkpldmrXY5LqW+Hq17eDDHUuHLHDr0hy/Xp5nRiy8W1f8mC+beSiGwlc+Go1bbK0YTOCLJ4d85+MRidOW0a2vVzH5riWztP8TRiSMJLIThpdioDZiFV50SsjGzxZYdVpIwymVVKk7SDzUnfKRaYblc4KJFQM9OaHqlRs21zlQ19brRT0SW6wNAyOSXaxpesRBjUAtUx59Y3S7RSdY1i7Ps+mCAlefHnJiHmbmhIFE6W8o+c40s7vsufSpGrsrnkILdzusO0kB/yXpvX+wYUSiiSK4eqZMj4VHzi9weo9t2Sbx8M9+xyNvZqjCjYsjusKJ/eP1g54VjwxhDaN9eRyChyQAH445GMehQD4QFvVYfvFyg5+fk2daNH70yMDpPbbtl2pH6pXYNrfHI6OAD4NOjmt/KEn96WdynFiQSR0wnfDae55UJzLdMILpJK430nSPjTtTukIZt48eLX/cnVFNtaOdBgXTSag83GTD3xN29E8iie2AxMG/a5NJjMG03BRbUAiEvVW47tkarx90U5Q4ns1vZ7y831HsYME2UQxI2klmokAxhJf2O1Y9VeW2F+scmIyF2vCHXSmVbKJdYxhBManx2HUStz9qR+K1afFrz8jxhZPDwyfkVHnlgOOhnSndkXSUMkscI571xigbJQw7msQIVDPl4TdSTp5miDszT1t+sq1BJe3UyiBRCJiHjHNppolrntMdUAiFF/ZlXPl0jZ0DU3ePO15p8MTujFKnviwGbTicSzNhnZbmmsE/2a7SEl+rdNRfgXKizCsaFn3I8OVTIy44yWI72rPgd/9I+dZzNUIjHcXlQDPRrZS39Wn3CsMVUsbI1mba0L6TU2i49z9eYVfFM5Qq80uC6VDwA68nfPeFOlY6Fww0swIrW7lCys2QxubWumrlKmODlpmLV5gWQndkKKfKrILwuXkBy060nD27s6io7pQ7Xmlw+18SIitEkzjpxQS4asVhc2sBAoC+HeGrcxc0HpZc/hIdGmSsyROvLOi2XL4wYuX8cFITAjyxK+XO7QnPv+MoTJDxjEeRfB4qlYf7doSvwqhsvLpUrDwjxuTGJrdCc9fIB8JZMy0rFwSs6A3IWZhVGP0/9grvVD0NB0/+K2PTmykv7XfUHVM6/iWMUe/r6nR536rC1lGiAWbfN3B7VOy+2VfHXzYKTb8up03xqk03Oa834MNFg0hT8BsDnmfezjhQb/apOaUYCoFM5fpSMIUiWbn/Z3vWzLh5pJbDdN+rPd1h+TnbVVroK4NtL2yG0yunTV91I3a+wEBs5fDe2+H6HI8qptiNGyq/NpiWzhm8Ut5rKRr+R+7yUEyuw7s8gD2XFbboYHm1y7Ka5Aoc3zvpVgzfmqZ1HSyvHisY2sTde67qedyn9dVefUVyxdbFn+OBKpIr4tVXMldd3eqaF/7fKgHD9K6vLjMFu1ZstITjWHMhilGXbPNVd3Q1l2Fm3LNzWr4w+xZjw+ttdByqW0k2RNa4e6i278cHrz5loIOenTPzgfI5ORt9A9zFEh6DOmJaa4DdmCXVe/ZePmNzx0NMRvQwcx/URT4rXy9BtMha++nJVmzVuRdclmw3Qemu416xHceY2rhxegX20MXP4dq4gNPEW1l3uDZeLD7HJTLlRPM/EqjXsZ75VCEAAAAASUVORK5CYII="
+                                                                                                    width="30" /></span></a><u></u><u></u></span>
+                                                                                </p>
+                                                                            </td>
+                                                                            <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm"
+                                                                                valign="top" width="50">
+                                                                                <p align="center" class="MsoNormal"
+                                                                                    style="margin-bottom:1.0pt;text-align:center">
+                                                                                    <span lang="EN-GB"><a
+                                                                                            data-saferedirecturl="https://www.google.com/url?q=https://www.linkedin.com/company/deloitte/&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw0wlG-HYYVTUseK7Js6JNXt"
+                                                                                            href="https://www.linkedin.com/company/deloitte/"
+                                                                                            target="_blank"><span
+                                                                                                lang="ES-MX"
+                                                                                                style="color:black;text-decoration:none"><img
+                                                                                                    border="0"
+                                                                                                    class="CToWUd"
+                                                                                                    data-bit="iit"
+                                                                                                    data-image-whitelisted=""
+                                                                                                    height="30"
+                                                                                                    id="m_6009674123950023355Picture_x0020_10"
+                                                                                                    src="data:image/png;base64,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"
+                                                                                                    width="30" /></span></a><u></u><u></u></span>
+                                                                                </p>
+                                                                            </td>
+                                                                            <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm"
+                                                                                valign="top" width="50">
+                                                                                <p align="center" class="MsoNormal"
+                                                                                    style="margin-bottom:1.0pt;text-align:center">
+                                                                                    <span lang="EN-GB"><a
+                                                                                            data-saferedirecturl="https://www.google.com/url?q=https://www.instagram.com/deloitte_ar/&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw1CWZ_3YEqDGRni2SspVb5_"
+                                                                                            href="https://www.instagram.com/deloitte_ar/"
+                                                                                            target="_blank"><span
+                                                                                                lang="ES-MX"
+                                                                                                style="color:black;text-decoration:none"><img
+                                                                                                    border="0"
+                                                                                                    class="CToWUd"
+                                                                                                    data-bit="iit"
+                                                                                                    data-image-whitelisted=""
+                                                                                                    height="30"
+                                                                                                    id="m_6009674123950023355Picture_x0020_11"
+                                                                                                    src="data:image/png;base64,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"
+                                                                                                    width="30" /></span></a><u></u><u></u></span>
+                                                                                </p>
+                                                                            </td>
+                                                                            <td style="width:37.8pt;padding:0cm 0cm 0cm 0cm"
+                                                                                valign="top" width="50">
+                                                                                <p align="center" class="MsoNormal"
+                                                                                    style="margin-bottom:1.0pt;text-align:center">
+                                                                                    <span lang="EN-GB"><a
+                                                                                            data-saferedirecturl="https://www.google.com/url?q=https://www.youtube.com/channel/UC7kV7N6crIrZkcCK4tpTSig&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw3ulVmcvH4l4ORCEkOTwln0"
+                                                                                            href="https://www.youtube.com/channel/UC7kV7N6crIrZkcCK4tpTSig"
+                                                                                            target="_blank"><span
+                                                                                                lang="ES-MX"
+                                                                                                style="color:black;text-decoration:none"><img
+                                                                                                    border="0"
+                                                                                                    class="CToWUd"
+                                                                                                    data-bit="iit"
+                                                                                                    data-image-whitelisted=""
+                                                                                                    height="30"
+                                                                                                    id="m_6009674123950023355Picture_x0020_13"
+                                                                                                    src="data:image/png;base64,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"
+                                                                                                    width="30" /></span></a></span><span
+                                                                                        lang="ES-MX"><u></u><u></u></span>
+                                                                                </p>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                            <p align="center" class="MsoNormal"
+                                                                style="text-align:center"><span
+                                                                    lang="EN-GB"><u></u><u></u></span></p>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p class="MsoNormal"><span lang="EN-GB"><u></u><u></u></span></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:408.8pt;padding:5.65pt 5.65pt 5.65pt 5.65pt" valign="top"
+                                        width="545">
+                                        <div align="center">
+                                            <table border="0" cellpadding="0" cellspacing="0"
+                                                style="background:white;border-collapse:collapse" width="529">
+                                                <tbody>
+                                                    <tr style="height:42.55pt">
+                                                        <td style="width:14.0cm;padding:14.2pt 22.7pt 14.2pt 22.7pt;height:42.55pt"
+                                                            width="529">
+                                                            <p class="MsoNormal"><b><span lang="ES-AR"
+                                                                        style='font-size:7.0pt;font-family:"Calibri",sans-serif'>Deloitte
+                                                                        Argentina</span></b><b><span lang="ES-AR"
+                                                                        style='font-size:7.0pt;font-family:"Calibri",sans-serif;color:black'><u></u><u></u></span></b>
+                                                            </p>
+                                                            <p class="MsoNormal"><span lang="ES-AR"
+                                                                    style="font-size:7.0pt">Della Paolera 261, Piso
+                                                                    4°</span><span lang="ES-AR"
+                                                                    style="font-size:7.0pt"><u></u><u></u></span></p>
+                                                            <p class="MsoNormal"><span lang="ES-AR"
+                                                                    style="font-size:7.0pt">C1001ADA - CABA
+                                                                    <u></u><u></u></span></p>
+                                                            <p class="MsoNormal"><span lang="ES-AR"
+                                                                    style="font-size:7.0pt">Argentina<u></u><u></u></span>
+                                                            </p>
+                                                            <p class="MsoNormal"><span lang="ES-AR"
+                                                                    style="font-size:7.0pt;color:#7f7f7f"><u></u> <u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Deloitte
+                                                                    se refiere a una o más entidades de Deloitte Touche
+                                                                    Tohmatsu Limited (“DTTL”), su red global
+                                                                    de firmas miembro y sus sociedades afiliadas a una
+                                                                    firma miembro (en adelante “Entidades Relacionadas”)
+                                                                    (colectivamente, la “organización Deloitte”). DTTL
+                                                                    (también denominada como “Deloitte Global”) así como
+                                                                    cada una de sus firmas miembro y sus Entidades
+                                                                    Relacionadas
+                                                                    son entidades legalmente separadas e independientes,
+                                                                    que no pueden obligarse ni vincularse entre sí con
+                                                                    respecto a terceros. DTTL y cada firma miembro de
+                                                                    DTTL y su Entidad Relacionada es responsable
+                                                                    únicamente de sus propios actos y omisiones, y no de
+                                                                    los
+                                                                    de las demás. DTTL no provee servicios a clientes.
+                                                                    Consulte </span><span style="color:black"><a
+                                                                        data-saferedirecturl="https://www.google.com/url?q=https://www2.deloitte.com/ar/conozcanos&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw0yAzBZh6YXahjxJw2H2acu"
+                                                                        href="https://www2.deloitte.com/ar/conozcanos"
+                                                                        target="_blank"><span lang="ES-MX"
+                                                                            style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'>https://www2.deloitte.com/ar/<wbr/>conozcanos</span></a></span><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>
+                                                                    para obtener más información.</span><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Deloitte
+                                                                    presta servicios profesionales líderes de auditoría
+                                                                    y assurance, impuestos y servicios
+                                                                    legales, consultoría, asesoría financiera y asesoría
+                                                                    en riesgos, a casi el 90% de las empresas Fortune
+                                                                    Global 500® y a miles de empresas privadas. Nuestros
+                                                                    profesionales brindan resultados medibles y
+                                                                    duraderos que ayudan a reforzar la confianza pública
+                                                                    en
+                                                                    los mercados de capital, permiten a los clientes
+                                                                    transformarse y prosperar, y liderar el camino hacia
+                                                                    una economía más fuerte, una sociedad más equitativa
+                                                                    y un mundo sostenible. Sobre la base de su historia
+                                                                    de más de 175 años, Deloitte abarca más de 150
+                                                                    países
+                                                                    y territorios. Conozca cómo los aproximadamente
+                                                                    457,000 profesionales de Deloitte en todo el mundo
+                                                                    crean un impacto significativo en
+                                                                </span><span style="color:black"><a
+                                                                        data-saferedirecturl="https://www.google.com/url?q=http://www.deloitte.com&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw3mnAcrYCcb_zcR1lrNdjmc"
+                                                                        href="http://www.deloitte.com"
+                                                                        target="_blank"><span lang="ES-MX"
+                                                                            style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'>www.deloitte.com</span></a></span><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>.
+                                                                </span><span lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Tal
+                                                                    y como se usa en este documento, Deloitte &amp; Co.
+                                                                    S.A., tiene el derecho legal exclusivo de
+                                                                    involucrarse
+                                                                    en, y limita sus negocios a, la prestación de
+                                                                    servicios de auditoría y assurance, impuestos y
+                                                                    servicios legales, consultoría, asesoría financiera
+                                                                    y asesoría en riesgos y otros servicios
+                                                                    profesionales bajo el nombre de “Deloitte”. Deloitte
+                                                                    S.C., tiene el derecho
+                                                                    legal exclusivo de involucrarse en, y limita sus
+                                                                    negocios a, la prestación de servicios de auditoría
+                                                                    y assurance, impuestos y servicios legales,
+                                                                    consultoría, asesoría financiera y asesoría en
+                                                                    riesgos y otros servicios profesionales bajo el
+                                                                    nombre de “Deloitte”.
+                                                                    Legal y Fiscal S.A., tiene el derecho legal
+                                                                    exclusivo de involucrarse en, y limita sus negocios
+                                                                    a, la prestación de servicios legales y fiscales y
+                                                                    otros servicios profesionales bajo el nombre de
+                                                                    “Deloitte”. Y Cybsec S.A.U., tiene el derecho legal
+                                                                    exclusivo
+                                                                    de involucrarse en, y limita sus negocios a, la
+                                                                    prestación de servicios de seguridad informática y
+                                                                    otros servicios profesionales bajo el nombre de
+                                                                    “Deloitte”.</span><span lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Esta
+                                                                    comunicación contiene solamente información general
+                                                                    y ni Touche Tohmatsu Limited (“DTTL”),
+                                                                    su red global de firmas miembro o sus Entidades
+                                                                    Relacionadas (colectivamente, la “organización
+                                                                    Deloitte”) está, por medio de esta comunicación,
+                                                                    prestando asesoramiento profesional o servicio
+                                                                    alguno. Antes de tomar cualquier decisión o tomar
+                                                                    cualquier medida
+                                                                    que pueda afectar sus finanzas o su negocio, debe
+                                                                    consultar a un asesor profesional calificado.
+                                                                </span><span lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>No
+                                                                    se proporciona ninguna representación, garantía o
+                                                                    promesa (ni explícita ni implícita) sobre la
+                                                                    veracidad ni la integridad de la información en esta
+                                                                    comunicación, y ni DTTL, ni sus firmas miembro,
+                                                                    Entidades Relacionadas, empleados o agentes será
+                                                                    responsable de cualquier pérdida o daño alguno que
+                                                                    surja directa o indirectamente en relación con
+                                                                    cualquier
+                                                                    persona que confíe en esta comunicación. DTTL y cada
+                                                                    una de sus firmas miembro y sus Entidades
+                                                                    Relacionadas, son entidades legalmente separadas e
+                                                                    independientes.</span><span lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>DELOITTE
+                                                                    ARGENTINA compuesta por: Deloitte &amp; Co. S.A.,
+                                                                    domiciliada en calle Della Paolera 261, piso
+                                                                    4, CABA, C1001ADA, Buenos Aires, Argentina; Deloitte
+                                                                    S.C. domiciliada en calle Florida 234, piso 5, CABA,
+                                                                    C1005AAF, Buenos Aires, Argentina; Cybsec S.A.U.,
+                                                                    domiciliada en calle Della Paolera 261, piso 4,
+                                                                    CABA, C1001ADA, Buenos Aires, Argentina y Legal y
+                                                                    Fiscal
+                                                                    S.A., domiciliada en calle Della Paolera 261, piso
+                                                                    4, CABA, C1001ADA, Buenos Aires, Argentina, tratará
+                                                                    sus datos personales para las siguientes
+                                                                    finalidades: (i) establecer una relación comercial
+                                                                    como Cliente o Tercero; (ii) participar en
+                                                                    actividades de formación
+                                                                    profesional o capacitación; (iii) participar en
+                                                                    actividades de responsabilidad social; (iv)
+                                                                    participar en eventos, capacitaciones, seminarios,
+                                                                    cursos, entre otros; (v) elaborar material comercial
+                                                                    e informativo; (vi) evaluar la calidad de nuestros
+                                                                    servicios;
+                                                                    (vii) remitir correos electrónicos solicitando
+                                                                    información; (viii) contactarlo u organizar eventos
+                                                                    con fines de marketing, publicitarios o de
+                                                                    prospección comercial.
+                                                                </span><span lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Si
+                                                                    usted no está de acuerdo en seguir recibiendo estas
+                                                                    comunicaciones, por favor envíe un correo
+                                                                    electrónico a </span><span style="color:black"><a
+                                                                        href="mailto:privacidad@deloittemx.com"
+                                                                        target="_blank"><span lang="ES-MX"
+                                                                            style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'>privacidad@deloittemx.com</span></a></span><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>
+                                                                    solicitando la baja o cancelación de su información
+                                                                    contacto y recibirá una respuesta confirmando que ha
+                                                                    sido dado de baja de nuestras listas de distribución
+                                                                    de contenidos.
+                                                                </span><span lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>Usted
+                                                                    puede consultar nuestro Aviso de privacidad en
+                                                                </span><span style="color:black"><a
+                                                                        data-saferedirecturl="https://www.google.com/url?q=http://www.deloitte.com/ar/AvisodePrivacidad&amp;source=gmail&amp;ust=1713039630330000&amp;usg=AOvVaw1hBj-7Hhb829gwG8J1TN5I"
+                                                                        href="http://www.deloitte.com/ar/AvisodePrivacidad"
+                                                                        target="_blank"><span lang="ES-MX"
+                                                                            style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'>www.deloitte.com/ar/<wbr/>AvisodePrivacidad</span></a></span><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>
+                                                                </span><span lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u><u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif'><u></u> <u></u></span>
+                                                            </p>
+                                                            <p style="margin:0cm;vertical-align:baseline"><span
+                                                                    lang="ES-MX"
+                                                                    style='font-size:7.0pt;font-family:"Calibri Light",sans-serif;color:black'>©
+                                                                    2024 Deloitte &amp; Co. S.A.</span></p>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p><span lang="ES-AR"><u></u><u></u></span></p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
+                    <p class="MsoNormal"><span lang="ES-AR"><u></u> <u></u></span></p>
                 </div>
             </div>
         </div>
     </div>
+</div>

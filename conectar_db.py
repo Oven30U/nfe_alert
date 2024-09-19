@@ -16,13 +16,21 @@ DRIVER = "{SQL Server}"
 
 
 def conectar_db(
-    proceso,
-    cliente,
-    username=os.getlogin(),
-    inicio_value=datetime.now(),
-    estado_value="Erróneo",
+    proceso: str,
+    cliente: str,
+    username: str = os.getlogin(),
+    inicio_value: datetime = datetime.now(),
+    estado_value: str = "Erróneo",
 ):
-    """Se conecta a la base de datos interna para hacer un seguimiento de las ejecuciones."""
+    """Se conecta a la base de datos interna para hacer un seguimiento de las ejecuciones.
+
+    Args:
+        proceso (str): valor del proceso para monitoreo_bots
+        cliente (str): cliente para monitoreo_bots
+        username (str, optional): nombre de usuario. Defaults to os.getlogin().
+        inicio_value (datetime, optional): hora de inicio del proceso. Defaults to datetime.now().
+        estado_value (str, optional): hora de finalizacion del proceso. Defaults to "Erróneo".
+    """
     max_reintentos_conn = 10
     for i in range(max_reintentos_conn):
         try:
@@ -101,7 +109,15 @@ def get_clientes_ejecutados_hoy_with_retries(
 
 
 def get_clientes_ejecutados_hoy(clientes: list[str]) -> list[str]:
-    """Verifica si hay datos en 'finalizado' para una lista de clientes el día de hoy y trae el más reciente de cada uno."""
+    """
+    Verifica si hay datos en 'finalizado' para una lista de clientes el día de hoy y trae el más reciente de cada uno.
+
+    Args:
+        clientes (list[str]): lista de clientes a verificar
+
+    Returns:
+        list[str]: lista de clientes a verificar, que faltan verificarse hoy
+    """
     try:
         conn = connect(
             f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
@@ -127,13 +143,17 @@ def get_clientes_ejecutados_hoy(clientes: list[str]) -> list[str]:
         conn.close()
 
 
-def read_and_modify_html(cliente: str, new_pass: str) -> str:
+def read_and_modify_html(
+    cliente: str, new_pass: str, dias: int, username: str = "usuario"
+) -> str:
     """Lee y modifica el contenido HTML."""
-    html_template_path = os.path.join("pruebas", "enviando_img.html")
+    html_template_path = os.path.join("pruebas", "mail_plantilla_set_pass.html")
     with open(html_template_path, "r", encoding="utf-8") as file:
         html_content = file.read()
     html_content = html_content.replace("{{cliente}}", cliente)
     html_content = html_content.replace("{{new_pass}}", new_pass)
+    html_content = html_content.replace("{{dias}}", str(dias))
+    html_content = html_content.replace("{{username}}", username)
     return html_content
 
 
@@ -171,7 +191,9 @@ def verify_and_add_users(correo_output: list[str]):
         print(f"Error al verificar y agregar usuarios: {e}")
 
 
-def verify_and_add_user_client_relationship(cliente_id: int, correo_output: list[str], cliente: str, new_pass: str):
+def verify_and_add_user_client_relationship(
+    cliente_id: int, correo_output: list[str], cliente: str, new_pass: str
+):
     """Verifica que todos los usuarios_autorizados tengan relación con el cliente. Si no tienen relación, la agrega y envía un correo."""
     try:
         with connect(
@@ -191,6 +213,22 @@ def verify_and_add_user_client_relationship(cliente_id: int, correo_output: list
                 cursor.execute(query, usernames)
                 usuarios_autorizados = cursor.fetchall()
                 usuarios_ids = {row[1]: row[0] for row in usuarios_autorizados}
+
+                # Obtener la fecha de actualización de la contraseña
+                query = "SELECT fecha_actualizacion_pass FROM clientes WHERE id = ?"
+                cursor.execute(query, (cliente_id,))
+                fecha_actualizacion_pass = cursor.fetchone()[0]
+                if fecha_actualizacion_pass:
+                    fecha_actualizacion_pass = datetime.strptime(
+                        fecha_actualizacion_pass, "%d-%m-%Y"
+                    )
+                    # ToDo arreglar calculo
+                    # Calcular la diferencia en días
+                    # diferencia_dias = (datetime.now() - fecha_actualizacion_pass).days
+                    # dias = 90 - diferencia_dias
+                    dias = 90
+                else:
+                    dias = 90
 
                 # Insertar en usuario_cliente si no existe la relación
                 for username in usernames:
@@ -212,10 +250,11 @@ def verify_and_add_user_client_relationship(cliente_id: int, correo_output: list
                                 receiver_emails=[correo],
                                 subject=f"Actualización de clave de seguridad para Revisión de Domicilios Fiscales Electrónicos - {cliente}",
                                 html_file_path=None,
-                                image_paths=None,
-                                html_content=read_and_modify_html(cliente, new_pass),
+                                zip_file_paths=None,
+                                html_content=read_and_modify_html(
+                                    cliente, new_pass, dias, username
+                                ),
                             )
-
                 conn.commit()
     except Exception as e:
         print(f"Error al verificar y agregar relación usuario-cliente: {e}")
@@ -259,12 +298,37 @@ def set_pass(cliente: str, correo_output: list[str]) -> str:
                 verify_and_add_users(correo_output)
 
                 # Verificar y agregar relación usuario-cliente
-                verify_and_add_user_client_relationship(cliente_id, correo_output, cliente, new_pass)
+                verify_and_add_user_client_relationship(
+                    cliente_id, correo_output, cliente, new_pass
+                )
 
         return new_pass
     except Exception as e:
         print(f"Error al actualizar la contraseña: {e}")
         return None
+
+
+def get_related_users_emails(cliente_id: int) -> list[str]:
+    """Obtiene los correos de los usuarios relacionados con el cliente."""
+    try:
+        conn = connect(
+            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
+        )
+        cursor = conn.cursor()
+        query = """
+            SELECT ua.username
+            FROM usuario_cliente uc
+            JOIN usuarios_autorizados ua ON uc.id_usuario = ua.id
+            WHERE uc.id_cliente = ?
+        """
+        cursor.execute(query, (cliente_id,))
+        results = cursor.fetchall()
+        return [f"{row[0]}@deloitte.com" for row in results]
+    except Exception as e:
+        print(f"Error al obtener los correos de los usuarios relacionados: {e}")
+        return []
+    finally:
+        conn.close()
 
 
 def get_pass_zip(
@@ -294,6 +358,13 @@ def get_pass_zip(
                 fecha_actualizacion_pass = datetime.strptime(
                     fecha_actualizacion_pass, "%d-%m-%Y"
                 )
+
+                # ToDo arreglar el calculo de "dias" si se genera la new_pass siempre es 90, si no se genera entonces es diferencia de dias
+                # Calcular la diferencia en días
+                # diferencia_dias = (datetime.now() - fecha_actualizacion_pass).days
+                # dias = 90 - diferencia_dias
+                dias = 90
+
                 # Si la contraseña se actualizó hace menos de 90 días, devolverla
                 if fecha_actualizacion_pass >= datetime.now() - timedelta(days=90):
                     # Obtener el id del cliente
@@ -305,11 +376,33 @@ def get_pass_zip(
                     verify_and_add_users(correo_output)
 
                     # Verificar y agregar relación usuario-cliente
-                    verify_and_add_user_client_relationship(cliente_id, correo_output, cliente, pass_value)
+                    verify_and_add_user_client_relationship(
+                        cliente_id, correo_output, cliente, pass_value
+                    )
 
                     return pass_value
                 else:
-                    return set_pass(cliente, correo_output)
+                    # Obtener el id del cliente
+                    query = "SELECT id FROM clientes WHERE nombre = ?"
+                    cursor.execute(query, (cliente,))
+                    cliente_id = cursor.fetchone()[0]
+
+                    # Obtener correos de usuarios relacionados
+                    related_emails = get_related_users_emails(cliente_id)
+
+                    pass_value = set_pass(cliente, correo_output)
+
+                    # Enviar correo a todos los usuarios relacionados
+                    send_email_smtp(
+                        sender_email="robot-Tax-AR@deloitte.com",
+                        receiver_emails=related_emails,
+                        subject=f"Actualización de clave de seguridad para Revisión de Domicilios Fiscales Electrónicos - {cliente}",
+                        html_file_path=None,
+                        zip_file_paths=None,
+                        html_content=read_and_modify_html(cliente, pass_value, dias),
+                    )
+
+                    return pass_value
             else:
                 return set_pass(cliente, correo_output)
         else:
@@ -320,3 +413,12 @@ def get_pass_zip(
         return None
     finally:
         conn.close()
+
+
+if __name__ == "__main__":
+    verify_and_add_user_client_relationship(
+        cliente_id=1,
+        correo_output=["rtolaba@deloitte.com;lmarinaro@deloitte.com"],
+        cliente="FACEBOOK ARGENTINA S.R.L",
+        new_pass="pYn2VLClQOfa",
+    )

@@ -1,20 +1,22 @@
 import os
 import re
 import smtplib
+from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional
+from email import encoders
+from typing import Optional, List
 
 import win32com.client as win32
 
 
 def send_email_outlook(
-    sender_email: str = "lmarinaro@deloitte.com",
-    receiver_emails: list[str] = ["lmarinaro@deloitte.com"],
+    sender_email: str,
+    receiver_emails: List[str],
     subject: str = None,
     html_file_path: Optional[str] = None,
-    image_paths: Optional[list[str]] = None,
+    zip_file_paths: Optional[List[str]] = None,
     html_content: Optional[str] = None,
 ):
     # Create an instance of the Outlook application
@@ -31,19 +33,12 @@ def send_email_outlook(
         with open(html_file_path, "r", encoding="utf-8") as file:
             html_content = file.read()
 
-    if image_paths:
-        # Attach images and replace their paths in the HTML content with CID references
-        for image_path in image_paths:
-            image_name = os.path.basename(image_path)
-            cid = image_name.replace(".", "_")
-            attachment = email.Attachments.Add(image_path)
+    if zip_file_paths:
+        for zip_file_path in zip_file_paths:
+            # Attach the ZIP file
+            attachment = email.Attachments.Add(zip_file_path)
             attachment.PropertyAccessor.SetProperty(
-                "http://schemas.microsoft.com/mapi/proptag/0x3712001F", cid
-            )
-            html_content = re.sub(
-                r'src="{}"'.format(re.escape(image_path)),
-                'src="cid:{}"'.format(cid),
-                html_content,
+                "http://schemas.microsoft.com/mapi/proptag/0x3712001F", os.path.basename(zip_file_path).replace(".", "_")
             )
 
     # Set the body to HTML format if html_content is not empty
@@ -58,13 +53,12 @@ def send_email_outlook(
     email.Send()
 
 
-
 def send_email_smtp(
-    sender_email: str = "lmarinaro@deloitte.com",
-    receiver_emails: list[str] = ["lmarinaro@deloitte.com"],
+    sender_email: str,
+    receiver_emails: List[str],
     subject: str = None,
     html_file_path: Optional[str] = None,
-    image_paths: Optional[list[str]] = None,
+    zip_file_paths: Optional[List[str]] = None,
     html_content: Optional[str] = None,
 ):
     # SMTP server configuration
@@ -82,18 +76,18 @@ def send_email_smtp(
         with open(html_file_path, "r", encoding="utf-8") as file:
             html_content = file.read()
 
-    if image_paths:
-        # Attach images and replace their paths in the HTML content with CID references
-        for image_path in image_paths:
-            with open(image_path, "rb") as img_file:
-                img = MIMEImage(img_file.read())
-                img.add_header("Content-ID", f"<{os.path.basename(image_path)}>")
-                msg.attach(img)
-                html_content = re.sub(
-                    r'src="{}"'.format(re.escape(image_path)),
-                    'src="cid:{}"'.format(os.path.basename(image_path)),
-                    html_content,
+    if zip_file_paths:
+        for zip_file_path in zip_file_paths:
+            # Attach the ZIP file
+            with open(zip_file_path, "rb") as file:
+                part = MIMEBase("application", "octet-stream")
+                part.set_payload(file.read())
+                encoders.encode_base64(part)
+                part.add_header(
+                    "Content-Disposition",
+                    f"attachment; filename={os.path.basename(zip_file_path)}",
                 )
+                msg.attach(part)
 
     # Attach the HTML content
     if html_content:
@@ -106,14 +100,21 @@ def send_email_smtp(
     except Exception as e:
         print(f"Error sending email: {e}")
 
+
 if __name__ == "__main__":
     # Example usage
     sender_email = "lmarinaro@deloitte.com"
-    receiver_emails = ["lmarinaro@deloitte.com"]
+    receiver_emails = ["lmarinaro@deloitte.com", "marinaro.leonel@tecnica7.edu.ar"]
+    subject_outlook = "Hello from Python in Outlook!"
     subject = "Hello from Python!"
-    html_file_path = r"C:\Users\lmarinaro\OneDrive - Deloitte (O365D)\Documents\Proyectos\test_robot_framework\dfe\Estructura-robot\EDGE ARGENTINA S.R.L\Output\EDGE ARGENTINA S.R.L_20240913.html"
-    image_paths = [
-        r"C:\Users\lmarinaro\OneDrive - Deloitte (O365D)\Documents\Proyectos\test_robot_framework\dfe\Estructura-robot\EDGE ARGENTINA S.R.L\Output\mapa_jurisdicciones_EDGE ARGENTINA S.R.L.png"
+    html_file_path = r"C:\Users\lmarinaro\OneDrive - Deloitte (O365D)\Documents\Proyectos\test_robot_framework\dfe\Estructura-robot\System\archivos_plantilla\SIMPLOT ARGENTINA S.R.L_20240918.html"
+    zip_file_paths = [
+        r"C:\Users\lmarinaro\OneDrive - Deloitte (O365D)\Documents\Proyectos\test_robot_framework\dfe\Estructura-robot\System\archivos_plantilla_dfe.zip"
     ]
 
-    send_email_outlook(sender_email, receiver_emails, subject, html_file_path, image_paths)
+    send_email_outlook(
+        sender_email, receiver_emails, subject_outlook, html_file_path, zip_file_paths
+    )
+    send_email_smtp(
+        sender_email, receiver_emails, subject, html_file_path, zip_file_paths
+    )

@@ -31,7 +31,7 @@ def cargar_excels():
 
     for root, dirs, files in os.walk(PATH_ESTRUCTURA_ROBOT):
         for file in files:
-            if file == NOMBRE_ARCHIVO_CLIENTE:
+            if NOMBRE_ARCHIVO_CLIENTE in file:
                 file_path = os.path.join(root, file)
 
                 # Leer el archivo de Excel utilizando pandas
@@ -146,11 +146,21 @@ def obtener_clientes(
         raise InputException(f"No se pudo crear el df_clientes, {e}")
         # print("No se pudo acceder al archivo %s: %s", PATH_CLIENTES, str(e))
 
-    # Limpiamos todas las filas que contengan algun valor vacio
-    df_clientes = df_clientes.dropna(how="any")
+    # Drop rows where all columns except 'Socio responsable' or 'Correos destinatarios' are NaN
+    df_clientes = df_clientes.dropna(
+        how="all",
+        subset=[
+            col
+            for col in df_clientes.columns
+            if col not in ["Socio responsable", "Correos destinatarios"]
+        ],
+    )
+    # Drop rows where both 'Socio responsable' and 'Correos destinatarios' are NaN
+    df_clientes = df_clientes.dropna(
+        subset=["Socio responsable", "Correos destinatarios"], how="all"
+    )
     df_clientes = df_clientes[df_clientes["Consultar"].str.lower() == "si"]
 
-    # ToDo - Verificar si el dia de hoy se encuentra en dias de ejecución
     # Obtener el día de hoy en formato español
     dias_semana_es = [
         "Lunes",

@@ -185,7 +185,9 @@ async def main(
                     zip_filepath = f"{output_folder}/{zip_filename}"
                     png_files = glob.glob(f"{output_folder}/*.png")
 
-                    pass_zip = get_pass_zip(cliente, f"{correo_output};{socio_responsable}")
+                    pass_zip = get_pass_zip(
+                        cliente, f"{correo_output};{socio_responsable}"
+                    )
                     with pyzipper.AESZipFile(
                         zip_filepath,
                         "w",
