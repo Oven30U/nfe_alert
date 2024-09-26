@@ -1,26 +1,25 @@
 import os
 import random
 import string
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import sleep
 
-from pyodbc import connect
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.sql import text
 
+from database import get_session
 from pruebas.correo_cli import send_email_smtp
+from config import PATH_HTML_SET_PASS
 
-SERVER = "ARBAS0228\\RPA"
-DATABASE = "Tecnologia"
-USERNAME = "TaxTech"
-PASSWORD = "T&LTechnologies"
-DRIVER = "{SQL Server}"
+from typing import Union, List
 
 
 def conectar_db(
-    proceso: str,
-    cliente: str,
-    username: str = os.getlogin(),
-    inicio_value: datetime = datetime.now(),
-    estado_value: str = "Erróneo",
+        proceso: str,
+        cliente: str,
+        username: str = os.getlogin(),
+        inicio_value: datetime = datetime.now(),
+        estado_value: str = "Erróneo",
 ):
     """Se conecta a la base de datos interna para hacer un seguimiento de las ejecuciones.
 
@@ -31,69 +30,64 @@ def conectar_db(
         inicio_value (datetime, optional): hora de inicio del proceso. Defaults to datetime.now().
         estado_value (str, optional): hora de finalizacion del proceso. Defaults to "Erróneo".
     """
-    max_reintentos_conn = 10
-    for i in range(max_reintentos_conn):
-        try:
-            conn = connect(
-                f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
-            )
-            break
-        except Exception as e:
-            print(f"Error de conexión num {i + 1}: {e}")
-            if i < max_reintentos_conn - 1:
-                sleep(3)
-            else:
-                print(
-                    "Error: Verifique mantenerse conectado a la VPN durante la ejecución del programa."
-                )
-                return
+    try:
+        session = get_session()
+    except Exception as e:
+        print(e)
+        return
 
     fin_value = datetime.now()
-    cursor = conn.cursor()
     usernames = username.split(";")
     for user in usernames:
         user_name = user.split("@")[0].strip()
         if user_name:
-            cursor.execute(
-                """
+            session.execute(
+                text(
+                    """
                 INSERT INTO monitoreo_bots (username, proceso, estado, iniciado, finalizado, cliente)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (user_name, proceso, estado_value, inicio_value, fin_value, cliente),
+                VALUES (:username, :proceso, :estado, :iniciado, :finalizado, :cliente)
+                """
+                ),
+                {
+                    "username": user_name,
+                    "proceso": proceso,
+                    "estado": estado_value,
+                    "iniciado": inicio_value,
+                    "finalizado": fin_value,
+                    "cliente": cliente,
+                },
             )
-    conn.commit()
-    conn.close()
+    session.commit()
+    session.close()
 
 
 def get_ultimo_finalizado(cliente):
     """Obtiene el valor de 'finalizado' más reciente para el proceso y cliente especificados."""
     try:
-        conn = connect(
-            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
-        )
-        cursor = conn.cursor()
-        cursor.execute(
-            """
+        session = get_session()
+        result = session.execute(
+            text(
+                """
             SELECT TOP 1 finalizado
             FROM monitoreo_bots
             WHERE proceso = 'Revision de Domicilios Fiscales Electronicos' 
-              AND cliente = ? 
+              AND cliente = :cliente 
               AND estado = 'Correcto'
             ORDER BY id DESC
-            """,
-            (cliente,),
-        )
-        result = cursor.fetchone()
+            """
+            ),
+            {"cliente": cliente},
+        ).fetchone()
         return result[0] if result else None
     except Exception as e:
         print(f"Error al obtener el último 'finalizado': {e}")
         return None
     finally:
-        conn.close()
+        session.close()
 
 
 def get_clientes_ejecutados_hoy_with_retries(
-    clientes_si_verificar: list[str], retries=10, delay=30
+        clientes_si_verificar: list[str], retries=10, delay=30
 ) -> list[str]:
     """Intenta obtener los clientes ejecutados hoy hasta 10 veces con intervalos de 30 segundos."""
     for attempt in range(retries):
@@ -119,12 +113,10 @@ def get_clientes_ejecutados_hoy(clientes: list[str]) -> list[str]:
         list[str]: lista de clientes a verificar, que faltan verificarse hoy
     """
     try:
-        conn = connect(
-            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
-        )
-        cursor = conn.cursor()
-        placeholders = ", ".join(["?"] * len(clientes))
-        query = f"""
+        session = get_session()
+        placeholders = ", ".join([":cliente" + str(i) for i in range(len(clientes))])
+        query = text(
+            f"""
             SELECT cliente, MAX(finalizado) AS finalizado
             FROM monitoreo_bots
             WHERE CAST(finalizado AS DATE) = CAST(GETDATE() AS DATE)
@@ -132,22 +124,24 @@ def get_clientes_ejecutados_hoy(clientes: list[str]) -> list[str]:
             AND cliente IN ({placeholders})
             GROUP BY cliente
         """
-        cursor.execute(query, clientes)
-        results = cursor.fetchall()
+        )
+        params = {f"cliente{i}": cliente for i, cliente in enumerate(clientes)}
+        results = session.execute(query, params).fetchall()
         clientes_hoy = [row.cliente for row in results]
         return [cliente for cliente in clientes if cliente not in clientes_hoy]
     except Exception as e:
         print(f"Error al obtener el último 'finalizado': {e}")
         return []
     finally:
-        conn.close()
+        session.close()
 
 
 def read_and_modify_html(
-    cliente: str, new_pass: str, dias: int, username: str = "usuario"
+        cliente: str, new_pass: str, dias: int, username: str = "usuario"
 ) -> str:
     """Lee y modifica el contenido HTML."""
-    html_template_path = os.path.join("pruebas", "mail_plantilla_set_pass.html")
+    # html_template_path = os.path.join("pruebas", "mail_plantilla_set_pass.html")
+    html_template_path = PATH_HTML_SET_PASS
     with open(html_template_path, "r", encoding="utf-8") as file:
         html_content = file.read()
     html_content = html_content.replace("{{cliente}}", cliente)
@@ -160,104 +154,120 @@ def read_and_modify_html(
 def verify_and_add_users(correo_output: list[str]):
     """Verifica si los items de correo_output se encuentran en la tabla usuarios_autorizados. Si falta alguno, lo agrega."""
     try:
-        with connect(
-            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
-        ) as conn:
-            with conn.cursor() as cursor:
-                # Split the string by semicolons to get individual email addresses
-                if isinstance(correo_output, str):
-                    correo_output = correo_output.split(";")
+        session = get_session()
+        # Split the string by semicolons to get individual email addresses
+        if isinstance(correo_output, str):
+            correo_output = correo_output.split(";")
 
-                usernames = [email.split("@")[0] for email in correo_output]
+        usernames = [email.split("@")[0] for email in correo_output]
 
-                # Verificar si los usuarios existen en usuarios_autorizados
-                query = "SELECT username FROM usuarios_autorizados WHERE username IN ({})".format(
-                    ",".join("?" * len(usernames))
-                )
-                cursor.execute(query, usernames)
-                existing_users = {row[0] for row in cursor.fetchall()}
+        # Verificar si los usuarios existen en usuarios_autorizados
+        query = text(
+            "SELECT username FROM usuarios_autorizados WHERE username IN ({})".format(
+                ",".join([f":username{i}" for i in range(len(usernames))])
+            )
+        )
+        params = {f"username{i}": username for i, username in enumerate(usernames)}
+        existing_users = {row[0] for row in session.execute(query, params).fetchall()}
 
-                # Agregar los usuarios que no existen
-                missing_users = [
-                    user for user in usernames if user not in existing_users
-                ]
-                fecha_autorizacion = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                for user in missing_users:
-                    query = "INSERT INTO usuarios_autorizados (username, fecha_autorizacion) VALUES (?, ?)"
-                    cursor.execute(query, (user, fecha_autorizacion))
+        # Agregar los usuarios que no existen
+        missing_users = [user for user in usernames if user not in existing_users]
+        fecha_autorizacion = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for user in missing_users:
+            query = text(
+                "INSERT INTO usuarios_autorizados (username, fecha_autorizacion) VALUES (:username, :fecha_autorizacion)"
+            )
+            session.execute(
+                query, {"username": user, "fecha_autorizacion": fecha_autorizacion}
+            )
 
-                conn.commit()
+        session.commit()
     except Exception as e:
         print(f"Error al verificar y agregar usuarios: {e}")
+    finally:
+        session.close()
 
 
 def verify_and_add_user_client_relationship(
-    cliente_id: int, correo_output: list[str], cliente: str, new_pass: str
+        cliente_id: int, correo_output: list[str], cliente: str, new_pass: str
 ):
     """Verifica que todos los usuarios_autorizados tengan relación con el cliente. Si no tienen relación, la agrega y envía un correo."""
     try:
-        with connect(
-            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
-        ) as conn:
-            with conn.cursor() as cursor:
-                # Split the string by semicolons to get individual email addresses
-                if isinstance(correo_output, str):
-                    correo_output = correo_output.split(";")
+        session = get_session()
+        # Split the string by semicolons to get individual email addresses
+        if isinstance(correo_output, str):
+            correo_output = correo_output.split(";")
 
-                usernames = [email.split("@")[0] for email in correo_output]
+        usernames = [email.split("@")[0] for email in correo_output]
 
-                # Obtener los ids de los usuarios autorizados
-                query = "SELECT id, username FROM usuarios_autorizados WHERE username IN ({})".format(
-                    ",".join("?" * len(usernames))
+        # Obtener los ids de los usuarios autorizados
+        query = text(
+            "SELECT id, username FROM usuarios_autorizados WHERE username IN ({})".format(
+                ",".join([f":username{i}" for i in range(len(usernames))])
+            )
+        )
+        params = {f"username{i}": username for i, username in enumerate(usernames)}
+        usuarios_autorizados = session.execute(query, params).fetchall()
+        usuarios_ids = {row[1]: row[0] for row in usuarios_autorizados}
+
+        # Obtener la fecha de actualización de la contraseña
+        query = text(
+            "SELECT fecha_actualizacion_pass FROM clientes WHERE id = :cliente_id"
+        )
+
+        fecha_actualizacion_pass = session.execute(
+            query, {"cliente_id": cliente_id}
+        ).fetchone()[0]
+        if fecha_actualizacion_pass:
+            fecha_actualizacion_pass = datetime.strptime(
+                fecha_actualizacion_pass, "%d-%m-%Y"
+            )
+            diferencia_dias = (datetime.now() - fecha_actualizacion_pass).days
+            if diferencia_dias > 90:
+                dias = 90
+            else:
+                dias = 90 - diferencia_dias
+        else:
+            dias = 90
+
+        # Insertar en usuario_cliente si no existe la relación
+        for username in usernames:
+            usuario_id = usuarios_ids.get(username)
+            if usuario_id:
+                query = text(
+                    """
+                    SELECT COUNT(*)
+                    FROM usuario_cliente
+                    WHERE id_cliente = :cliente_id AND id_usuario = :usuario_id
+                """
                 )
-                cursor.execute(query, usernames)
-                usuarios_autorizados = cursor.fetchall()
-                usuarios_ids = {row[1]: row[0] for row in usuarios_autorizados}
-
-                # Obtener la fecha de actualización de la contraseña
-                query = "SELECT fecha_actualizacion_pass FROM clientes WHERE id = ?"
-                cursor.execute(query, (cliente_id,))
-                fecha_actualizacion_pass = cursor.fetchone()[0]
-                if fecha_actualizacion_pass:
-                    fecha_actualizacion_pass = datetime.strptime(
-                        fecha_actualizacion_pass, "%d-%m-%Y"
+                count = session.execute(
+                    query, {"cliente_id": cliente_id, "usuario_id": usuario_id}
+                ).fetchone()[0]
+                if count == 0:
+                    query = text(
+                        "INSERT INTO usuario_cliente (id_cliente, id_usuario) VALUES (:cliente_id, :usuario_id)"
                     )
-                    # ToDo arreglar calculo
-                    # Calcular la diferencia en días
-                    # diferencia_dias = (datetime.now() - fecha_actualizacion_pass).days
-                    # dias = 90 - diferencia_dias
-                    dias = 90
-                else:
-                    dias = 90
-
-                # Insertar en usuario_cliente si no existe la relación
-                for username in usernames:
-                    usuario_id = usuarios_ids.get(username)
-                    if usuario_id:
-                        query = """
-                            SELECT COUNT(*)
-                            FROM usuario_cliente
-                            WHERE id_cliente = ? AND id_usuario = ?
-                        """
-                        cursor.execute(query, (cliente_id, usuario_id))
-                        if cursor.fetchone()[0] == 0:
-                            query = "INSERT INTO usuario_cliente (id_cliente, id_usuario) VALUES (?, ?)"
-                            cursor.execute(query, (cliente_id, usuario_id))
-                            # Enviar correo solo si hubo un insert
-                            correo = f"{username}@deloitte.com"
-                            send_email_smtp(
-                                sender_email="robot-Tax-AR@deloitte.com",
-                                receiver_emails=[correo],
-                                subject=f"Actualización de clave de seguridad para Revisión de Domicilios Fiscales Electrónicos - {cliente}",
-                                html_file_path=None,
-                                zip_file_paths=None,
-                                html_content=read_and_modify_html(
-                                    cliente, new_pass, dias, username
-                                ),
-                            )
-                conn.commit()
+                    session.execute(
+                        query, {"cliente_id": cliente_id, "usuario_id": usuario_id}
+                    )
+                    # Enviar correo solo si hubo un insert
+                    correo = f"{username}@deloitte.com"
+                    send_email_smtp(
+                        sender_email="robot-Tax-AR@deloitte.com",
+                        receiver_emails=[correo],
+                        subject=f"Actualización de clave de seguridad para Revisión de Domicilios Fiscales Electrónicos - {cliente}",
+                        html_file_path=None,
+                        zip_file_paths=None,
+                        html_content=read_and_modify_html(
+                            cliente, new_pass, dias, username
+                        ),
+                    )
+        session.commit()
     except Exception as e:
         print(f"Error al verificar y agregar relación usuario-cliente: {e}")
+    finally:
+        session.close()
 
 
 def set_pass(cliente: str, correo_output: list[str]) -> str:
@@ -266,92 +276,110 @@ def set_pass(cliente: str, correo_output: list[str]) -> str:
     fecha_actualizacion = datetime.now().strftime("%d-%m-%Y")
     correo_output = [correo_output] if isinstance(correo_output, str) else correo_output
     try:
-        with connect(
-            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
-        ) as conn:
-            with conn.cursor() as cursor:
-                # Asegurarse de que los valores no excedan las longitudes permitidas
-                cliente = cliente[:255]
-                new_pass = new_pass[:255]
+        session = get_session()
+        # Asegurarse de que los valores no excedan las longitudes permitidas
+        cliente = cliente[:255]
+        new_pass = new_pass[:255]
 
-                query = """
-                    UPDATE clientes
-                    SET [pass] = ?, [fecha_actualizacion_pass] = ?
-                    WHERE nombre = ?
+        query = text(
+            """
+            UPDATE clientes
+            SET [pass] = :new_pass, [fecha_actualizacion_pass] = :fecha_actualizacion
+            WHERE nombre = :cliente
+            """
+        )
+        session.execute(
+            query,
+            {
+                "new_pass": new_pass,
+                "fecha_actualizacion": fecha_actualizacion,
+                "cliente": cliente,
+            },
+        )
+        if (
+                session.execute(text("SELECT @@ROWCOUNT")).fetchone()[0] == 0
+        ):  # Si no se actualizó ninguna fila, insertar un nuevo cliente
+            query = text(
                 """
-                cursor.execute(query, (new_pass, fecha_actualizacion, cliente))
-                if (
-                    cursor.rowcount == 0
-                ):  # Si no se actualizó ninguna fila, insertar un nuevo cliente
-                    query = """
-                        INSERT INTO clientes (nombre, pass, fecha_actualizacion_pass)
-                        VALUES (?, ?, ?)
-                    """
-                    cursor.execute(query, (cliente, new_pass, fecha_actualizacion))
+                INSERT INTO clientes (nombre, pass, fecha_actualizacion_pass)
+                VALUES (:cliente, :new_pass, :fecha_actualizacion)
+                """
+            )
+            session.execute(
+                query,
+                {
+                    "cliente": cliente,
+                    "new_pass": new_pass,
+                    "fecha_actualizacion": fecha_actualizacion,
+                },
+            )
 
-                # Obtener el id del cliente
-                query = "SELECT id FROM clientes WHERE nombre = ?"
-                cursor.execute(query, (cliente,))
-                cliente_id = cursor.fetchone()[0]
+        # Obtener el id del cliente
+        query = text("SELECT id FROM clientes WHERE nombre = :cliente")
+        cliente_id = session.execute(query, {"cliente": cliente}).fetchone()[0]
 
-                # Verificar y agregar usuarios
-                verify_and_add_users(correo_output)
+        # Verificar y agregar usuarios
+        verify_and_add_users(correo_output)
 
-                # Verificar y agregar relación usuario-cliente
-                verify_and_add_user_client_relationship(
-                    cliente_id, correo_output, cliente, new_pass
-                )
+        # Verificar y agregar relación usuario-cliente
+        verify_and_add_user_client_relationship(
+            cliente_id, correo_output, cliente, new_pass
+        )
 
+        session.commit()
         return new_pass
     except Exception as e:
         print(f"Error al actualizar la contraseña: {e}")
         return None
+    finally:
+        session.close()
 
 
 def get_related_users_emails(cliente_id: int) -> list[str]:
     """Obtiene los correos de los usuarios relacionados con el cliente."""
     try:
-        conn = connect(
-            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
-        )
-        cursor = conn.cursor()
-        query = """
+        session = get_session()
+        query = text(
+            """
             SELECT ua.username
             FROM usuario_cliente uc
             JOIN usuarios_autorizados ua ON uc.id_usuario = ua.id
-            WHERE uc.id_cliente = ?
-        """
-        cursor.execute(query, (cliente_id,))
-        results = cursor.fetchall()
+            WHERE uc.id_cliente = :cliente_id
+            """
+        )
+        results = session.execute(query, {"cliente_id": cliente_id}).fetchall()
         return [f"{row[0]}@deloitte.com" for row in results]
     except Exception as e:
         print(f"Error al obtener los correos de los usuarios relacionados: {e}")
         return []
     finally:
-        conn.close()
+        session.close()
 
 
 def get_pass_zip(
-    cliente: str, correo_output: str | list[str] = ["lmarinaro@deloitte.com"]
+        cliente: str, correo_output: Union[str, List[str]] = ["lmarinaro@deloitte.com"]
 ) -> str:
     """Consulta el valor de [pass] y [fecha_actualizacion_pass] para el cliente especificado."""
-    try:
-        conn = connect(
-            f"Driver={DRIVER};Server={SERVER};Database={DATABASE};UID={USERNAME};PWD={PASSWORD};"
-        )
-        cursor = conn.cursor()
 
+    # Limpiamos correo_output en caso de tener vacios
+    correo_output = [correo for correo in
+                     (correo_output if isinstance(correo_output, list) else correo_output.split(";")) if
+                     correo and correo.lower() != "nan"]
+
+    try:
+        session = get_session()
         # Asegurarse de que el valor no exceda la longitud permitida
         cliente = cliente[:255]
 
-        query = """
+        query = text(
+            """
             SELECT TOP 1 [pass], [fecha_actualizacion_pass]
             FROM clientes
-            WHERE nombre = ?
+            WHERE nombre = :cliente
             ORDER BY id DESC
-        """
-        cursor.execute(query, (cliente,))
-        result = cursor.fetchone()
+            """
+        )
+        result = session.execute(query, {"cliente": cliente}).fetchone()
         if result:
             pass_value, fecha_actualizacion_pass = result
             if fecha_actualizacion_pass:
@@ -359,18 +387,18 @@ def get_pass_zip(
                     fecha_actualizacion_pass, "%d-%m-%Y"
                 )
 
-                # ToDo arreglar el calculo de "dias" si se genera la new_pass siempre es 90, si no se genera entonces es diferencia de dias
                 # Calcular la diferencia en días
-                # diferencia_dias = (datetime.now() - fecha_actualizacion_pass).days
-                # dias = 90 - diferencia_dias
-                dias = 90
+                dias_totales = 90
+                dias_transcurridos = (datetime.now() - fecha_actualizacion_pass).days
+                dias_restantes = dias_totales - dias_transcurridos
 
                 # Si la contraseña se actualizó hace menos de 90 días, devolverla
-                if fecha_actualizacion_pass >= datetime.now() - timedelta(days=90):
+                if dias_restantes > 0:
                     # Obtener el id del cliente
-                    query = "SELECT id FROM clientes WHERE nombre = ?"
-                    cursor.execute(query, (cliente,))
-                    cliente_id = cursor.fetchone()[0]
+                    query = text("SELECT id FROM clientes WHERE nombre = :cliente")
+                    cliente_id = session.execute(
+                        query, {"cliente": cliente}
+                    ).fetchone()[0]
 
                     # Verificar y agregar usuarios
                     verify_and_add_users(correo_output)
@@ -383,9 +411,10 @@ def get_pass_zip(
                     return pass_value
                 else:
                     # Obtener el id del cliente
-                    query = "SELECT id FROM clientes WHERE nombre = ?"
-                    cursor.execute(query, (cliente,))
-                    cliente_id = cursor.fetchone()[0]
+                    query = text("SELECT id FROM clientes WHERE nombre = :cliente")
+                    cliente_id = session.execute(
+                        query, {"cliente": cliente}
+                    ).fetchone()[0]
 
                     # Obtener correos de usuarios relacionados
                     related_emails = get_related_users_emails(cliente_id)
@@ -399,7 +428,9 @@ def get_pass_zip(
                         subject=f"Actualización de clave de seguridad para Revisión de Domicilios Fiscales Electrónicos - {cliente}",
                         html_file_path=None,
                         zip_file_paths=None,
-                        html_content=read_and_modify_html(cliente, pass_value, dias),
+                        html_content=read_and_modify_html(
+                            cliente, pass_value, dias_restantes
+                        ),
                     )
 
                     return pass_value
@@ -412,13 +443,15 @@ def get_pass_zip(
         print(f"Error al obtener la contraseña: {e}")
         return None
     finally:
-        conn.close()
+        session.close()
 
 
 if __name__ == "__main__":
-    verify_and_add_user_client_relationship(
-        cliente_id=1,
-        correo_output=["rtolaba@deloitte.com;lmarinaro@deloitte.com"],
-        cliente="FACEBOOK ARGENTINA S.R.L",
-        new_pass="pYn2VLClQOfa",
-    )
+    # verify_and_add_user_client_relationship(
+    #     cliente_id=1,
+    #     correo_output=["rtolaba@deloitte.com;lmarinaro@deloitte.com"],
+    #     cliente="FACEBOOK ARGENTINA S.R.L",
+    #     new_pass="pYn2VLClQOfa",
+    # )
+
+    get_pass_zip(cliente='FACEBOOK ARGENTINA S.R.L', correo_output="nan;lmarinaro")

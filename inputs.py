@@ -5,7 +5,6 @@ from datetime import datetime
 import pandas as pd
 from win32com.client import Dispatch
 
-from cliente_system import ClienteSystem
 from conectar_db import (
     get_clientes_ejecutados_hoy_with_retries,
 )
@@ -160,26 +159,27 @@ def obtener_clientes(
         subset=["Socio responsable", "Correos destinatarios"], how="all"
     )
     df_clientes = df_clientes[df_clientes["Consultar"].str.lower() == "si"]
-
-    # Obtener el día de hoy en formato español
-    dias_semana_es = [
-        "Lunes",
-        "Martes",
-        "Miércoles",
-        "Jueves",
-        "Viernes",
-        "Sábado",
-        "Domingo",
-    ]
-    hoy = dias_semana_es[datetime.today().weekday()]
-    # Filtrar las filas donde la columna "Día/s de ejecución" contenga el día de hoy
-    df_clientes = df_clientes[
-        df_clientes[df_clientes.columns[-1]].str.contains(hoy, case=False, na=False)
-    ]
-
-    clientes_si_verificar = df_clientes["Cliente"].unique().tolist()
-    # clientes_no_verificar = []
+    
     if not EJECUTAR_CLIENTES_LISTA:
+        # Obtener el día de hoy en formato español
+        dias_semana_es = [
+            "Lunes",
+            "Martes",
+            "Miércoles",
+            "Jueves",
+            "Viernes",
+            "Sábado",
+            "Domingo",
+        ]
+        hoy = dias_semana_es[datetime.today().weekday()]
+        # Filtrar las filas donde la columna "Día/s de ejecución" contenga el día de hoy
+        df_clientes = df_clientes[
+            df_clientes[df_clientes.columns[-1]].str.contains(hoy, case=False, na=False)
+        ]
+
+        clientes_si_verificar = df_clientes["Cliente"].unique().tolist()
+        # clientes_no_verificar = []
+        
         # Todo: Ver que hacer en caso de faya de conexión del server
         try:
             clientes_pendientes_verificar = get_clientes_ejecutados_hoy_with_retries(
@@ -235,6 +235,7 @@ def obtener_clientes(
 
         df_clientes["cuit_cliente"] = df_clientes["cuit_cliente"].str.replace("-", "")
 
+        df_clientes["Jurisdiccion"] = df_clientes["Jurisdiccion"].apply(lambda x: x.strip())
         df_clientes["Jurisdiccion"] = df_clientes["Jurisdiccion"].replace(
             jurisdiccion_clases
         )

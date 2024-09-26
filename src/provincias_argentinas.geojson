@@ -3,7 +3,7 @@
   "features": [
     {
       "type": "Feature",
-      "properties": { "nombre": "Tucumán" },
+      "properties": { "nombre": "924 TUCUMAN" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -27,7 +27,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Santiago del Estero" },
+      "properties": { "nombre": "922 SANTIAGO DEL ESTERO" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -49,7 +49,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Salta" },
+      "properties": { "nombre": "917 SALTA" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -103,7 +103,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Jujuy",
+        "nombre": "910 JUJUY",
         "color": "#FF0000",
         "leyenda": "Leyenda 10"
       },
@@ -145,7 +145,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Formosa",
+        "nombre": "909 FORMOSA",
         "color": "#FF0000",
         "leyenda": "Leyenda 9"
       },
@@ -171,7 +171,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Chaco",
+        "nombre": "906 CHACO",
         "color": "#FF0000",
         "leyenda": "Leyenda 4"
       },
@@ -195,7 +195,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Misiones",
+        "nombre": "914 MISIONES",
         "color": "#FF0000",
         "leyenda": "Leyenda 14"
       },
@@ -230,7 +230,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Corrientes",
+        "nombre": "905 CORRIENTES",
         "color": "#FF0000",
         "leyenda": "Leyenda 7"
       },
@@ -266,7 +266,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Catamarca",
+        "nombre": "903 CATAMARCA",
         "color": "#00FF00",
         "leyenda": "Leyenda 3"
       },
@@ -332,7 +332,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Córdoba" },
+      "properties": { "nombre": "904 CORDOBA" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -364,7 +364,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Santa Fe" },
+      "properties": { "nombre": "921 SANTA FE" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -395,7 +395,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Entre Ríos" },
+      "properties": { "nombre": "908 ENTRE RIOS" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -436,7 +436,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Buenos Aires",
+        "nombre": "902 BUENOS AIRES",
         "color": "#00FF00",
         "leyenda": "Leyenda 1",
         "texto_personalizado": "Texto personalizado para Buenos Aires",
@@ -522,7 +522,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "La Pampa",
+        "nombre": "911 LA PAMPA",
         "color": "#FF0000",
         "leyenda": "Leyenda 11"
       },
@@ -561,7 +561,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "La Rioja",
+        "nombre": "912 LA RIOJA",
         "color": "#FF0000",
         "leyenda": "Leyenda 12"
       },
@@ -633,7 +633,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "San Juan" },
+      "properties": { "nombre": "918 SAN JUAN" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -786,7 +786,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "San Luis" },
+      "properties": { "nombre": "919 SAN LUIS" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -838,7 +838,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Mendoza",
+        "nombre": "913 MENDOZA",
         "color": "#FF0000",
         "leyenda": "Leyenda 13"
       },
@@ -961,7 +961,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Neuquén" },
+      "properties": { "nombre": "915 NEUQUEN" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1043,7 +1043,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Río Negro" },
+      "properties": { "nombre": "916 RIO NEGRO" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1138,7 +1138,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "Chubut",
+        "nombre": "907 CHUBUT",
         "color": "#FF0000",
         "leyenda": "Leyenda 5"
       },
@@ -1259,7 +1259,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Santa Cruz" },
+      "properties": { "nombre": "920 SANTA CRUZ" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1364,7 +1364,7 @@
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Tierra del Fuego" },
+      "properties": { "nombre": "923 TIERRA DEL FUEGO" },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1394,7 +1394,7 @@
     {
       "type": "Feature",
       "properties": {
-        "nombre": "CABA",
+        "nombre": "901 CABA",
         "color": "#FF0000",
         "leyenda": "Leyenda 2",
         "texto_personalizado": "Texto personalizado para Capital Federal",

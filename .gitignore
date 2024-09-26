@@ -11,3 +11,7 @@ Documentación/estructura_input.xlsx
 Documentación/*
 /Documentación/*
 *.zip
+*.xlsx
+git
+
+.idea

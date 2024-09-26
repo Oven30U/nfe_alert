@@ -2,7 +2,6 @@ import asyncio
 import glob
 import os
 import shutil
-import zipfile
 from datetime import datetime
 
 import pandas as pd
@@ -24,13 +23,13 @@ from mapa_plot import crear_mapa, crear_mapa_argentina
 
 
 async def main(
-    debug: bool = False,
-    enviar_correo_test: bool = False,
-    headless_state: bool = True,
-    ejecutar_todos_clientes: bool = False,
-    ejecutar_clientes_lista: bool = False,
-    sin_debug_ejecutar_lista: bool = False,
-    clientes_si_verificar_config=None,
+        debug: bool = False,
+        enviar_correo_test: bool = False,
+        headless_state: bool = True,
+        ejecutar_todos_clientes: bool = False,
+        ejecutar_clientes_lista: bool = False,
+        sin_debug_ejecutar_lista: bool = False,
+        clientes_si_verificar_config=None,
 ):
     if clientes_si_verificar_config is None:
         clientes_si_verificar_config = []
@@ -49,8 +48,12 @@ async def main(
             df_input_por_cliente = df_input.groupby("Cliente")
 
             for cliente, group in df_input_por_cliente:
-                # Registrar el estado de la ejecución para conectar_db
-                inicio_value = datetime.now()
+                # Registrar el estado de la ejecución para conectar_db               inicio_value = datetime.now()
+                # Define the source and destination directories
+                output_folder = f"Estructura-robot/{cliente}/Output"
+                backup_folder = f"Estructura-robot/{cliente}/Backup"
+                # Create the backup folder if it doesn't exist
+                os.makedirs(backup_folder, exist_ok=True)
                 try:
                     instances = {}
                     jurisdicciones_encontradas = []
@@ -72,11 +75,11 @@ async def main(
                         correo_output = row["Correo Output"]
                         socio_responsable = row["Socio responsable"]
 
-                        # Define the source and destination directories
-                        output_folder = f"Estructura-robot/{cliente}/Output"
-                        backup_folder = f"Estructura-robot/{cliente}/Backup"
-                        # Create the backup folder if it doesn't exist
-                        os.makedirs(backup_folder, exist_ok=True)
+                        # # Define the source and destination directories
+                        # output_folder = f"Estructura-robot/{cliente}/Output"
+                        # backup_folder = f"Estructura-robot/{cliente}/Backup"
+                        # # Create the backup folder if it doesn't exist
+                        # os.makedirs(backup_folder, exist_ok=True)
                         # Get a list of all files in the output folder
                         files = os.listdir(output_folder)
                         # Move each .zip file to the backup folder and delete the rest
@@ -133,12 +136,12 @@ async def main(
                     for _, error_row in errores.iterrows():
                         jurisdiction = error_row["Nombre"]
                         for _, row in df_input_por_cliente.get_group(
-                            cliente
+                                cliente
                         ).iterrows():
                             if row["Jurisdiccion"] == jurisdiction:
                                 JurisdictionClass = globals()[jurisdiction]
                                 for intento in range(
-                                    LIMITES_REINTENTO
+                                        LIMITES_REINTENTO
                                 ):  # Limitar a intentos en config.py
                                     # headless = intento % 2 == 0  # Itera entre headless y head full
                                     # Se utiliza el headless definido por defecto en cada Clase de jurisdicciones
@@ -157,14 +160,14 @@ async def main(
                                     # Actualizar el DataFrame con el nuevo resultado
                                     df_final_cliente.loc[
                                         df_final_cliente["Nombre"] == jurisdiction
-                                    ] = list(resultado)
+                                        ] = list(resultado)
 
                                     # Verificar si "Error" es none
                                     if pd.isnull(
-                                        df_final_cliente.loc[
-                                            df_final_cliente["Nombre"] == jurisdiction,
-                                            "Error",
-                                        ]
+                                            df_final_cliente.loc[
+                                                df_final_cliente["Nombre"] == jurisdiction,
+                                                "Error",
+                                            ]
                                     ).all():
                                         break  # Si "Error" is None, break el loop
 
@@ -189,10 +192,10 @@ async def main(
                         cliente, f"{correo_output};{socio_responsable}"
                     )
                     with pyzipper.AESZipFile(
-                        zip_filepath,
-                        "w",
-                        compression=pyzipper.ZIP_DEFLATED,
-                        encryption=pyzipper.WZ_AES,
+                            zip_filepath,
+                            "w",
+                            compression=pyzipper.ZIP_DEFLATED,
+                            encryption=pyzipper.WZ_AES,
                     ) as zipf:
                         zipf.setpassword(pass_zip.encode("utf-8"))
                         for file in png_files:
@@ -245,22 +248,6 @@ async def main(
                         correo_enviado_exitosamente = True
                     except Exception as e:
                         print(f"Error al enviar correo: {e}")
-
-                    # Actualizar 'Última verificación' solo si se envio el correo y estado Correcto, sin debug.
-                    # if correo_enviado_exitosamente and estado_value == "Correcto" and debug is False:
-                    # if correo_enviado_exitosamente and debug is False:
-                    #     # ToDo ahora es en base de datos -> Actualiza hora de Última verificación
-                    #     PATH_CLIENTES = "Estructura-robot/System/System-Clientes.xlsx"
-                    #     df_cliente_system = pd.read_excel(PATH_CLIENTES)
-                    #     now = datetime.now()
-                    #     current_time = now.strftime("%d/%m/%Y %H:%M:%S")
-                    #     df_cliente_system.loc[
-                    #         df_cliente_system["Cliente"] == cliente,
-                    #         "Última verificación",
-                    #     ] = current_time
-                    #     df_cliente_system.to_excel(
-                    #         PATH_CLIENTES, sheet_name="System-Clientes", index=False
-                    #     )
 
                     username = str(correo_output)
 

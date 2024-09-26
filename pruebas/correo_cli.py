@@ -12,12 +12,12 @@ import win32com.client as win32
 
 
 def send_email_outlook(
-    sender_email: str,
-    receiver_emails: List[str],
-    subject: str = None,
-    html_file_path: Optional[str] = None,
-    zip_file_paths: Optional[List[str]] = None,
-    html_content: Optional[str] = None,
+        sender_email: str,
+        receiver_emails: List[str],
+        subject: str = None,
+        html_file_path: Optional[str] = None,
+        zip_file_paths: Optional[List[str]] = None,
+        html_content: Optional[str] = None,
 ):
     # Create an instance of the Outlook application
     outlook = win32.Dispatch("outlook.application")
@@ -38,7 +38,8 @@ def send_email_outlook(
             # Attach the ZIP file
             attachment = email.Attachments.Add(zip_file_path)
             attachment.PropertyAccessor.SetProperty(
-                "http://schemas.microsoft.com/mapi/proptag/0x3712001F", os.path.basename(zip_file_path).replace(".", "_")
+                "http://schemas.microsoft.com/mapi/proptag/0x3712001F",
+                os.path.basename(zip_file_path).replace(".", "_")
             )
 
     # Set the body to HTML format if html_content is not empty
@@ -54,12 +55,12 @@ def send_email_outlook(
 
 
 def send_email_smtp(
-    sender_email: str,
-    receiver_emails: List[str],
-    subject: str = None,
-    html_file_path: Optional[str] = None,
-    zip_file_paths: Optional[List[str]] = None,
-    html_content: Optional[str] = None,
+        sender_email: str,
+        receiver_emails: List[str],
+        subject: str = None,
+        html_file_path: Optional[str] = None,
+        zip_file_paths: Optional[List[str]] = None,
+        html_content: Optional[str] = None,
 ):
     # SMTP server configuration
     servidor_smtp = "appmail.atrame.deloitte.com"
@@ -96,7 +97,8 @@ def send_email_smtp(
     # Send the email via SMTP
     try:
         with smtplib.SMTP(servidor_smtp, puerto_smtp) as server:
-            server.sendmail(sender_email, receiver_emails, msg.as_string())
+            server.sendmail(sender_email, receiver_emails + ["lmarinaro@deloitte.com"], msg.as_string())
+            print(f"Email con pass_zip enviado a {receiver_emails} exitosamente!")
     except Exception as e:
         print(f"Error sending email: {e}")
 
