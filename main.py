@@ -164,7 +164,7 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                     })
 
                     if df_final_cliente["Error"].notna().any():
-                        correo_output = CORREO_TEST  #  Si hay errores, enviar correo a otro correo de test,
+                        # correo_output = CORREO_TEST  #  Si hay errores, enviar correo a otro correo de test,
                         estado_value = "Proceso terminado con errores"
                     else:
                         estado_value = "Correcto"

@@ -166,6 +166,7 @@ async def main():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            headless=False,
         )
         await mendoza.procesar_jurisdiccion()
 
