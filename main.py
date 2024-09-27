@@ -115,16 +115,21 @@ async def main(debug: bool = False, enviar_correo_test: bool = False, headless_s
                                 for intento in range(LIMITES_REINTENTO):  # Limitar a intentos en config.py
                                     # headless = intento % 2 == 0  # Itera entre headless y head full
                                     # Se utiliza el headless definido por defecto en cada Clase de jurisdicciones
-                                    instance = await JurisdictionClass.create(
-                                        playwright,
-                                        row["Cliente"],
-                                        int(row["Usuario"]),
-                                        row["Password"],
-                                        row["fecha_desde"].replace("/", ""),
-                                        row["fecha_hasta"].replace("/", ""),
-                                        int(row["cuit_cliente"]),
-                                        # headless=headless,
-                                    )
+                                    create_args = {
+                                        "playwright": playwright,
+                                        "cliente": row["Cliente"],
+                                        "cuit": int(row["Usuario"]),
+                                        "clave_fiscal": row["Password"],
+                                        "fecha_desde": row["fecha_desde"].replace("/", ""),
+                                        "fecha_hasta": row["fecha_hasta"].replace("/", ""),
+                                        "cuit_cliente_input": int(row["cuit_cliente"]),
+                                    }
+
+                                    # Add the headless argument if debug is True
+                                    if debug:
+                                        create_args["headless"] = headless_state
+
+                                    instance = await JurisdictionClass.create(**create_args)
                                     resultado = await instance.procesar_jurisdiccion()
 
                                     # Actualizar el DataFrame con el nuevo resultado
