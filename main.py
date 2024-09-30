@@ -13,9 +13,10 @@ from config import (
     CORREO_TEST,
     LIMITES_REINTENTO,
     PATH_ESTRUCTURA_ROBOT,
-    jurisdiccion_clases,
+    jurisdiccion_clases, ENVIAR_CORREO_TEST,
 )
 from functions.delete_backs import delete_zip_files_in_backup
+# from inputs import obtener_clientes
 from inputs import obtener_clientes
 from jurisdicciones import *
 from mail import enviar_correo
@@ -48,7 +49,8 @@ async def main(
             df_input_por_cliente = df_input.groupby("Cliente")
 
             for cliente, group in df_input_por_cliente:
-                # Registrar el estado de la ejecución para conectar_db               inicio_value = datetime.now()
+                # Registrar el estado de la ejecución para conectar_db
+                inicio_value = datetime.now()
                 # Define the source and destination directories
                 output_folder = f"Estructura-robot/{cliente}/Output"
                 backup_folder = f"Estructura-robot/{cliente}/Backup"
@@ -188,6 +190,8 @@ async def main(
                     zip_filepath = f"{output_folder}/{zip_filename}"
                     png_files = glob.glob(f"{output_folder}/*.png")
 
+                    if ENVIAR_CORREO_TEST:
+                        correo_output = CORREO_TEST
                     pass_zip = get_pass_zip(
                         cliente, f"{correo_output};{socio_responsable}"
                     )
@@ -231,25 +235,39 @@ async def main(
                     if enviar_correo_test:
                         correo_output = CORREO_TEST
                     try:
-                        enviar_correo(
-                            receptor=correo_output,
-                            cliente=cliente,
-                            ruta_archivo_adjunto=zip_filepath,
-                            nombre_archivo_adjunto=zip_filename,
-                            df=df_adjunto_correo,
-                            ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
-                            ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
-                            cuerpo_html_plantilla="html/mail_plantilla.html",
-                            cc=socio_responsable,
-                            # cuerpo_html_salida="html/mail_plantilla_salida_con_tabla_ejemplo2.html",
-                        )
+                        if pd.isna(correo_output):
+                            receptor = socio_responsable
+                            enviar_correo(
+                                receptor=receptor,
+                                cliente=cliente,
+                                ruta_archivo_adjunto=zip_filepath,
+                                nombre_archivo_adjunto=zip_filename,
+                                df=df_adjunto_correo,
+                                ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
+                                ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
+                                cuerpo_html_plantilla="html/mail_plantilla.html",
+                            )
+                            username = str(receptor)
+                        else:
+                            enviar_correo(
+                                receptor=correo_output,
+                                cliente=cliente,
+                                ruta_archivo_adjunto=zip_filepath,
+                                nombre_archivo_adjunto=zip_filename,
+                                df=df_adjunto_correo,
+                                ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
+                                ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
+                                cuerpo_html_plantilla="html/mail_plantilla.html",
+                                cc=socio_responsable,
+                            )
+                            username = str(correo_output)
                         # Si enviar_correo() se ejecuta sin errores, actualizar la variable
                         # Si hay alguna jurisdiccion con error, igualmente se envia y se actualiza la última verificación
                         correo_enviado_exitosamente = True
                     except Exception as e:
                         print(f"Error al enviar correo: {e}")
 
-                    username = str(correo_output)
+                    # username = str(correo_output)
 
                     proceso = "Revision de Domicilios Fiscales Electronicos"
                     conectar_db(proceso, cliente, username, inicio_value, estado_value)

@@ -8,7 +8,7 @@ class BaseTest:
     """
     Clase base para pruebas unitarias.
 
-    Esta clase proporciona un método `run_base_test` que realiza una serie de
+    Esta clase proporciona un method `run_base_test` que realiza una serie de
     aserciones para verificar el correcto funcionamiento de la jurisdicción
     procesada. Las pruebas incluyen la verificación de la existencia de la página,
     la presencia de notificaciones, la realización de capturas de pantalla y
@@ -82,7 +82,7 @@ class ErrorTest:
     """
     Clase para pruebas de error.
 
-    Esta clase proporciona un método `run_error_test` que realiza una aserción
+    Esta clase proporciona un method `run_error_test` que realiza una aserción
     para verificar que no se produzcan errores durante el procesamiento de la jurisdicción.
 
     Args:

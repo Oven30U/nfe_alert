@@ -71,9 +71,9 @@ class Jurisdiccion(ABC):
 
     Métodos:
         __init__: Inicializa una instancia de la clase Jurisdiccion.
-        create: Método de clase asíncrono para crear e inicializar una instancia de Jurisdiccion.
+        create: Method de clase asíncrono para crear e inicializar una instancia de Jurisdiccion.
         AFIP_login: Realiza el inicio de sesión en el portal de AFIP.
-        consultar_notificaciones: Método abstracto para navegar hasta la sección de notificaciones de la jurisdicción.
+        consultar_notificaciones: Method abstracto para navegar hasta la sección de notificaciones de la jurisdicción.
         buscar_notificacion: Busca una notificación específica en la página.
         buscar_notificacion_texto_visible: Verifica si un texto específico es visible en la página.
         buscar_notificacion_xpath_visible: Verifica si un elemento específico es visible en la página utilizando un XPath.
@@ -84,7 +84,7 @@ class Jurisdiccion(ABC):
         enviar_correo_errores: Envía un correo electrónico con los errores detectados.
 
     Métodos a implementar en clases hijas:
-        consultar_notificaciones: Método utilizado para navegar hasta la sección de notificaciones de la jurisdicción.
+        consultar_notificaciones: Method utilizado para navegar hasta la sección de notificaciones de la jurisdicción.
 
     Ejemplo de implementación en una clase hija:
 

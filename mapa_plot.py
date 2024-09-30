@@ -272,8 +272,7 @@ def crear_mapa_argentina(df, output_file):
     plt.savefig(output_file, bbox_extra_artists=(legend, df_legend))
 
 
-# #Todo
-# # En lugar de esto
+# #Todo - En lugar de esto reemplazar los merges de df's en mapas
 # merged["Error"].fillna(False, inplace=True)
 
 # # Haz esto

@@ -1,22 +1,22 @@
 import os
-import re
 import smtplib
+from email import encoders
 from email.mime.base import MIMEBase
-from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email import encoders
-from typing import Optional, List
+from typing import Optional
 
 import win32com.client as win32
+
+from config import CORREO_NOTIFICACION_ERROR
 
 
 def send_email_outlook(
         sender_email: str,
-        receiver_emails: List[str],
+        receiver_emails: list[str],
         subject: str = None,
         html_file_path: Optional[str] = None,
-        zip_file_paths: Optional[List[str]] = None,
+        zip_file_paths: Optional[list[str]] = None,
         html_content: Optional[str] = None,
 ):
     # Create an instance of the Outlook application
@@ -56,12 +56,12 @@ def send_email_outlook(
 
 def send_email_smtp(
         sender_email: str,
-        receiver_emails: List[str],
+        receiver_emails: list[str],
         subject: str = None,
         html_file_path: Optional[str] = None,
-        zip_file_paths: Optional[List[str]] = None,
+        zip_file_paths: Optional[list[str]] = None,
         html_content: Optional[str] = None,
-):
+) -> tuple[list[str], list[str]]:
     # SMTP server configuration
     servidor_smtp = "appmail.atrame.deloitte.com"
     puerto_smtp = 25
@@ -94,19 +94,60 @@ def send_email_smtp(
     if html_content:
         msg.attach(MIMEText(html_content, "html"))
 
+    successful_emails = []
+    failed_emails = []
+
     # Send the email via SMTP
     try:
         with smtplib.SMTP(servidor_smtp, puerto_smtp) as server:
-            server.sendmail(sender_email, receiver_emails + ["lmarinaro@deloitte.com"], msg.as_string())
-            print(f"Email con pass_zip enviado a {receiver_emails} exitosamente!")
+            for email in receiver_emails:
+                try:
+                    server.sendmail(sender_email, email, msg.as_string())
+                    successful_emails.append(email)
+                    print(f"Email con pass_zip enviado a {email} exitosamente!")
+                except Exception as e:
+                    failed_emails.append(email)
+                    print(f"Error sending email to {email}: {e}")
     except Exception as e:
-        print(f"Error sending email: {e}")
+        print(f"Error connecting to SMTP server: {e}")
+        notify_error(sender_email, e, successful_emails, failed_emails)
+
+    return successful_emails, failed_emails
+
+
+def notify_error(sender_email: str, exception: Exception, successful_emails: list[str], failed_emails: list[str]):
+    # Create the error notification email
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = CORREO_NOTIFICACION_ERROR
+    msg["Subject"] = "Error Notification: Email Sending Failed"
+
+    # Create the email body
+    body = f"""
+    An error occurred while sending emails:
+    Exception: {exception}
+
+    Successful Emails:
+    {', '.join(successful_emails)}
+
+    Failed Emails:
+    {', '.join(failed_emails)}
+    """
+    msg.attach(MIMEText(body, "plain"))
+
+    # Send the error notification email
+    try:
+        with smtplib.SMTP("appmail.atrame.deloitte.com", 25) as server:
+            server.sendmail(sender_email, CORREO_NOTIFICACION_ERROR, msg.as_string())
+            print(f"Error notification sent to {CORREO_NOTIFICACION_ERROR}")
+    except Exception as e:
+        print(f"Failed to send error notification: {e}")
 
 
 if __name__ == "__main__":
     # Example usage
     sender_email = "lmarinaro@deloitte.com"
-    receiver_emails = ["lmarinaro@deloitte.com", "marinaro.leonel@tecnica7.edu.ar"]
+    receiver_emails = ["lmarinaro@deloitte.com"]
     subject_outlook = "Hello from Python in Outlook!"
     subject = "Hello from Python!"
     html_file_path = r"C:\Users\lmarinaro\OneDrive - Deloitte (O365D)\Documents\Proyectos\test_robot_framework\dfe\Estructura-robot\System\archivos_plantilla\SIMPLOT ARGENTINA S.R.L_20240918.html"
@@ -114,9 +155,9 @@ if __name__ == "__main__":
         r"C:\Users\lmarinaro\OneDrive - Deloitte (O365D)\Documents\Proyectos\test_robot_framework\dfe\Estructura-robot\System\archivos_plantilla_dfe.zip"
     ]
 
-    send_email_outlook(
-        sender_email, receiver_emails, subject_outlook, html_file_path, zip_file_paths
-    )
+    # send_email_outlook(
+    #     sender_email, receiver_emails, subject_outlook, html_file_path, zip_file_paths
+    # )
     send_email_smtp(
         sender_email, receiver_emails, subject, html_file_path, zip_file_paths
     )

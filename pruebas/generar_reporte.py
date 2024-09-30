@@ -1,3 +1,6 @@
+"""
+    Este módulo genera un excel que contiene los datos de los procesos de monitoreo de los bots.
+"""
 from database import get_session
 from sqlalchemy.sql import text
 import pandas as pd

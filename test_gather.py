@@ -29,7 +29,7 @@ class TestAll:
             TestChaco(),
         ]
 
-        # Crear una lista de tareas para ejecutar el método procesar_jurisdiccion() para cada jurisdicción
+        # Crear una lista de tareas para ejecutar el method procesar_jurisdiccion() para cada jurisdicción
         tasks = [test.procesar_jurisdiccion() for test in tests]
         # tasks = [test.run_error_test() for test in tests]
 

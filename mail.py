@@ -65,7 +65,7 @@ def enviar_correo(
     msg["To"] = ",".join(receptor)
     msg["Cc"] = ",".join(cc)
     correos_rpa = ["lmarinaro@deloitte.com", "rpa-tax-ar@deloitte.com"]
-    # Dividir la cadena en varias cadenas utilizando el método split()
+    # Dividir la cadena en varias cadenas utilizando el method split()
     receptor = receptor[0].split(";")
     receptor.extend(correos_rpa)
     msg["Subject"] = (

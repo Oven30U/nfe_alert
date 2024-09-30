@@ -48,7 +48,9 @@ def cargar_excels():
                     usecols_cliente = "A:G"
 
                     # Especificar los tipos de datos para las columnas deseadas
-                    dtype_jurisdiccion = {}
+                    dtype_jurisdiccion = {
+                        "Usuario": "str",
+                    }
 
                     dtype_cliente = {
                         "CUIT": "str",
@@ -128,14 +130,13 @@ def cerrar_excel(nombres_archivos):
 
 
 def obtener_clientes(
-    debug,
-    ejecutar_todos_clientes,
-    ejecutar_clientes_lista,
-    sin_debug_ejecutar_ejecutar_lista,
-    clientes_si_verificar_config,
-    jurisdiccion_clases,
+        debug,
+        ejecutar_todos_clientes,
+        ejecutar_clientes_lista,
+        sin_debug_ejecutar_ejecutar_lista,
+        clientes_si_verificar_config,
+        jurisdiccion_clases,
 ):
-
     cerrar_excel(NOMBRE_ARCHIVO_CLIENTE)
 
     try:
@@ -159,7 +160,7 @@ def obtener_clientes(
         subset=["Socio responsable", "Correos destinatarios"], how="all"
     )
     df_clientes = df_clientes[df_clientes["Consultar"].str.lower() == "si"]
-    
+
     if not EJECUTAR_CLIENTES_LISTA:
         # Obtener el día de hoy en formato español
         dias_semana_es = [
@@ -179,7 +180,7 @@ def obtener_clientes(
 
         clientes_si_verificar = df_clientes["Cliente"].unique().tolist()
         # clientes_no_verificar = []
-        
+
         # Todo: Ver que hacer en caso de faya de conexión del server
         try:
             clientes_pendientes_verificar = get_clientes_ejecutados_hoy_with_retries(
@@ -239,5 +240,7 @@ def obtener_clientes(
         df_clientes["Jurisdiccion"] = df_clientes["Jurisdiccion"].replace(
             jurisdiccion_clases
         )
+
+        df_clientes['Password'] = df_clientes['Password'].apply(lambda x: str(x).strip())
 
     return df_clientes
