@@ -1,3 +1,5 @@
+select * from monitoreo_bots where proceso LIKE 'Revision %' order by id DESC
+
 select *
 from usuarios_autorizados
 -- where id in (1064, 1063, 1054, 1041)

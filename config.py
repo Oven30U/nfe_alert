@@ -41,23 +41,23 @@ if DEBUG:
 # EJECUTAR_TODOS_CLIENTES = True
 EJECUTAR_TODOS_CLIENTES = False
 
-# EJECUTAR_CLIENTES_LISTA = True
-EJECUTAR_CLIENTES_LISTA = False
+EJECUTAR_CLIENTES_LISTA = True
+# EJECUTAR_CLIENTES_LISTA = False
 clientes_si_verificar_config = [
     "FACEBOOK ARGENTINA S.R.L",
     "EDGE ARGENTINA S.R.L",
-    "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
-    "MAGNETI MARELLI REPUESTOS S.A",
-    "NATURA COSMETICOS S.A",
-    "ABBOTT LABORATORIES ARG. S.A",
-    "SIMPLOT ARGENTINA S.R.L",
+    # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
+    # "MAGNETI MARELLI REPUESTOS S.A",
+    # "NATURA COSMETICOS S.A",
+    # "ABBOTT LABORATORIES ARG. S.A",
+    # "SIMPLOT ARGENTINA S.R.L",
 ]
 SIN_DEBUG_EJECUTAR_LISTA = (
     False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes
 )
 
-# ENVIAR_CORREO_TEST = True
-ENVIAR_CORREO_TEST = False
+ENVIAR_CORREO_TEST = True
+# ENVIAR_CORREO_TEST = False
 CORREO_TEST = "lmarinaro@deloitte.com"
 
 # configurar nombres para el df_final de input.py,

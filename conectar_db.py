@@ -3,15 +3,14 @@ import random
 import string
 from datetime import datetime, timedelta
 from time import sleep
+from typing import Union, List
 
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql import text
 
+from config import PATH_HTML_SET_PASS, DIAS_VIGENCIA_PASS_ZIP, CORREO_NOTIFICACION_ERROR
 from database import get_session, get_sqlite_session
 from pruebas.correo_cli import send_email_smtp
-from config import PATH_HTML_SET_PASS, DIAS_VIGENCIA_PASS_ZIP
-
-from typing import Union, List
 
 
 def conectar_db(
@@ -30,6 +29,7 @@ def conectar_db(
         inicio_value (datetime, optional): hora de inicio del proceso. Defaults to datetime.now().
         estado_value (str, optional): hora de finalizacion del proceso. Defaults to "Erróneo".
     """
+    # Try crear ambas conexiones y mover monitoreo_bots de SQLite to SQL Server y mover a SQLite monitoreo_bots_backup
     try:
         session = get_session()
         sqlite_session = get_sqlite_session()
@@ -40,23 +40,25 @@ def conectar_db(
                 str(text("SELECT * FROM monitoreo_bots"))
             ).fetchall()
 
+            # Insert records into the main SQL Server database + Transfer records to monitoreo_bots_backup + Delete records from SQLite monitoreo_bots
             if sqlite_records:
-                # Insert records into the main database
                 for record in sqlite_records:
+                    iniciado = datetime.strptime(record[4], "%Y-%m-%d %H:%M:%S.%f").strftime("%Y-%m-%d %H:%M:%S") if record[4] else None
+                    finalizado = datetime.strptime(record[5], "%Y-%m-%d %H:%M:%S.%f").strftime("%Y-%m-%d %H:%M:%S") if record[5] else None
                     session.execute(
-                        str(text(
+                        text(
                             """
                             INSERT INTO monitoreo_bots (username, proceso, estado, iniciado, finalizado, cliente)
                             VALUES (:username, :proceso, :estado, :iniciado, :finalizado, :cliente)
                             """
-                        )),
+                        ),
                         {
-                            "username": record.username,
-                            "proceso": record.proceso,
-                            "estado": record.estado,
-                            "iniciado": record.iniciado,
-                            "finalizado": record.finalizado,
-                            "cliente": record.cliente,
+                            "username": record[1],
+                            "proceso": record[2],
+                            "estado": record[3],
+                            "iniciado": iniciado,
+                            "finalizado": finalizado,
+                            "cliente": record[6],
                         },
                     )
                 session.commit()
@@ -71,12 +73,12 @@ def conectar_db(
                             """
                         )),
                         {
-                            "username": record.username,
-                            "proceso": record.proceso,
-                            "estado": record.estado,
-                            "iniciado": record.iniciado,
-                            "finalizado": record.finalizado,
-                            "cliente": record.cliente,
+                            "username": record[1],
+                            "proceso": record[2],
+                            "estado": record[3],
+                            "iniciado": record[4],
+                            "finalizado": record[5],
+                            "cliente": record[6],
                         },
                     )
                 sqlite_session.commit()
@@ -85,37 +87,90 @@ def conectar_db(
                 sqlite_session.execute(str(text("DELETE FROM monitoreo_bots")))
                 sqlite_session.commit()
 
+    # Si no logra la session, intenta con SQLite en monitoreo_bots
     except Exception as e:
         print(f"Error al conectar con la base de datos interna: {e}. Intentando conectar con SQLite.")
-        session = get_sqlite_session()
+        sqlite_session = get_sqlite_session()
+        session = None
 
-    if session is None:
-        print("No se pudo establecer la conexión con ninguna base de datos.")
-        return
-
-    fin_value = datetime.now()
-    usernames = username.split(";")
-    for user in usernames:
-        user_name = user.split("@")[0].strip()
-        if user_name:
-            session.execute(
-                text(
+    # Si hay session, graba en SQL Server monitoreo_bots y SQLite en monitoreo_bots_backup
+    if session is not None:
+        fin_value = datetime.now()
+        usernames = username.split(";")
+        for user in usernames:
+            user_name = user.split("@")[0].strip()
+            if user_name:
+                session.execute(
+                    text(
+                        """
+                    INSERT INTO monitoreo_bots (username, proceso, estado, iniciado, finalizado, cliente)
+                    VALUES (:username, :proceso, :estado, :iniciado, :finalizado, :cliente)
                     """
-                INSERT INTO monitoreo_bots (username, proceso, estado, iniciado, finalizado, cliente)
-                VALUES (:username, :proceso, :estado, :iniciado, :finalizado, :cliente)
-                """
-                ),
-                {
-                    "username": user_name,
-                    "proceso": proceso,
-                    "estado": estado_value,
-                    "iniciado": inicio_value,
-                    "finalizado": fin_value,
-                    "cliente": cliente,
-                },
-            )
-    session.commit()
-    session.close()
+                    ),
+                    {
+                        "username": user_name,
+                        "proceso": proceso,
+                        "estado": estado_value,
+                        "iniciado": inicio_value,
+                        "finalizado": fin_value,
+                        "cliente": cliente,
+                    },
+                )
+        session.commit()
+        session.close()
+
+        if sqlite_session:
+            fin_value = datetime.now()
+            usernames = username.split(";")
+            for user in usernames:
+                user_name = user.split("@")[0].strip()
+                if user_name:
+                    sqlite_session.execute(
+                        str(text(
+                            """
+                        INSERT INTO monitoreo_bots_backup (username, proceso, estado, iniciado, finalizado, cliente)
+                        VALUES (:username, :proceso, :estado, :iniciado, :finalizado, :cliente)
+                        """
+                        )),
+                        {
+                            "username": user_name,
+                            "proceso": proceso,
+                            "estado": estado_value,
+                            "iniciado": inicio_value,
+                            "finalizado": fin_value,
+                            "cliente": cliente,
+                        },
+                    )
+            sqlite_session.commit()
+            sqlite_session.close()
+
+    # Si no hay session, graba en SQLite en monitoreo_bots, para próxima pasar a SQLite monitoreo_bots_backup y SQL Server monitoreo_bots
+    else:
+        print("No se pudo establecer la conexión con la base de datos SQL Server.")
+        if sqlite_session:
+            fin_value = datetime.now()
+            usernames = username.split(";")
+            for user in usernames:
+                user_name = user.split("@")[0].strip()
+                if user_name:
+                    sqlite_session.execute(
+                        str(text(
+                            """
+                        INSERT INTO monitoreo_bots (username, proceso, estado, iniciado, finalizado, cliente)
+                        VALUES (:username, :proceso, :estado, :iniciado, :finalizado, :cliente)
+                        """
+                        )),
+                        {
+                            "username": user_name,
+                            "proceso": proceso,
+                            "estado": estado_value,
+                            "iniciado": inicio_value,
+                            "finalizado": fin_value,
+                            "cliente": cliente,
+                        },
+                    )
+            sqlite_session.commit()
+            sqlite_session.close()
 
 
 def get_ultimo_finalizado(cliente):
@@ -237,14 +292,8 @@ def verify_and_add_users(correo_output: list[str]):
                 str(query), {"username": user, "fecha_autorizacion": fecha_autorizacion}
             )
 
-        # Eliminar los usuarios que ya no están en correo_output
-        users_to_remove = [user for user in existing_users if user not in usernames]
-        for user in users_to_remove:
-            query = text("DELETE FROM usuarios_autorizados WHERE username = :username")
-            session.execute(str(query), {"username": user})
-
-        session.commit()
-        return existing_users, missing_users, users_to_remove
+            session.commit()
+        return existing_users, missing_users
     except Exception as e:
         print(f"Error al verificar y actualizar usuarios: {e}")
         return None, None, None
@@ -321,10 +370,8 @@ def verify_and_add_user_client_relationship(
                         str(query), {"cliente_id": cliente_id, "usuario_id": usuario_id}
                     )
                     inserted_users.append(username)
-                    # ToDo si hay failed_emails dentro de send_email_smtp deberia hacer rollback o avisar por mail a tech
-                    # Enviar correo solo si hubo un insert
-                    # correo = f"{username}@deloitte.com"
-                    successful_emails, failed_emails = send_email_smtp(
+
+                    successful_emails, failed_emails = send_email_smtp(  # Enviar correo solo si hubo un insert
                         sender_email="robot-Tax-AR@deloitte.com",
                         receiver_emails=[username],
                         subject=f"Actualización de clave de seguridad para Revisión de Domicilios Fiscales Electrónicos - {cliente}",
@@ -334,11 +381,77 @@ def verify_and_add_user_client_relationship(
                             cliente, new_pass, dias, username
                         ),
                     )
+                    if failed_emails:
+                        send_email_smtp(
+                            sender_email="robot-Tax-AR@deloitte.com",
+                            receiver_emails=[CORREO_NOTIFICACION_ERROR],
+                            subject=f"Failed emails: {', '.join(failed_emails)}",
+                            html_file_path=None,
+                            zip_file_paths=None,
+                            html_content="Some emails failed to send. Please check the details."
+                        )
         session.commit()
         return usuarios_autorizados, dias, inserted_users
     except Exception as e:
         print(f"Error al verificar y agregar relación usuario-cliente: {e}")
         return {}, 0, []
+    finally:
+        if session:
+            session.close()
+
+
+def verify_and_delete_user_client_relationship(cliente_id: int, correo_output: list[str]) -> list[str]:
+    """Verifica si hay relaciones usuario-cliente que ya no se corresponden y las elimina."""
+    session = None
+    try:
+        session = get_sqlite_session()
+        # Split the string by semicolons to get individual email addresses
+        if isinstance(correo_output, str):
+            correo_output = correo_output.split(";")
+
+        usernames = [email for email in correo_output]
+
+        # Obtener los ids de los usuarios autorizados
+        query = text(
+            "SELECT id, username FROM usuarios_autorizados WHERE username IN ({})".format(
+                ",".join([f":username{i}" for i in range(len(usernames))])
+            )
+        )
+        params = {f"username{i}": username for i, username in enumerate(usernames)}
+        usuarios_autorizados = session.execute(str(query), params).fetchall()
+        usuarios_ids = {row[1]: row[0] for row in usuarios_autorizados}
+
+        # Obtener los ids y usernames de los usuarios relacionados con el cliente
+        query = text(
+            "SELECT usuario_cliente.id_usuario, usuarios_autorizados.username FROM usuario_cliente INNER JOIN usuarios_autorizados ON usuario_cliente.id_usuario = usuarios_autorizados.id WHERE id_cliente = :cliente_id"
+        )
+        usuario_cliente = session.execute(
+            str(query), {"cliente_id": cliente_id}
+        ).fetchall()
+        dict_usuarios_autorizados_previamente = {id_usuario: username for id_usuario, username in
+                                                 usuario_cliente}  # Convertir la lista de tuplas en un diccionario
+        usuarios_cliente_ids = {row[0] for row in usuario_cliente}
+
+        # Calcular la diferencia entre usuarios_cliente_ids y usuarios_ids
+        usuarios_a_eliminar = usuarios_cliente_ids - set(usuarios_ids.values())
+
+        # Eliminar las relaciones que ya no se corresponden
+        deleted_users = []
+        for usuario_id in usuarios_a_eliminar:
+            query = text(
+                "DELETE FROM usuario_cliente WHERE id_cliente = :cliente_id AND id_usuario = :usuario_id"
+            )
+            session.execute(
+                str(query), {"cliente_id": cliente_id, "usuario_id": usuario_id}
+            )
+            # username = next(username for username, id in usuarios_ids.items() if id == usuario_id)
+            usuario_eliminado = dict_usuarios_autorizados_previamente.get(usuario_id, None)
+            deleted_users.append(usuario_eliminado)
+        session.commit()
+        return deleted_users
+    except Exception as e:
+        print(f"Error al verificar y eliminar relación usuario-cliente: {e}")
+        return []
     finally:
         if session:
             session.close()
@@ -398,12 +511,15 @@ def set_pass(cliente: str, correo_output: list[str]) -> str:
         session.commit()
 
         # Verificar y agregar usuarios
-        existing_users, missing_users, users_to_remove = verify_and_add_users(correo_output)
+        existing_users, missing_users = verify_and_add_users(correo_output)
 
         # Verificar y agregar relación usuario-cliente
         usuarios_autorizados, dias, inserted_users = verify_and_add_user_client_relationship(
             cliente_id, correo_output, cliente, new_pass
         )
+
+        # Verificar y eliminar las relaciones usuario-cliente que ya no se corresponden
+        deleted_usuario_cliente_relationship = verify_and_delete_user_client_relationship(cliente_id, correo_output)
 
         # session.commit()
         return new_pass
@@ -479,13 +595,17 @@ def get_pass_zip(
                         str(query), {"cliente": cliente}
                     ).fetchone()[0]
 
-                    # Verificar y agregar usuarios
-                    existing_users, missing_users, users_to_remove = verify_and_add_users(correo_output)
+                    # Verificar y agregar usuarios Todo verificar que solo devuelva los de correo_output
+                    existing_users, missing_users = verify_and_add_users(correo_output)
 
-                    # Verificar y agregar relación usuario-cliente
+                    # Verificar y agregar las relaciones usuario-cliente que corresponden
                     usuarios_autorizados, dias, inserted_users = verify_and_add_user_client_relationship(
                         cliente_id, correo_output, cliente, pass_value
                     )
+
+                    # Verificar y eliminar las relaciones usuario-cliente que ya no se corresponden
+                    deleted_usuario_cliente_relationship = verify_and_delete_user_client_relationship(cliente_id,
+                                                                                                      correo_output)
 
                     return pass_value
                 else:
@@ -535,4 +655,16 @@ if __name__ == "__main__":
     #     new_pass="pYn2VLClQOfa",
     # )
 
-    get_pass_zip(cliente='FACEBOOK ARGENTINA S.R.L', correo_output=["lmarinaro@deloitte.com", "pueba_agrego_nuevo@deloitte.com"])
+    # get_pass_zip(cliente='FACEBOOK ARGENTINA S.R.L', correo_output=["lmarinaro@deloitte.com", "amiriarte@deloitte.com"])
+    # get_pass_zip(cliente='FACEBOOK ARGENTINA S.R.L', correo_output=["lmarinaro@deloitte.com", "rtolaba@deloitte.com"])
+    # verify_and_delete_user_client_relationship(cliente_id=1, correo_output=["lmarinaro@deloitte.com", "rtolaba@deloitte.com"])
+    # get_pass_zip(cliente='SIMPLOT ARGENTINA S.R.L', correo_output=["lmarinaro@deloitte.com"])
+    # get_pass_zip(cliente='SIMPLOT ARGENTINA S.R.L', correo_output=["rtolaba@deloitte.com"])
+    # get_pass_zip(cliente='EDGE ARGENTINA S.R.L', correo_output=["rtolaba@deloitte.com"])
+    conectar_db(
+        proceso='Revision de Domicilios Fiscales Electronicos',
+        cliente='FACEBOOK ARGENTINA S.R.L',
+        username='lmarinaro@deloitte.com',
+        inicio_value=datetime.now(),
+        estado_value="Correcto",
+    )
