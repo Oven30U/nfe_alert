@@ -2,18 +2,19 @@
 Este modulo contiene la clase Jurisdiccion y las clases correspondientes a excepciones.
 """
 
-from typing import Tuple, Optional, Union, List
 import asyncio
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from abc import ABC, abstractmethod
-from datetime import datetime
-from playwright.async_api import Playwright, Page
 import logging
 import os
+import smtplib
+from abc import ABC, abstractmethod
+from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import List, Optional, Tuple, Union
 
-from config import log_file_path, PATH_ESTRUCTURA_ROBOT  # headless_state
+from playwright.async_api import Page, Playwright
+
+from config import PATH_ESTRUCTURA_ROBOT, log_file_path  # headless_state
 
 
 class LoggedException(Exception):
@@ -70,9 +71,9 @@ class Jurisdiccion(ABC):
 
     Métodos:
         __init__: Inicializa una instancia de la clase Jurisdiccion.
-        create: Método de clase asíncrono para crear e inicializar una instancia de Jurisdiccion.
+        create: Method de clase asíncrono para crear e inicializar una instancia de Jurisdiccion.
         AFIP_login: Realiza el inicio de sesión en el portal de AFIP.
-        consultar_notificaciones: Método abstracto para navegar hasta la sección de notificaciones de la jurisdicción.
+        consultar_notificaciones: Method abstracto para navegar hasta la sección de notificaciones de la jurisdicción.
         buscar_notificacion: Busca una notificación específica en la página.
         buscar_notificacion_texto_visible: Verifica si un texto específico es visible en la página.
         buscar_notificacion_xpath_visible: Verifica si un elemento específico es visible en la página utilizando un XPath.
@@ -83,7 +84,7 @@ class Jurisdiccion(ABC):
         enviar_correo_errores: Envía un correo electrónico con los errores detectados.
 
     Métodos a implementar en clases hijas:
-        consultar_notificaciones: Método utilizado para navegar hasta la sección de notificaciones de la jurisdicción.
+        consultar_notificaciones: Method utilizado para navegar hasta la sección de notificaciones de la jurisdicción.
 
     Ejemplo de implementación en una clase hija:
 

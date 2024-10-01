@@ -1,5 +1,7 @@
 from playwright.async_api import Playwright, async_playwright
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError, ConsultarNotificacionesError
+
+from jurisdicciones.jurisdiccion import (ConsultarNotificacionesError,
+                                         Jurisdiccion, LoginError)
 
 
 class Agip(Jurisdiccion):

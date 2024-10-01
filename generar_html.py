@@ -1,10 +1,10 @@
-from string import Template
-import os
-
 # from os.path import abspath
 import base64
-from bs4 import BeautifulSoup
+import os
 from datetime import datetime
+from string import Template
+
+from bs4 import BeautifulSoup
 
 
 def limpiar_codigo_html(html):

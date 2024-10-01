@@ -68,3 +68,12 @@ pytest --maxfail=1 --reruns 3
 # Definir la cantidad de veces a ejecutar el test
 pytest --count=10 test_unit.py::TestJujuy
 ```
+
+
+# pass_zip() function -> determina cómo encriptar archivos adjuntos
+
+1. *get_pass_zip()* -> gestiona el flujo y retorna la pass_zip
+2. *verify_and_add_users()* -> verifica y agrega usuariarios autorizados nuevos
+3. *verify_and_add_user_client_relationship*() -> verifica y agrega la relacion entre el usuario y el cliente
+4. *send_email_smtp*() -> envia la nueva contraseña a los usuarios vinculados al usuario que no cuenten con esa version de la pass
+5. *set_pass*() -> crea una nueva pass para el cliente
