@@ -1,5 +1,7 @@
 import re
+
 from playwright.async_api import Playwright, async_playwright
+
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 

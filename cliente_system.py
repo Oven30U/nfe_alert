@@ -12,17 +12,18 @@ La clase ClienteSystem tiene los siguientes métodos:
 Este módulo también incluye un bloque de código de prueba que crea un objeto ClienteSystem y verifica si se debe ejecutar la verificación del cliente.
 """
 
-from datetime import datetime, time
-import shutil
+import math
 import os
+import shutil
+from datetime import datetime, time
 
+import numpy as np
 # from genericpath import isdir
 import pandas as pd
 import unidecode
-import math
-import numpy as np
 
-from config import  link_clientes
+# from config import link_clientes
+
 
 class ClienteSystem:
     """
@@ -30,14 +31,14 @@ class ClienteSystem:
     """
 
     # link_clientes = "Estructura-robot/System/System-Clientes.xlsx"
-    @staticmethod
-    def parse_time(time_input):
-        if isinstance(time_input, time):
-            time_input = time_input.strftime("%H:%M:%S")
-        elif not isinstance(time_input, str):
-            raise ValueError("Unsupported time input type")
+    # @staticmethod
+    # def parse_time(time_input):
+    #     if isinstance(time_input, time):
+    #         time_input = time_input.strftime("%H:%M:%S")
+    #     elif not isinstance(time_input, str):
+    #         raise ValueError("Unsupported time input type")
 
-        return datetime.strptime(time_input, "%H:%M:%S").time()
+    #     return datetime.strptime(time_input, "%H:%M:%S").time()
 
     def __init__(
         self,
@@ -46,7 +47,7 @@ class ClienteSystem:
         personas_autorizadas,
         schedule,
         dias_de_ejecucion,
-        hora_de_inicio,
+        # hora_de_inicio,
         ultima_verificacion,
     ):
         """
@@ -67,7 +68,7 @@ class ClienteSystem:
         self.personas_autorizadas = personas_autorizadas
         self.schedule = schedule
         self.dias_de_ejecucion = dias_de_ejecucion
-        self.hora_de_inicio = self.parse_time(hora_de_inicio)
+        # self.hora_de_inicio = self.parse_time(hora_de_inicio)
         self.ultima_verificacion = ultima_verificacion
 
     def __str__(self):
@@ -77,7 +78,7 @@ class ClienteSystem:
         Returns:
             str: Representación en cadena de caracteres del objeto ClienteSystem.
         """
-        return f"{self.nombre} - {self.schedule} - {self.dias_de_ejecucion} - {self.hora_de_inicio} - {self.ultima_verificacion}"
+        return f"{self.nombre} - {self.schedule} - {self.dias_de_ejecucion}"
 
     def verificar_ejecucion(self, archivo_input):
         """
@@ -85,15 +86,24 @@ class ClienteSystem:
         Si el schedule es Manual, siempre se debe verificar \n\n
 
         Si el schedule es Automático, se debe verificar sólo si:\n
-          El día de la semana actual está en la lista de días de ejecución \n
-          La hora actual es mayor a la hora de inicio \n
-          La última verificación fue antes de hoy
+            El día de la semana actual está en la lista de días de ejecución \n
+            La hora actual es mayor a la hora de inicio \n
+            La última verificación fue antes de hoy
         """
         try:
             if os.path.exists(archivo_input) and os.listdir(archivo_input):
-                if self.schedule == "Manual" or self.ultima_verificacion is None or (
-                        isinstance(self.ultima_verificacion, str) and self.ultima_verificacion == '') or (
-                        isinstance(self.ultima_verificacion, float) and math.isnan(self.ultima_verificacion)):
+                if (
+                    self.schedule == "Manual"
+                    or self.ultima_verificacion is None
+                    or (
+                        isinstance(self.ultima_verificacion, str)
+                        and self.ultima_verificacion == ""
+                    )
+                    or (
+                        isinstance(self.ultima_verificacion, float)
+                        and math.isnan(self.ultima_verificacion)
+                    )
+                ):
                     return True
                 elif self.schedule == "Automático":
                     dias_semana = {
@@ -107,31 +117,35 @@ class ClienteSystem:
                     }
                     day = datetime.now().strftime("%A").lower()
                     dia = dias_semana.get(day, "dia no encontrado")
-                    hora_actual = datetime.strptime(
-                        datetime.now().strftime("%H:%M"), "%H:%M"
-                    ).time()
-                    # hora_de_inicio = datetime.strptime(
-                    #     self.hora_de_inicio, "%H:%M:%S"
+                    # hora_actual = datetime.strptime(
+                    #     datetime.now().strftime("%H:%M"), "%H:%M"
                     # ).time()
-                    hora_de_inicio = self.hora_de_inicio
-                    if self.ultima_verificacion is not None and self.ultima_verificacion != '':
+                    if (
+                        self.ultima_verificacion is not None
+                        and self.ultima_verificacion != ""
+                    ):
                         if isinstance(self.ultima_verificacion, pd.Timestamp):
-                            ultima_verificacion = self.ultima_verificacion.to_pydatetime()
+                            ultima_verificacion = (
+                                self.ultima_verificacion.to_pydatetime()
+                            )
                         elif isinstance(self.ultima_verificacion, str):
-                            ultima_verificacion = datetime.strptime(self.ultima_verificacion, "%d/%m/%Y %H:%M:%S")
+                            ultima_verificacion = datetime.strptime(
+                                self.ultima_verificacion, "%d/%m/%Y %H:%M:%S"
+                            )
                         else:
                             ultima_verificacion = self.ultima_verificacion
 
                         if (
-                                dia
-                                in unidecode.unidecode(self.dias_de_ejecucion.replace(" ", ""))
-                                .lower()
-                                .split(";")
-                                and hora_de_inicio < hora_actual
-                                and pd.Timestamp(ultima_verificacion).date()
-                                < datetime.strptime(
-                            datetime.now().strftime("%d/%m/%Y"), "%d/%m/%Y"
-                        ).date()
+                            dia
+                            in unidecode.unidecode(
+                                self.dias_de_ejecucion.replace(" ", "")
+                            )
+                            .lower()
+                            .split(";")
+                            and pd.Timestamp(ultima_verificacion).date()
+                            < datetime.strptime(
+                                datetime.now().strftime("%d/%m/%Y"), "%d/%m/%Y"
+                            ).date()
                         ):
                             return True
                     else:
@@ -159,7 +173,9 @@ class ClienteSystem:
         )
 
         # Guardar el DataFrame de nuevo en el archivo Excel
-        df_clientes.to_excel(self.link_clientes, sheet_name="System-Clientes", index=False)
+        df_clientes.to_excel(
+            self.link_clientes, sheet_name="System-Clientes", index=False
+        )
 
     def quitar_input_ejecucion_manual(self, path_carpeta_input, path_carpeta_destino):
         """
@@ -184,7 +200,7 @@ if __name__ == "__main__":
         "personas_autorizadas",
         "Automático",
         "lunes; viernes",
-        "16:00",
+        # "16:00",
         "18/04/2024",
     )
     if clientesito.verificar_ejecucion():
@@ -208,11 +224,11 @@ if __name__ == "__main__":
             cliente[1]["Personas autorizadas"],
             cliente[1]["Schedule"],
             cliente[1]["Dia/s de ejecución"],
-            cliente[1]["Hora de inicio"],
+            # cliente[1]["Hora de inicio"],
             cliente[1]["Última verificación"],
         )
 
-    # Falta colocar un argumento
+        # Falta colocar un argumento
         if cliente.verificar_ejecucion():
             clientes_si_verificar.append(cliente.nombre)
             cliente.actualizar_fecha_verificacion(link_clientes)

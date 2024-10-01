@@ -1,6 +1,9 @@
-import pytest
 import random
+
+import pytest
+
 from main import main
+
 
 @pytest.mark.asyncio
 async def test_main():

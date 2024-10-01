@@ -10,3 +10,10 @@ Documentación/estructura_input.xlsx
 /Documentación/
 Documentación/*
 /Documentación/*
+*.zip
+*.xlsx
+git
+
+.idea
+
+.env
