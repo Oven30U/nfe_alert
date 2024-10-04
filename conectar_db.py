@@ -278,8 +278,10 @@ def verify_and_add_users(correo_output: list[str]):
         usernames = [email for email in correo_output]
 
         # Verificar si los usuarios existen en usuarios_autorizados
-        query = text("SELECT username FROM usuarios_autorizados")
-        existing_users = {row[0] for row in session.execute(str(query)).fetchall()}
+        placeholders = ", ".join([f":username{i}" for i in range(len(usernames))])
+        query = str(text(f"SELECT username FROM usuarios_autorizados WHERE username IN ({placeholders})"))
+        params = {f"username{i}": username for i, username in enumerate(usernames)}
+        existing_users = {row[0] for row in session.execute(query, params).fetchall()}
 
         # Agregar los usuarios que no existen
         missing_users = [user for user in usernames if user not in existing_users]
@@ -304,7 +306,7 @@ def verify_and_add_users(correo_output: list[str]):
 
 def verify_and_add_user_client_relationship(
         cliente_id: int, correo_output: list[str], cliente: str, new_pass: str
-) -> tuple[dict, int, list[str]]:
+) -> tuple[dict, int, list[str], list[str], list[str]]:
     """Verifica que todos los usuarios_autorizados tengan relación con el cliente. Si no tienen relación, la agrega y envía un correo."""
     session = None
     try:
@@ -349,6 +351,8 @@ def verify_and_add_user_client_relationship(
 
         # Insertar en usuario_cliente si no existe la relación
         inserted_users = []
+        all_successful_emails = []
+        all_failed_emails = []
         for username in usernames:
             usuario_id = usuarios_ids.get(username)
             if (usuario_id):
@@ -370,8 +374,8 @@ def verify_and_add_user_client_relationship(
                         str(query), {"cliente_id": cliente_id, "usuario_id": usuario_id}
                     )
                     inserted_users.append(username)
-
-                    successful_emails, failed_emails = send_email_smtp(  # Enviar correo solo si hubo un insert
+                    # Enviar correo solo si hubo un insert
+                    successful_emails, failed_emails = send_email_smtp(
                         sender_email="robot-Tax-AR@deloitte.com",
                         receiver_emails=[username],
                         subject=f"Actualización de clave de seguridad para Revisión de Domicilios Fiscales Electrónicos - {cliente}",
@@ -381,6 +385,8 @@ def verify_and_add_user_client_relationship(
                             cliente, new_pass, dias, username
                         ),
                     )
+                    all_successful_emails.extend(successful_emails)
+                    all_failed_emails.extend(failed_emails)
                     if failed_emails:
                         send_email_smtp(
                             sender_email="robot-Tax-AR@deloitte.com",
@@ -391,14 +397,13 @@ def verify_and_add_user_client_relationship(
                             html_content="Some emails failed to send. Please check the details."
                         )
         session.commit()
-        return usuarios_autorizados, dias, inserted_users
+        return usuarios_autorizados, dias, inserted_users, all_successful_emails, all_failed_emails
     except Exception as e:
         print(f"Error al verificar y agregar relación usuario-cliente: {e}")
-        return {}, 0, []
+        return {}, 0, [], [], []
     finally:
         if session:
             session.close()
-
 
 def verify_and_delete_user_client_relationship(cliente_id: int, correo_output: list[str]) -> list[str]:
     """Verifica si hay relaciones usuario-cliente que ya no se corresponden y las elimina."""
@@ -514,7 +519,7 @@ def set_pass(cliente: str, correo_output: list[str]) -> str:
         existing_users, missing_users = verify_and_add_users(correo_output)
 
         # Verificar y agregar relación usuario-cliente
-        usuarios_autorizados, dias, inserted_users = verify_and_add_user_client_relationship(
+        usuarios_autorizados, dias, inserted_users, all_successful_emails, all_failed_emails = verify_and_add_user_client_relationship(
             cliente_id, correo_output, cliente, new_pass
         )
 
@@ -599,9 +604,10 @@ def get_pass_zip(
                     existing_users, missing_users = verify_and_add_users(correo_output)
 
                     # Verificar y agregar las relaciones usuario-cliente que corresponden
-                    usuarios_autorizados, dias, inserted_users = verify_and_add_user_client_relationship(
+                    usuarios_autorizados, dias, inserted_users, all_successful_emails, all_failed_emails = verify_and_add_user_client_relationship(
                         cliente_id, correo_output, cliente, pass_value
                     )
+
 
                     # Verificar y eliminar las relaciones usuario-cliente que ya no se corresponden
                     deleted_usuario_cliente_relationship = verify_and_delete_user_client_relationship(cliente_id,
@@ -648,6 +654,7 @@ def get_pass_zip(
 
 
 if __name__ == "__main__":
+    pass
     # verify_and_add_user_client_relationship(
     #     cliente_id=1,
     #     correo_output=["rtolaba@deloitte.com;lmarinaro@deloitte.com"],
@@ -660,11 +667,17 @@ if __name__ == "__main__":
     # verify_and_delete_user_client_relationship(cliente_id=1, correo_output=["lmarinaro@deloitte.com", "rtolaba@deloitte.com"])
     # get_pass_zip(cliente='SIMPLOT ARGENTINA S.R.L', correo_output=["lmarinaro@deloitte.com"])
     # get_pass_zip(cliente='SIMPLOT ARGENTINA S.R.L', correo_output=["rtolaba@deloitte.com"])
-    # get_pass_zip(cliente='EDGE ARGENTINA S.R.L', correo_output=["rtolaba@deloitte.com"])
-    conectar_db(
-        proceso='Revision de Domicilios Fiscales Electronicos',
-        cliente='FACEBOOK ARGENTINA S.R.L',
-        username='lmarinaro@deloitte.com',
-        inicio_value=datetime.now(),
-        estado_value="Correcto",
-    )
+
+
+    # get_pass_zip(cliente='EDGE ARGENTINA S.R.L', correo_output=["lmarinaro@deloitte.com"])
+    # test_usuarios_autorizados, test_dias, test_inserted_users, test_all_successful_emails, test_all_failed_emails = verify_and_add_user_client_relationship(cliente_id=2, correo_output=['lmarinaro@deloitte.com'], cliente='EDGE ARGENTINA S.R.L' , new_pass='dSCfFiOs1pcd')
+
+    # conectar_db(
+    #     proceso='Revision de Domicilios Fiscales Electronicos',
+    #     cliente='FACEBOOK ARGENTINA S.R.L',
+    #     username='lmarinaro@deloitte.com',
+    #     inicio_value=datetime.now(),
+    #     estado_value="Correcto",
+    # )
+
+    # verify_and_add_users(correo_output=["lmarinaro@deloitte.com", "rtolaba@deloitte.com"])

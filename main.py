@@ -44,6 +44,7 @@ async def main(
             jurisdiccion_clases,
         )
         if not df_input.empty:
+            # df_input = df_input[~df_input['Socio responsable'].str.contains("nombre_a_filtrar", na=False)]
             # print("df_input esta vacio, finaliza el programa.")
             # return
             df_input_por_cliente = df_input.groupby("Cliente")

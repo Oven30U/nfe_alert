@@ -56,8 +56,6 @@ SIN_DEBUG_EJECUTAR_LISTA = (
     False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes
 )
 
-ENVIAR_CORREO_TEST = True
-# ENVIAR_CORREO_TEST = False
 # ENVIAR_CORREO_TEST = True
 ENVIAR_CORREO_TEST = False
 CORREO_TEST = "lmarinaro@deloitte.com"
