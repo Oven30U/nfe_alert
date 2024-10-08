@@ -1,4 +1,13 @@
-select * from monitoreo_bots where proceso LIKE 'Revision %' order by id DESC
+select TOP 15
+    cliente, max(finalizado) as ultimo_finalizado
+from monitoreo_bots
+where proceso LIKE 'Revision de Domicilios Fiscales Electronicos'
+GROUP BY cliente
+order BY ultimo_finalizado DESC
+
+
+fracabrera
+
 
 select *
 from usuarios_autorizados
@@ -19,12 +28,13 @@ from clientes
 -- SELECT COLUMN_NAME, DATA_TYPE
 -- FROM INFORMATION_SCHEMA.COLUMNS
 -- WHERE TABLE_NAME = 'clientes'
-SELECT TOP (1000) [id]
-      ,[nombre]
-      ,[pass]
-      ,[fecha_actualizacion_pass]
-      ,[id_username]
-  FROM [Tecnologia].[dbo].[clientes]
+SELECT TOP (1000)
+    [id]
+      , [nombre]
+      , [pass]
+      , [fecha_actualizacion_pass]
+      , [id_username]
+FROM [Tecnologia].[dbo].[clientes]
 
 
 BEGIN TRANSACTION
@@ -51,9 +61,9 @@ WHERE TABLE_NAME = 'usuarios_autorizados';
 
 SELECT c.*
 FROM clientes c
-INNER JOIN (
+    INNER JOIN (
     SELECT nombre, MAX(fecha_actualizacion_pass) AS max_fecha_actualizacion_pass
     FROM clientes
     GROUP BY nombre
 ) subquery
-ON c.nombre = subquery.nombre AND c.fecha_actualizacion_pass = subquery.max_fecha_actualizacion_pass;
+    ON c.nombre = subquery.nombre AND c.fecha_actualizacion_pass = subquery.max_fecha_actualizacion_pass;

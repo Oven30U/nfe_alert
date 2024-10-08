@@ -96,11 +96,19 @@ class Nacional(Jurisdiccion):
             "notificaciones": "xpath=//a[contains(text(), ' Notificaciones ')]",
             "requerimientos": "xpath=//a[contains(text(), ' Requerimientos ')]",
             "otras_notificaciones": "xpath=//a[contains(text(), ' Otras notificaciones ')]",
-            "fce": "xpath=//a[contains(text(), ' Factura de Crédito Electrónica ')]"
+            "fce": "xpath=//a[contains(text(), ' Factura de Crédito Electrónica ')]",
+            "induccion": "xpath=//a[contains(text(), ' Inducción ')]",
+            "otros_mensajes": "xpath=//a[contains(text(), ' Otros mensajes')]",
         }
         contador_filtro_hay_notificacion = 0
         todos_screenshots_exitosos = True
         selectores_validos = 0
+
+
+        # Expandir los grupos de filtros Notificaciones y/o Mensajes
+        filtros_colapsados = await self.new_page.locator("xpath=//div[@aria-expanded='false']").all()
+        for filtro in filtros_colapsados:
+            await filtro.click()
 
         for clave, selector in selectores.items():
             try:
