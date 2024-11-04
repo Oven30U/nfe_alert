@@ -26,8 +26,8 @@ Para ejecutar el script desde `config.py` se toman los valores de:
 Desde main.py estos dos valores son siempre False, pero desde config.py se pueden cambiar a True para probar el envío de correos y los clientes deseados. No actualiza última vez en System-Clientes.
 """
 
-# DEBUG = True
-DEBUG = False
+DEBUG = True
+# DEBUG = False
 
 if DEBUG:
     headless_state = False if DEBUG else True
@@ -44,13 +44,13 @@ EJECUTAR_TODOS_CLIENTES = False
 # EJECUTAR_CLIENTES_LISTA = True
 EJECUTAR_CLIENTES_LISTA = False
 clientes_si_verificar_config = [
-    "FACEBOOK ARGENTINA S.R.L",
-    "EDGE ARGENTINA S.R.L",
-    # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
+    # "FACEBOOK ARGENTINA S.R.L",
+    # "EDGE ARGENTINA S.R.L",
+    "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
     # "MAGNETI MARELLI REPUESTOS S.A",
     # "NATURA COSMETICOS S.A",
     # "ABBOTT LABORATORIES ARG. S.A",
-    # "SIMPLOT ARGENTINA S.R.L",
+    "SIMPLOT ARGENTINA S.R.L",
 ]
 SIN_DEBUG_EJECUTAR_LISTA = (
     False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes

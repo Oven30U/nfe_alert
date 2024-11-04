@@ -1,0 +1,31 @@
+triggers:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.x'
+      addToPath: true
+
+  - script: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+    displayName: 'Install dependencies'
+
+#  - script: |
+#      flake8 .
+#    displayName: 'Run flake8 for Lintig'
+
+  - script: |
+      python -m pytest test_unit.py -m error
+    displayName: 'Run pytest for testing'
+
+  - script: |
+      python main.py
+    displayName: 'Run main.py'
+    

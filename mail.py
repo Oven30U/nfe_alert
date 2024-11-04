@@ -68,6 +68,8 @@ def enviar_correo(
     # Dividir la cadena en varias cadenas utilizando el method split()
     receptor = receptor[0].split(";")
     receptor.extend(correos_rpa)
+    # Eliminar duplicados de la lista de receptores
+    receptor = list(set(receptor))
     msg["Subject"] = (
         f"Revisión de Domicilios Fiscales Electrónicos del cliente {cliente}"
     )
@@ -134,3 +136,10 @@ def enviar_correo(
 
     # Cerrar la conexión
     server.quit()
+
+
+if __name__ == '__main__':
+    enviar_correo(
+        receptor="lmarinaro@deloitte.com",
+        cliente="FACEBOOK ARGENTINA S.R.L")
+        

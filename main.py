@@ -11,11 +11,14 @@ from playwright.async_api import async_playwright
 from conectar_db import conectar_db, get_pass_zip
 from config import (
     CORREO_TEST,
+    CORREO_NOTIFICACION_ERROR,
     LIMITES_REINTENTO,
     PATH_ESTRUCTURA_ROBOT,
-    jurisdiccion_clases, ENVIAR_CORREO_TEST,
+    jurisdiccion_clases,
+    ENVIAR_CORREO_TEST,
 )
 from functions.delete_backs import delete_zip_files_in_backup
+
 # from inputs import obtener_clientes
 from inputs import obtener_clientes
 from jurisdicciones import *
@@ -24,13 +27,13 @@ from mapa_plot import crear_mapa, crear_mapa_argentina
 
 
 async def main(
-        debug: bool = False,
-        enviar_correo_test: bool = False,
-        headless_state: bool = True,
-        ejecutar_todos_clientes: bool = False,
-        ejecutar_clientes_lista: bool = False,
-        sin_debug_ejecutar_lista: bool = False,
-        clientes_si_verificar_config=None,
+    debug: bool = False,
+    enviar_correo_test: bool = False,
+    headless_state: bool = True,
+    ejecutar_todos_clientes: bool = False,
+    ejecutar_clientes_lista: bool = False,
+    sin_debug_ejecutar_lista: bool = False,
+    clientes_si_verificar_config=None,
 ):
     if clientes_si_verificar_config is None:
         clientes_si_verificar_config = []
@@ -139,12 +142,12 @@ async def main(
                     for _, error_row in errores.iterrows():
                         jurisdiction = error_row["Nombre"]
                         for _, row in df_input_por_cliente.get_group(
-                                cliente
+                            cliente
                         ).iterrows():
                             if row["Jurisdiccion"] == jurisdiction:
                                 JurisdictionClass = globals()[jurisdiction]
                                 for intento in range(
-                                        LIMITES_REINTENTO
+                                    LIMITES_REINTENTO
                                 ):  # Limitar a intentos en config.py
                                     # headless = intento % 2 == 0  # Itera entre headless y head full
                                     # Se utiliza el headless definido por defecto en cada Clase de jurisdicciones
@@ -153,8 +156,12 @@ async def main(
                                         "cliente": row["Cliente"],
                                         "cuit": int(row["Usuario"]),
                                         "clave_fiscal": row["Password"],
-                                        "fecha_desde": row["fecha_desde"].replace("/", ""),
-                                        "fecha_hasta": row["fecha_hasta"].replace("/", ""),
+                                        "fecha_desde": row["fecha_desde"].replace(
+                                            "/", ""
+                                        ),
+                                        "fecha_hasta": row["fecha_hasta"].replace(
+                                            "/", ""
+                                        ),
                                         "cuit_cliente_input": int(row["cuit_cliente"]),
                                     }
 
@@ -162,20 +169,22 @@ async def main(
                                     if debug:
                                         create_args["headless"] = headless_state
 
-                                    instance = await JurisdictionClass.create(**create_args)
+                                    instance = await JurisdictionClass.create(
+                                        **create_args
+                                    )
                                     resultado = await instance.procesar_jurisdiccion()
 
                                     # Actualizar el DataFrame con el nuevo resultado
                                     df_final_cliente.loc[
                                         df_final_cliente["Nombre"] == jurisdiction
-                                        ] = list(resultado)
+                                    ] = list(resultado)
 
                                     # Verificar si "Error" es none
                                     if pd.isnull(
-                                            df_final_cliente.loc[
-                                                df_final_cliente["Nombre"] == jurisdiction,
-                                                "Error",
-                                            ]
+                                        df_final_cliente.loc[
+                                            df_final_cliente["Nombre"] == jurisdiction,
+                                            "Error",
+                                        ]
                                     ).all():
                                         break  # Si "Error" is None, break el loop
 
@@ -202,10 +211,10 @@ async def main(
                         cliente, f"{correo_output};{socio_responsable}"
                     )
                     with pyzipper.AESZipFile(
-                            zip_filepath,
-                            "w",
-                            compression=pyzipper.ZIP_DEFLATED,
-                            encryption=pyzipper.WZ_AES,
+                        zip_filepath,
+                        "w",
+                        compression=pyzipper.ZIP_DEFLATED,
+                        encryption=pyzipper.WZ_AES,
                     ) as zipf:
                         zipf.setpassword(pass_zip.encode("utf-8"))
                         for file in png_files:
@@ -223,7 +232,7 @@ async def main(
                     )
 
                     if df_final_cliente["Error"].notna().any():
-                        # correo_output = CORREO_TEST  #  Si hay errores, enviar correo a otro correo de test,
+                        correo_output = CORREO_NOTIFICACION_ERROR  #  Si hay errores, enviar correo a otro correo,
                         estado_value = "Proceso terminado con errores"
                     else:
                         estado_value = "Correcto"
