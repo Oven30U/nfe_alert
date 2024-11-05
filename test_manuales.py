@@ -1,6 +1,6 @@
 import asyncio
 from playwright.async_api import async_playwright
-from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba
+from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba, Arba
 
 async def catamarca_test():
     async with async_playwright() as playwright:
@@ -74,7 +74,41 @@ async def cordoba_test():
             headless=False
         )
         await cordoba.procesar_jurisdiccion()
+        
+async def arba_test():
+    async with async_playwright() as playwright:
+        fecha_desde = "01072024"
+        fecha_hasta = "30072024"
+
+        # cuit_Arba = "30712132554"
+        # clave_fiscal_Arba = "Facebook1819"
+        # cuit_cliente_input = "30712132554"
+        # client = "FACEBOOK ARGENTINA S.R.L"
+
+        client = "EDGE ARGENTINA S.R.L"
+        cuit_Arba = "30714604356"
+        clave_fiscal_Arba = "Edge2018"
+        cuit_cliente_input = "30714604356"
+
+        # client = "ABBOTT LABORATORIES ARG. S.A"
+        # cuit_Arba = "30500846301"
+        # clave_fiscal_Arba = "Abbott2018"
+        # cuit_cliente_input = "30500846301"
+
+        arba = await Arba.create(
+            playwright,
+            client,
+            cuit_Arba,
+            clave_fiscal_Arba,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False
+        )
+        await arba.procesar_jurisdiccion()
+
 
 # asyncio.run(catamarca_test())
 # asyncio.run(santiago_test())
-asyncio.run(cordoba_test())
+# asyncio.run(cordoba_test())
+asyncio.run(arba_test())

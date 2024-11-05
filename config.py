@@ -114,7 +114,7 @@ DATABASE_URL = "mssql+pyodbc://TaxTech:T%26LTechnologies@ARBAS0228/RPA/Tecnologi
 
 LIMITES_REINTENTO = 5
 DIAS_VIGENCIA_PASS_ZIP = 90
-CORREO_NOTIFICACION_ERROR = 'lmarinaro@deloitte.com'
+CORREO_NOTIFICACION_ERROR = "lmarinaro@deloitte.com"
 
 if __name__ == "__main__":
     import asyncio

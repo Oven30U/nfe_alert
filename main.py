@@ -232,7 +232,7 @@ async def main(
                     )
 
                     if df_final_cliente["Error"].notna().any():
-                        correo_output = CORREO_NOTIFICACION_ERROR  #  Si hay errores, enviar correo a otro correo,
+                        correo_output = socio_responsable = receptor = CORREO_NOTIFICACION_ERROR  #  Si hay errores, enviar correo a otro correo,
                         estado_value = "Proceso terminado con errores"
                     else:
                         estado_value = "Correcto"
