@@ -18,298 +18,274 @@ from config import (
     ENVIAR_CORREO_TEST,
 )
 from functions.delete_backs import delete_zip_files_in_backup
-
-# from inputs import obtener_clientes
 from inputs import obtener_clientes
 from jurisdicciones import *
 from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
 
+pd.set_option("display.max_columns", None)
 
-async def main(
-    debug: bool = False,
-    enviar_correo_test: bool = False,
-    headless_state: bool = True,
-    ejecutar_todos_clientes: bool = False,
-    ejecutar_clientes_lista: bool = False,
-    sin_debug_ejecutar_lista: bool = False,
-    clientes_si_verificar_config=None,
-):
-    if clientes_si_verificar_config is None:
-        clientes_si_verificar_config = []
+
+async def main():
     async with async_playwright() as playwright:
-        df_input = obtener_clientes(
-            debug,
-            ejecutar_todos_clientes,
-            ejecutar_clientes_lista,
-            sin_debug_ejecutar_lista,
-            clientes_si_verificar_config,
-            jurisdiccion_clases,
-        )
-        if not df_input.empty:
-            # df_input = df_input[~df_input['Socio responsable'].str.contains("nombre_a_filtrar", na=False)]
-            # print("df_input esta vacio, finaliza el programa.")
-            # return
-            df_input_por_cliente = df_input.groupby("Cliente")
+        df_input = obtener_datos_clientes()
+        if df_input.empty:
+            registrar_sin_clientes()
+            return
 
-            for cliente, group in df_input_por_cliente:
-                # Registrar el estado de la ejecución para conectar_db
-                inicio_value = datetime.now()
-                # Define the source and destination directories
-                output_folder = f"Estructura-robot/{cliente}/Output"
-                backup_folder = f"Estructura-robot/{cliente}/Backup"
-                # Create the backup folder if it doesn't exist
-                os.makedirs(backup_folder, exist_ok=True)
-                try:
-                    instances = {}
-                    jurisdicciones_encontradas = []
-                    jurisdicciones_no_encontradas = []
-                    for index, row in group.iterrows():
-                        jurisdiction = row["Jurisdiccion"]
-                        if jurisdiction not in globals():
-                            # print(f"Jurisdiccion {jurisdiction} no encontrada, se omite.")
-                            jurisdicciones_no_encontradas.append(jurisdiction)
-                            continue
-                        # print(f"Jurisdiccion {jurisdiction}, se procesará.")
-                        jurisdicciones_encontradas.append(jurisdiction)
-                        cliente = row["Cliente"]
-                        usuario = int(row["Usuario"])
-                        password = row["Password"]
-                        fecha_desde = row["fecha_desde"]
-                        fecha_hasta = row["fecha_hasta"]
-                        cuit_cliente = int(row["cuit_cliente"])
-                        correo_output = row["Correo Output"]
-                        socio_responsable = row["Socio responsable"]
+        df_por_cliente = df_input.groupby("Cliente")
 
-                        # # Define the source and destination directories
-                        # output_folder = f"Estructura-robot/{cliente}/Output"
-                        # backup_folder = f"Estructura-robot/{cliente}/Backup"
-                        # # Create the backup folder if it doesn't exist
-                        # os.makedirs(backup_folder, exist_ok=True)
-                        # Get a list of all files in the output folder
-                        files = os.listdir(output_folder)
-                        # Move each .zip file to the backup folder and delete the rest
-                        for file in files:
-                            if file.endswith(".zip"):
-                                shutil.move(
-                                    os.path.join(output_folder, file), backup_folder
-                                )
-                            else:
-                                os.remove(os.path.join(output_folder, file))
+        for cliente, group in df_por_cliente:
+            inicio = datetime.now()
+            output_folder, backup_folder = preparar_directorios(cliente)
+            respaldar_archivos(output_folder, backup_folder)
 
-                        JurisdictionClass = globals()[jurisdiction]
+            correo_output = obtener_correo(group)
+            socio_responsable = obtener_socio(group)
 
-                        create_args = {
-                            "playwright": playwright,
-                            "cliente": cliente,
-                            "cuit": usuario,
-                            "clave_fiscal": password,
-                            "fecha_desde": fecha_desde,
-                            "fecha_hasta": fecha_hasta,
-                            "cuit_cliente_input": cuit_cliente,
-                        }
-                        # Sólo en debug se considera el argumento headless_state,
-                        # en producción se utiliza el valor por defecto
-                        if debug:
-                            create_args["headless"] = headless_state
+            try:
+                instances, encontradas, no_encontradas = await procesar_jurisdicciones(
+                    playwright, group
+                )
 
-                        instance = await JurisdictionClass.create(**create_args)
-                        instances[jurisdiction] = instance
+                print(f"Cliente: {cliente}")
+                print(f"Jurisdicciones encontradas: {encontradas}")
+                print(f"Jurisdicciones no encontradas: {no_encontradas}")
 
-                    print(f"El cliente {cliente} tiene las siguientes jurisdicciones:")
-                    print(f"Jurisdicciones encontradas: {jurisdicciones_encontradas}")
-                    print(
-                        f"Jurisdicciones no encontradas: {jurisdicciones_no_encontradas}"
-                    )
-                    # Crear una lista de tareas
-                    tareas = [
-                        instance.procesar_jurisdiccion()
-                        for instance in instances.values()
-                    ]
+                df_final = await ejecutar_jurisdicciones(instances)
+                df_final = await reintentar_errores(playwright, df_final, group)
 
-                    # Ejecutar todas las tareas de manera concurrente
-                    resultados = await asyncio.gather(*tareas)
+                print(f"{cliente}\n{df_final}")
 
-                    # Convertir resultados de tupla a lista y en DataFrame
-                    resultados = [list(res) for res in resultados]
-                    df_final_cliente = pd.DataFrame(
-                        resultados,
-                        columns=["Nombre", "Notificacion", "Screenshot", "Error"],
-                    )
+                generar_mapas(df_final, output_folder, cliente)
+                zip_path, zip_name = crear_zip(df_final, output_folder, cliente)
 
-                    # Verificar si hay errores
-                    errores = df_final_cliente[df_final_cliente["Error"].notna()]
-                    for _, error_row in errores.iterrows():
-                        jurisdiction = error_row["Nombre"]
-                        for _, row in df_input_por_cliente.get_group(
-                            cliente
-                        ).iterrows():
-                            if row["Jurisdiccion"] == jurisdiction:
-                                JurisdictionClass = globals()[jurisdiction]
-                                for intento in range(
-                                    LIMITES_REINTENTO
-                                ):  # Limitar a intentos en config.py
-                                    # headless = intento % 2 == 0  # Itera entre headless y head full
-                                    # Se utiliza el headless definido por defecto en cada Clase de jurisdicciones
-                                    create_args = {
-                                        "playwright": playwright,
-                                        "cliente": row["Cliente"],
-                                        "cuit": int(row["Usuario"]),
-                                        "clave_fiscal": row["Password"],
-                                        "fecha_desde": row["fecha_desde"].replace(
-                                            "/", ""
-                                        ),
-                                        "fecha_hasta": row["fecha_hasta"].replace(
-                                            "/", ""
-                                        ),
-                                        "cuit_cliente_input": int(row["cuit_cliente"]),
-                                    }
+                estado = (
+                    "Correcto"
+                    if df_final["Error"].isna().all()
+                    else "Proceso terminado con errores"
+                )
+            except Exception as e:
+                print(f"Error en el cliente {cliente}: {e}")
+                estado = "Erróneo"
+            finally:
+                correo_exitoso = enviar_email(
+                    df_final, zip_path, zip_name, output_folder, cliente, group
+                )
+                username = obtener_username(correo_output, socio_responsable)
+                registrar_ejecucion(
+                    proceso="Revisión de Domicilios Fiscales Electrónicos",
+                    cliente=cliente,
+                    username=username,
+                    inicio=inicio,
+                    estado=estado,
+                )
 
-                                    # Add the headless argument if debug is True
-                                    if debug:
-                                        create_args["headless"] = headless_state
-
-                                    instance = await JurisdictionClass.create(
-                                        **create_args
-                                    )
-                                    resultado = await instance.procesar_jurisdiccion()
-
-                                    # Actualizar el DataFrame con el nuevo resultado
-                                    df_final_cliente.loc[
-                                        df_final_cliente["Nombre"] == jurisdiction
-                                    ] = list(resultado)
-
-                                    # Verificar si "Error" es none
-                                    if pd.isnull(
-                                        df_final_cliente.loc[
-                                            df_final_cliente["Nombre"] == jurisdiction,
-                                            "Error",
-                                        ]
-                                    ).all():
-                                        break  # Si "Error" is None, break el loop
-
-                    print(f"{cliente} \n {df_final_cliente}")
-
-                    crear_mapa(
-                        df_final_cliente,
-                        f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
-                    )
-                    crear_mapa_argentina(
-                        df_final_cliente, f"{output_folder}/mapa_nacional_{cliente}.png"
-                    )
-
-                    now = datetime.now()
-                    fecha_actual = now.strftime("%Y%m%d")
-                    hora_actual = now.strftime("%H%M")
-                    zip_filename = f"{cliente}_{fecha_actual}_{hora_actual}.zip"
-                    zip_filepath = f"{output_folder}/{zip_filename}"
-                    png_files = glob.glob(f"{output_folder}/*.png")
-
-                    if ENVIAR_CORREO_TEST:
-                        correo_output = CORREO_TEST
-                    pass_zip = get_pass_zip(
-                        cliente, f"{correo_output};{socio_responsable}"
-                    )
-                    with pyzipper.AESZipFile(
-                        zip_filepath,
-                        "w",
-                        compression=pyzipper.ZIP_DEFLATED,
-                        encryption=pyzipper.WZ_AES,
-                    ) as zipf:
-                        zipf.setpassword(pass_zip.encode("utf-8"))
-                        for file in png_files:
-                            zipf.write(file, os.path.basename(file))
-
-                    df_adjunto_correo = df_final_cliente[
-                        ["Nombre", "Notificacion", "Screenshot"]
-                    ].copy()
-                    df_adjunto_correo = df_adjunto_correo.rename(
-                        columns={
-                            "Nombre": "Jurisdicción",
-                            "Notificacion": "Notificaciones",
-                            "Screenshot": "Screenshot",
-                        }
-                    )
-
-                    if df_final_cliente["Error"].notna().any():
-                        correo_output = socio_responsable = receptor = CORREO_NOTIFICACION_ERROR  #  Si hay errores, enviar correo a otro correo,
-                        estado_value = "Proceso terminado con errores"
-                    else:
-                        estado_value = "Correcto"
-
-                except Exception as e:
-                    print(f"Error en el cliente {cliente}: {e}")
-                    estado_value = "Erróneo"
-
-                finally:
-                    # Antes de llamar a enviar_correo(), inicializar la variable
-                    correo_enviado_exitosamente = False
-
-                    # Con al menos un Incorrecto se envía siempre al correo test
-                    # if debug and enviar_correo_test:
-                    if enviar_correo_test:
-                        correo_output = CORREO_TEST
-                    try:
-                        if pd.isna(correo_output):
-                            receptor = socio_responsable
-                            enviar_correo(
-                                receptor=receptor,
-                                cliente=cliente,
-                                ruta_archivo_adjunto=zip_filepath,
-                                nombre_archivo_adjunto=zip_filename,
-                                df=df_adjunto_correo,
-                                ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
-                                ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
-                                cuerpo_html_plantilla="html/mail_plantilla.html",
-                            )
-                            username = str(receptor)
-                        else:
-                            enviar_correo(
-                                receptor=correo_output,
-                                cliente=cliente,
-                                ruta_archivo_adjunto=zip_filepath,
-                                nombre_archivo_adjunto=zip_filename,
-                                df=df_adjunto_correo,
-                                ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
-                                ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
-                                cuerpo_html_plantilla="html/mail_plantilla.html",
-                                cc=socio_responsable,
-                            )
-                            username = str(correo_output)
-                        # Si enviar_correo() se ejecuta sin errores, actualizar la variable
-                        # Si hay alguna jurisdiccion con error, igualmente se envia y se actualiza la última verificación
-                        correo_enviado_exitosamente = True
-                    except Exception as e:
-                        print(f"Error al enviar correo: {e}")
-
-                    # username = str(correo_output)
-
-                    proceso = "Revision de Domicilios Fiscales Electronicos"
-                    conectar_db(proceso, cliente, username, inicio_value, estado_value)
-
-        elif df_input.empty:
-            inicio_value = datetime.now()
-            estado_value = "Correcto"
-            correo_enviado_exitosamente = True  # No se envia correo en este caso
-            username = "TaxTech"
-            cliente = "TaxTech"
-
-            proceso = "Revision de Domicilios Fiscales Electronicos"
-            conectar_db(proceso, cliente, username, inicio_value, estado_value)
-
-        # Eliminar los archivos .zip en la carpeta de Backup
         delete_zip_files_in_backup(PATH_ESTRUCTURA_ROBOT)
 
-        return estado_value, correo_enviado_exitosamente
+
+def obtener_datos_clientes():
+    return obtener_clientes(
+        # debug=False,
+        # ejecutar_todos_clientes=False,
+        # ejecutar_clientes_lista=False,
+        # sin_debug_ejecutar_lista=False,
+        # clientes_si_verificar_config=[],
+        jurisdiccion_clases=jurisdiccion_clases,
+    )
+
+
+def preparar_directorios(cliente):
+    base_folder = f"Estructura-robot/{cliente}"
+    output_folder = os.path.join(base_folder, "Output")
+    backup_folder = os.path.join(base_folder, "Backup")
+    os.makedirs(output_folder, exist_ok=True)
+    os.makedirs(backup_folder, exist_ok=True)
+    return output_folder, backup_folder
+
+
+def respaldar_archivos(output_folder, backup_folder):
+    files = os.listdir(output_folder)
+    for file in files:
+        file_path = os.path.join(output_folder, file)
+        if file.endswith(".zip"):
+            shutil.move(file_path, backup_folder)
+        else:
+            os.remove(file_path)
+
+
+async def procesar_jurisdicciones(playwright, group):
+    instances = {}
+    encontradas = []
+    no_encontradas = []
+
+    for _, row in group.iterrows():
+        jurisdiction = row["Jurisdiccion"]
+        if jurisdiction not in globals():
+            no_encontradas.append(jurisdiction)
+            continue
+        encontradas.append(jurisdiction)
+        instance = await crear_instancia_jurisdiccion(playwright, row, jurisdiction)
+        instances[jurisdiction] = instance
+    return instances, encontradas, no_encontradas
+
+
+async def crear_instancia_jurisdiccion(playwright, row, jurisdiction):
+    JurisdictionClass = globals()[jurisdiction]
+    create_args = {
+        "playwright": playwright,
+        "cliente": row["Cliente"],
+        "cuit": int(row["Usuario"]),
+        "clave_fiscal": row["Password"],
+        "fecha_desde": row["fecha_desde"],
+        "fecha_hasta": row["fecha_hasta"],
+        "cuit_cliente_input": int(row["cuit_cliente"]),
+    }
+    return await JurisdictionClass.create(**create_args)
+
+
+async def ejecutar_jurisdicciones(instances):
+    tareas = [instance.procesar_jurisdiccion() for instance in instances.values()]
+    resultados = await asyncio.gather(*tareas)
+    resultados = [list(res) for res in resultados]
+    return pd.DataFrame(
+        resultados, columns=["Nombre", "Notificacion", "Screenshot", "Error"]
+    )
+
+
+async def reintentar_errores(playwright, df_final, group):
+    errores = df_final[df_final["Error"].notna()]
+    for _, error_row in errores.iterrows():
+        jurisdiction = error_row["Nombre"]
+        row = group[group["Jurisdiccion"] == jurisdiction].iloc[0]
+        for _ in range(LIMITES_REINTENTO):
+            instance = await crear_instancia_jurisdiccion(playwright, row, jurisdiction)
+            resultado = await instance.procesar_jurisdiccion()
+            df_final.loc[df_final["Nombre"] == jurisdiction] = list(resultado)
+            if pd.isna(df_final.loc[df_final["Nombre"] == jurisdiction, "Error"]).all():
+                break
+    return df_final
+
+
+def generar_mapas(df_final, output_folder, cliente):
+    crear_mapa(df_final, f"{output_folder}/mapa_jurisdicciones_{cliente}.png")
+    crear_mapa_argentina(df_final, f"{output_folder}/mapa_nacional_{cliente}.png")
+
+
+def crear_zip(df_final, output_folder, cliente):
+    now = datetime.now()
+    fecha_actual = now.strftime("%Y%m%d")
+    hora_actual = now.strftime("%H%M")
+    zip_name = f"{cliente}_{fecha_actual}_{hora_actual}.zip"
+    zip_path = os.path.join(output_folder, zip_name)
+    png_files = glob.glob(os.path.join(output_folder, "*.png"))
+
+    pass_zip = get_pass_zip(
+        cliente, f"{obtener_correo(df_final)};{obtener_socio(df_final)}"
+    )
+    with pyzipper.AESZipFile(
+        zip_path,
+        "w",
+        compression=pyzipper.ZIP_DEFLATED,
+        encryption=pyzipper.WZ_AES,
+    ) as zipf:
+        zipf.setpassword(pass_zip.encode("utf-8"))
+        for file in png_files:
+            zipf.write(file, os.path.basename(file))
+
+    return zip_path, zip_name
+
+
+def obtener_correo(group):
+    if ENVIAR_CORREO_TEST:
+        return CORREO_TEST
+    if "Correo Output" in group.columns:
+        correo_output = group["Correo Output"].iloc[0]
+        return correo_output if pd.notna(correo_output) else None
+    else:
+        return None
+
+
+def obtener_socio(group):
+    if "Socio responsable" in group.columns:
+        socio_responsable = group["Socio responsable"].iloc[0]
+        return socio_responsable if pd.notna(socio_responsable) else None
+    else:
+        return None
+
+
+def enviar_email(df_final, zip_path, zip_name, output_folder, cliente, group):
+    try:
+        df_correo = df_final[["Nombre", "Notificacion", "Screenshot"]].rename(
+            columns={
+                "Nombre": "Jurisdicción",
+                "Notificacion": "Notificaciones",
+                "Screenshot": "Screenshot",
+            }
+        )
+
+        correo_output = obtener_correo(group)
+        socio_responsable = obtener_socio(group)
+
+        if not correo_output and not socio_responsable:
+            receptor = (
+                CORREO_NOTIFICACION_ERROR  # Enviar a correo de notificación de error
+            )
+            cc = None
+        elif correo_output:
+            receptor = correo_output
+            cc = socio_responsable if socio_responsable else None
+        else:
+            receptor = socio_responsable
+            cc = None
+
+        enviar_correo(
+            receptor=receptor,
+            cliente=cliente,
+            ruta_archivo_adjunto=zip_path,
+            nombre_archivo_adjunto=zip_name,
+            df=df_correo,
+            ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
+            ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
+            cuerpo_html_plantilla="html/mail_plantilla.html",
+            cc=cc,
+        )
+        return True
+    except Exception as e:
+        print(f"Error al enviar correo: {e}")
+        return False
+
+
+def obtener_username(correo_output, socio_responsable):
+    if correo_output:
+        return correo_output
+    elif socio_responsable:
+        return socio_responsable
+    else:
+        return "No definido"
+
+
+def registrar_ejecucion(proceso, cliente, username, inicio, estado):
+    conectar_db(
+        proceso=proceso,
+        cliente=cliente,
+        username=username,
+        inicio_value=inicio,
+        estado_value=estado,
+    )
+
+
+def registrar_sin_clientes():
+    inicio = datetime.now()
+    estado = "Correcto"
+    conectar_db(
+        proceso="Revisión de Domicilios Fiscales Electrónicos",
+        cliente="TaxTech",
+        username="TaxTech",
+        inicio_value=inicio,
+        estado_value=estado,
+    )
 
 
 if __name__ == "__main__":
-    import asyncio
-
-    estado_value, correo_enviado_exitosamente = asyncio.run(
-        main(debug=False, enviar_correo_test=False)
-    )
-
-    print(
-        f"Estado: {estado_value}, Correo enviado exitosamente: {correo_enviado_exitosamente}"
-    )
+    asyncio.run(main())

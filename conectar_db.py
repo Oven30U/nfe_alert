@@ -235,6 +235,7 @@ def get_clientes_ejecutados_hoy(clientes: list[str]) -> list[str]:
             WHERE CAST(finalizado AS DATE) = CAST(GETDATE() AS DATE)
             AND proceso = 'Revision de Domicilios Fiscales Electronicos' 
             AND cliente IN ({placeholders})
+            AND estado = 'Correcto'
             GROUP BY cliente
         """
         )

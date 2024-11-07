@@ -130,11 +130,11 @@ def cerrar_excel(nombres_archivos):
 
 
 def obtener_clientes(
-        debug,
-        ejecutar_todos_clientes,
-        ejecutar_clientes_lista,
-        sin_debug_ejecutar_ejecutar_lista,
-        clientes_si_verificar_config,
+        # debug,
+        # ejecutar_todos_clientes,
+        # ejecutar_clientes_lista,
+        # sin_debug_ejecutar_ejecutar_lista,
+        # clientes_si_verificar_config,
         jurisdiccion_clases,
 ):
     cerrar_excel(NOMBRE_ARCHIVO_CLIENTE)
