@@ -228,16 +228,19 @@ def enviar_email(df_final, zip_path, zip_name, output_folder, cliente, group):
         socio_responsable = obtener_socio(group)
 
         if not correo_output and not socio_responsable:
-            receptor = (
-                CORREO_NOTIFICACION_ERROR  # Enviar a correo de notificación de error
-            )
+            receptor = CORREO_NOTIFICACION_ERROR
             cc = None
         elif correo_output:
             receptor = correo_output
             cc = socio_responsable if socio_responsable else None
-        else:
+        elif socio_responsable:
             receptor = socio_responsable
             cc = None
+        else:
+            raise ValueError("No valid email address found for sending the email.")
+
+        if receptor is None:
+            raise ValueError("Receptor email address is None. Cannot send email.")
 
         enviar_correo(
             receptor=receptor,
