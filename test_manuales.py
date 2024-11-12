@@ -1,6 +1,6 @@
 import asyncio
 from playwright.async_api import async_playwright
-from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba, Arba
+from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba, Arba, Salta
 
 async def catamarca_test():
     async with async_playwright() as playwright:
@@ -107,8 +107,36 @@ async def arba_test():
         )
         await arba.procesar_jurisdiccion()
 
+async def salta_test():
+    async with async_playwright() as playwright:
+        fecha_desde = "01082024"
+        fecha_hasta = "30082024"
 
-# asyncio.run(catamarca_test())
+        # cuit_Salta = "30714604356"
+        # clave_fiscal_Salta = "Edge2021"
+        # cuit_cliente_input = "30714604356"
+        # client = "EDGE ARGENTINA S.R.L"
+
+        cuit_Salta = "30677757295"
+        clave_fiscal_Salta = "natura18"
+        cuit_cliente_input = "30677757295"
+        client = "NATURA COSMETICOS S.A"
+
+        salta = await Salta.create(
+            playwright,
+            client,
+            cuit_Salta,
+            clave_fiscal_Salta,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False
+        )
+        await salta.procesar_jurisdiccion()
+
+
+asyncio.run(catamarca_test())
 # asyncio.run(santiago_test())
 # asyncio.run(cordoba_test())
-asyncio.run(arba_test())
+# asyncio.run(arba_test())
+asyncio.run(salta_test())

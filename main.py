@@ -2,21 +2,17 @@ import asyncio
 import glob
 import os
 import shutil
-from datetime import datetime
+import sqlite3
+from datetime import date, datetime
 
 import pandas as pd
 import pyzipper
 from playwright.async_api import async_playwright
 
 from conectar_db import conectar_db, get_pass_zip
-from config import (
-    CORREO_TEST,
-    CORREO_NOTIFICACION_ERROR,
-    LIMITES_REINTENTO,
-    PATH_ESTRUCTURA_ROBOT,
-    jurisdiccion_clases,
-    ENVIAR_CORREO_TEST,
-)
+from config import (CORREO_NOTIFICACION_ERROR, CORREO_TEST, ENVIAR_CORREO_TEST,
+                    LIMITES_REINTENTO, PATH_ESTRUCTURA_ROBOT,
+                    jurisdiccion_clases)
 from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
 from jurisdicciones import *
@@ -28,6 +24,7 @@ pd.set_option("display.max_columns", None)
 
 async def main():
     async with async_playwright() as playwright:
+
         df_input = obtener_datos_clientes()
         if df_input.empty:
             registrar_sin_clientes()
@@ -85,14 +82,41 @@ async def main():
 
 
 def obtener_datos_clientes():
-    return obtener_clientes(
-        # debug=False,
-        # ejecutar_todos_clientes=False,
-        # ejecutar_clientes_lista=False,
-        # sin_debug_ejecutar_lista=False,
-        # clientes_si_verificar_config=[],
+    df_clientes = obtener_clientes(
         jurisdiccion_clases=jurisdiccion_clases,
     )
+
+    # Obtener lista de clientes procesados hoy con estado 'Correcto'
+    clientes_procesados_hoy = get_clientes_procesados_hoy()
+
+    # Filtrar los clientes ya procesados
+    if not df_clientes.empty and clientes_procesados_hoy:
+        df_clientes = df_clientes[~df_clientes['Cliente'].isin(clientes_procesados_hoy)]
+
+    return df_clientes
+
+def get_clientes_procesados_hoy():
+    conn = sqlite3.connect('pruebas/database.db')
+    cursor = conn.cursor()
+
+    today = date.today().strftime('%Y-%m-%d')
+
+    query = """
+        SELECT Cliente FROM monitoreo_bots
+        WHERE estado = 'Correcto' AND DATE(iniciado) = ?
+        UNION
+        SELECT Cliente FROM monitoreo_bots_backup
+        WHERE estado = 'Correcto' AND DATE(iniciado) = ?
+    """
+
+    cursor.execute(query, (today, today))
+    rows = cursor.fetchall()
+
+    clientes_procesados = [row[0] for row in rows]
+
+    conn.close()
+
+    return clientes_procesados
 
 
 def preparar_directorios(cliente):
