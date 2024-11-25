@@ -143,7 +143,7 @@ def obtener_clientes(
         # df_clientes = pd.read_excel(PATH_CLIENTES, sheet_name="System-Clientes")
         df_clientes = cargar_excels()
     except Exception as e:
-        raise InputException(f"No se pudo crear el df_clientes, {e}")
+        InputException(f"No se pudo crear el df_clientes, {e}", cliente)
         # print("No se pudo acceder al archivo %s: %s", PATH_CLIENTES, str(e))
 
     # Drop rows where all columns except 'Socio responsable' or 'Correos destinatarios' are NaN

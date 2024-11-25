@@ -10,12 +10,17 @@ import pyzipper
 from playwright.async_api import async_playwright
 
 from conectar_db import conectar_db, get_pass_zip
-from config import (CORREO_NOTIFICACION_ERROR, CORREO_TEST, ENVIAR_CORREO_TEST,
-                    LIMITES_REINTENTO, PATH_ESTRUCTURA_ROBOT,
-                    jurisdiccion_clases)
+from config import (
+    CORREO_NOTIFICACION_ERROR,
+    CORREO_TEST,
+    ENVIAR_CORREO_TEST,
+    LIMITES_REINTENTO,
+    PATH_ESTRUCTURA_ROBOT,
+    jurisdiccion_clases,
+)
 from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
-from jurisdicciones import *
+import jurisdicciones
 from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
 
@@ -39,6 +44,9 @@ async def main():
 
             correo_output = obtener_correo(group)
             socio_responsable = obtener_socio(group)
+
+            zip_path = None
+            zip_name = None
 
             try:
                 instances, encontradas, no_encontradas = await procesar_jurisdicciones(
@@ -91,15 +99,16 @@ def obtener_datos_clientes():
 
     # Filtrar los clientes ya procesados
     if not df_clientes.empty and clientes_procesados_hoy:
-        df_clientes = df_clientes[~df_clientes['Cliente'].isin(clientes_procesados_hoy)]
+        df_clientes = df_clientes[~df_clientes["Cliente"].isin(clientes_procesados_hoy)]
 
     return df_clientes
 
+
 def get_clientes_procesados_hoy():
-    conn = sqlite3.connect('pruebas/database.db')
+    conn = sqlite3.connect("pruebas/database.db")
     cursor = conn.cursor()
 
-    today = date.today().strftime('%Y-%m-%d')
+    today = date.today().strftime("%Y-%m-%d")
 
     query = """
         SELECT Cliente FROM monitoreo_bots
@@ -145,7 +154,8 @@ async def procesar_jurisdicciones(playwright, group):
 
     for _, row in group.iterrows():
         jurisdiction = row["Jurisdiccion"]
-        if jurisdiction not in globals():
+        # Check if the jurisdiction class exists in the jurisdicciones module
+        if not hasattr(jurisdicciones, jurisdiction):
             no_encontradas.append(jurisdiction)
             continue
         encontradas.append(jurisdiction)
@@ -155,7 +165,8 @@ async def procesar_jurisdicciones(playwright, group):
 
 
 async def crear_instancia_jurisdiccion(playwright, row, jurisdiction):
-    JurisdictionClass = globals()[jurisdiction]
+    # Get the class from the jurisdicciones module
+    JurisdictionClass = getattr(jurisdicciones, jurisdiction)
     create_args = {
         "playwright": playwright,
         "cliente": row["Cliente"],

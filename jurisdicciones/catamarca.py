@@ -44,7 +44,7 @@ class Catamarca(Jurisdiccion):
     async def consultar_notificaciones(self):
         await self.page.goto("https://dgrentas.arca.gob.ar/rentascuA/principal.aspx")
         await self.page.wait_for_load_state("networkidle")
-        await self.page.locator("(//input[@value='Acceder'])[2]").click()
+        await self.page.locator("(//input[@value='Acceder'])[2]").click()  # https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=arca_dgr_contrib
         await self.page.locator("//input[@id='F1:username']").fill(f"{self._cuit}")
         await self.page.locator("//input[@id='F1:btnSiguiente']").click()
         await self.page.wait_for_load_state("networkidle")

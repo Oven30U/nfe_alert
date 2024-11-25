@@ -20,7 +20,7 @@ async def catamarca_test():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False,
+            # headless=False,
         )
         await catamarca.procesar_jurisdiccion()
 
