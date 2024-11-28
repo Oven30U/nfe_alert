@@ -17,4 +17,5 @@ git
 .idea
 
 .env
+*.db
 pruebas/database.db

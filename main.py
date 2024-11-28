@@ -77,6 +77,8 @@ async def main():
                 correo_exitoso = enviar_email(
                     df_final, zip_path, zip_name, output_folder, cliente, group
                 )
+                if not correo_exitoso:
+                    estado = "Correo no enviado"
                 username = obtener_username(correo_output, socio_responsable)
                 registrar_ejecucion(
                     proceso="Revisión de Domicilios Fiscales Electrónicos",
