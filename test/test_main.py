@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from main import main
+from ..main import main
 
 
 @pytest.mark.asyncio

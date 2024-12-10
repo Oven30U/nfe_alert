@@ -293,9 +293,16 @@ class Jurisdiccion(ABC):
             await page.screenshot(path=nombre_archivo, full_page=True, timeout=60000)  # Increase timeout to 60 seconds
             self.hay_screenshot = True
         except Exception as e:
-            print(f"Error taking screenshot: {e}")
-            self.hay_screenshot = False
-            raise Exception(f"Error taking screenshot: {e}") from e
+            print(f"Error taking screenshot: {e}. Reintentando sin minimizar el navegador.")
+            await self.maximizar_ventana()
+            try:
+                await page.wait_for_load_state("domcontentloaded")
+                await page.wait_for_load_state("networkidle")
+                await page.wait_for_timeout(5000)
+                await page.screenshot(path=nombre_archivo, full_page=True, timeout=60000)
+                self.hay_screenshot = True
+            except Exception as e:
+                print(f"Reintento de screenshot falló: {e}")
         return self.hay_screenshot
 
     async def tomar_varias_screenshots(self, secciones: List[Tuple[str, str]], page: Optional[Page] = None,
