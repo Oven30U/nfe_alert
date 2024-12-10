@@ -56,8 +56,8 @@ SIN_DEBUG_EJECUTAR_LISTA = (
     False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes
 )
 
-# ENVIAR_CORREO_TEST = True
-ENVIAR_CORREO_TEST = False
+ENVIAR_CORREO_TEST = True
+# ENVIAR_CORREO_TEST = False
 CORREO_TEST = "lmarinaro@deloitte.com"
 
 # configurar nombres para el df_final de input.py,
@@ -133,7 +133,8 @@ if __name__ == "__main__":
     if "headless_state" in globals():
         kwargs["headless_state"] = headless_state
 
-    estado_value, correo_enviado_exitosamente = asyncio.run(main(**kwargs))
+    # estado_value, correo_enviado_exitosamente = asyncio.run(main(**kwargs))
+    estado_value, correo_enviado_exitosamente = asyncio.run(main())
 
     print(
         f"Estado: {estado_value}, Correo enviado exitosamente: {correo_enviado_exitosamente}"

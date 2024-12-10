@@ -1,3 +1,29 @@
+"""
+Este módulo proporciona una función para enviar correos electrónicos
+con archivos adjuntos y/o contenido HTML generado a partir de un DataFrame.
+Funciones:
+- enviar_correo: Envía un correo electrónico 
+    con un archivo adjunto y/o un DataFrame en el cuerpo del correo.
+Dependencias:
+- smtplib
+- datetime
+- email.encoders
+- email.mime.base
+- email.mime.multipart
+- email.mime.text
+- config (mapa_jurisdiccion_clases)
+- generar_html (convertir_imagen_en_html, 
+    grabar_html, insertar_mapas_en_html, insertar_tabla_en_html, 
+    reemplazar_contenido_en_html)
+Ejemplo de uso:
+    receptor="socio@deloitte.com", 
+    cliente="Cliente S.R.L.",
+    ruta_archivo_adjunto="mail.zip",
+    ruta_imagen_png="mapa.png",
+    ruta_imagen_png_2="mapa2.png",
+    cc=["cc@example.com"]
+"""
+
 import smtplib
 from datetime import datetime
 from email import encoders
@@ -6,7 +32,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from smtplib import SMTPNotSupportedError
 
-from config import jurisdiccion_clases, mapa_jurisdiccion_clases
+from config import mapa_jurisdiccion_clases
 from generar_html import (
     convertir_imagen_en_html,
     grabar_html,
@@ -28,7 +54,8 @@ def enviar_correo(
     cc=None,
 ):
     """
-    Esta función envía un correo electrónico con un archivo adjunto y/o un DataFrame en el cuerpo del correo.
+    Esta función envía un correo electrónico
+    con un archivo adjunto y/o un DataFrame en el cuerpo del correo.
 
     Parámetros:
     receptor (str): El correo electrónico del receptor.
@@ -42,7 +69,12 @@ def enviar_correo(
     None
 
     Ejemplo:
-    enviar_correo("lmarinaro@deloitte.com", "Facebook S.R.L.", "mail.zip", df=df_output_final, ruta_mapa_html="map.html", cc=["cc@example.com"])
+    enviar_correo("socio@deloitte.com",
+        "Cliente S.R.L.",
+        "mail.zip",
+        df=df_output_final,
+        ruta_mapa_html="map.html",
+        cc=["cc@example.com"])
     """
 
     # Configurar el servidor SMTP (asegúrate de tener las credenciales correctas)
@@ -71,13 +103,14 @@ def enviar_correo(
     # Eliminar duplicados de la lista de receptores
     receptor = list(set(receptor))
     msg["Subject"] = (
-        f"Revisión de Domicilios Fiscales Electrónicos del cliente {cliente}"
+        f"NFE Alert: Revisión de Domicilios Fiscales Electrónicos del cliente {cliente}"
     )
 
     # Adjuntar el archivo si se proporciona
     if ruta_archivo_adjunto is not None and nombre_archivo_adjunto is not None:
         part = MIMEBase("application", "octet-stream")
-        part.set_payload(open(ruta_archivo_adjunto, "rb").read())
+        with open(ruta_archivo_adjunto, "rb") as file:
+            part.set_payload(file.read())
         encoders.encode_base64(part)
         part.add_header(
             "Content-Disposition", "attachment", filename=nombre_archivo_adjunto
@@ -114,7 +147,6 @@ def enviar_correo(
 
         with open(archivo_html_a_enviar, "r", encoding="utf-8") as f:
             html_content = f.read()
-        # msg = MIMEMultipart("alternative")
         body = MIMEText(html_content, "html")
         msg.attach(body)
 
@@ -138,8 +170,5 @@ def enviar_correo(
     server.quit()
 
 
-if __name__ == '__main__':
-    enviar_correo(
-        receptor="lmarinaro@deloitte.com",
-        cliente="FACEBOOK ARGENTINA S.R.L")
-        
+if __name__ == "__main__":
+    enviar_correo(receptor="lmarinaro@deloitte.com", cliente="FACEBOOK ARGENTINA S.R.L")

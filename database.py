@@ -1,70 +1,69 @@
 import os
 from time import sleep
-import pyodbc
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-import sqlite3
-from sqlite3 import Error
 
-# Cargar las variables de entorno desde el archivo .env
+# Load environment variables from .env file
 load_dotenv()
 
-# Leer las variables de entorno para SQL Server
-SERVER = os.getenv("SERVER")
-DATABASE = os.getenv("DATABASE")
-USERNAME = os.getenv("USER")
-PASSWORD = os.getenv("PASSWORD")
-DRIVER = os.getenv("DRIVER")
+# SQL Server configuration
+SQLSERVER_DRIVER = os.getenv("SQLSERVER_DRIVER", "ODBC Driver 17 for SQL Server")  # Default driver
+SQLSERVER_SERVER = os.getenv("SQLSERVER_SERVER")
+SQLSERVER_DATABASE = os.getenv("SQLSERVER_DATABASE")
+SQLSERVER_USERNAME = os.getenv("SQLSERVER_USERNAME")
+SQLSERVER_PASSWORD = os.getenv("SQLSERVER_PASSWORD")
 
-# Leer las variables de entorno para SQLite
-DATABASE_SQLITE = os.getenv("SQLITE_DATABASE")
+# SQLite configuration
+SQLITE_DATABASE_FILE = os.getenv("SQLITE_DATABASE_FILE", "pruebas/database.db")
 
-
-# Función para obtener una nueva sesión con lógica de reintento para SQL Server
-def get_session(max_reintentos=25, delay=3):
+# Function to create SQL Server session
+def get_session(max_retries=5, delay=3):
+    """
+    Create and return a SQLAlchemy Session connected to SQL Server with retry logic.
+    """
     connection_string = (
-        f"Driver={DRIVER};"
-        f"Server={SERVER};"
-        f"Database={DATABASE};"
-        f"UID={USERNAME};"
-        f"PWD={PASSWORD};"
+        f"mssql+pyodbc://{SQLSERVER_USERNAME}:{SQLSERVER_PASSWORD}@{SQLSERVER_SERVER}/{SQLSERVER_DATABASE}"
+        f"?driver={SQLSERVER_DRIVER}"
     )
+    engine = create_engine(connection_string, fast_executemany=True, echo=True)
 
-    for i in range(max_reintentos):
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    for attempt in range(1, max_retries + 1):
         try:
-            conn = pyodbc.connect(connection_string)
-            engine = create_engine('mssql+pyodbc://', creator=lambda: conn)
-            Session = sessionmaker(bind=engine)
-            session = Session()
+            session = SessionLocal()
+            print(f"Connected to SQL Server database: {SQLSERVER_DATABASE}")
             return session
         except OperationalError as e:
-            print(f"Connection error num {i + 1}: {e}")
-            if i < max_reintentos - 1:
+            print(f"SQL Server connection error #{attempt}: {e}")
+            if attempt < max_retries:
                 sleep(delay)
             else:
-                print("Error: Could not connect to the database after several attempts.")
-                return None
+                raise Exception("Failed to connect to SQL Server after multiple attempts.") from e
 
+# Function to create SQLite session
+def get_sqlite_session(max_retries=5, delay=3):
+    """
+    Create and return a SQLAlchemy Session connected to SQLite with retry logic.
+    """
+    connection_string = f"sqlite:///{SQLITE_DATABASE_FILE}"
+    engine = create_engine(connection_string, connect_args={"check_same_thread": False})
 
-# Función para obtener una nueva sesión con lógica de reintento para SQLite
-def get_sqlite_session(db_file=DATABASE_SQLITE, max_retries=25, delay=3):
-    """Create a database connection to an SQLite database with retry logic."""
-    conn = None
-    for i in range(max_retries):
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    for attempt in range(1, max_retries + 1):
         try:
-            conn = sqlite3.connect(db_file)
-            print(f"Connected to SQLite database: {db_file}")
-            return conn
-        except Error as e:
-            print(f"Connection error num {i + 1}: {e}")
-            if i < max_retries - 1:
+            session = SessionLocal()
+            print(f"Connected to SQLite database: {SQLITE_DATABASE_FILE}")
+            return session
+        except OperationalError as e:
+            print(f"SQLite connection error #{attempt}: {e}")
+            if attempt < max_retries:
                 sleep(delay)
             else:
-                raise Exception("Error: Could not connect to the SQLite database after several attempts.")
-    return conn
-
+                raise Exception("Failed to connect to SQLite after multiple attempts.") from e
 
 if __name__ == "__main__":
     # try:

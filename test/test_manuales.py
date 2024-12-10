@@ -157,10 +157,10 @@ async def chaco_test():
         )
         await chaco.procesar_jurisdiccion()
 
-
-# asyncio.run(catamarca_test())
-# asyncio.run(santiago_test())
-# asyncio.run(cordoba_test())
-# asyncio.run(arba_test())
-# asyncio.run(salta_test())
-asyncio.run(chaco_test())
+if __name__ == '__main__':
+    # asyncio.run(catamarca_test())
+    # asyncio.run(santiago_test())
+    # asyncio.run(cordoba_test())
+    # asyncio.run(arba_test())
+    # asyncio.run(salta_test())
+    asyncio.run(chaco_test())

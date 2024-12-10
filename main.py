@@ -81,7 +81,7 @@ async def main():
                     estado = "Correo no enviado"
                 username = obtener_username(correo_output, socio_responsable)
                 registrar_ejecucion(
-                    proceso="Revisión de Domicilios Fiscales Electrónicos",
+                    proceso="NFE Alert",
                     cliente=cliente,
                     username=username,
                     inicio=inicio,
@@ -316,14 +316,18 @@ def registrar_ejecucion(proceso, cliente, username, inicio, estado):
 
 
 def registrar_sin_clientes():
-    inicio = datetime.now()
-    estado = "Correcto"
+    proceso = "Revision de Domicilios Fiscales Electronicos"
+    cliente = "TaxTech"
+    username = "TaxTech"
+    estado_value = "Correcto"
+    inicio_value = datetime.now()
+
     conectar_db(
-        proceso="Revisión de Domicilios Fiscales Electrónicos",
-        cliente="TaxTech",
-        username="TaxTech",
-        inicio_value=inicio,
-        estado_value=estado,
+        proceso=proceso,
+        cliente=cliente,
+        username=username,
+        inicio_value=inicio_value,
+        estado_value=estado_value,
     )
 
 

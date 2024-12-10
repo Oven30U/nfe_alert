@@ -1,3 +1,4 @@
+import os
 import pytest
 from playwright.async_api import async_playwright
 
@@ -130,12 +131,12 @@ class TestNacional(BaseTest, ErrorTest):
         from jurisdicciones.nacional import Nacional
 
         self.Jurisdiccion = Nacional
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "20386165476"
-        self.clave_fiscal = "1994Gabriel"
-        self.fecha_desde = "28052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_NACIONAL_CLIENT")
+        self.cuit = os.getenv("TEST_NACIONAL_CUIT")
+        self.clave_fiscal = os.getenv("TEST_NACIONAL_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_NACIONAL_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -169,12 +170,12 @@ class TestArba(BaseTest, ErrorTest):
         from jurisdicciones.arba import Arba
 
         self.Jurisdiccion = Arba
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "30714604356"
-        self.clave_fiscal = "Edge2018"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_ARBA_CLIENT")
+        self.cuit = os.getenv("TEST_ARBA_CUIT")
+        self.clave_fiscal = os.getenv("TEST_ARBA_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_ARBA_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -208,12 +209,12 @@ class TestAgip(BaseTest, ErrorTest):
         from jurisdicciones.agip import Agip
 
         self.Jurisdiccion = Agip
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "20236063586"
-        self.clave_fiscal = "Bart41051"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_AGIP_CLIENT")
+        self.cuit = os.getenv("TEST_AGIP_CUIT")
+        self.clave_fiscal = os.getenv("TEST_AGIP_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_AGIP_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -241,18 +242,17 @@ class TestAgip(BaseTest, ErrorTest):
             self.cuit_cliente_input,  # headless=headless_state,
         )
 
-
 class TestMendoza(BaseTest, ErrorTest):
     def setup_method(self, method):
         from jurisdicciones.mendoza import Mendoza
 
         self.Jurisdiccion = Mendoza
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "30714604356"
-        self.clave_fiscal = "Edge2023"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_MENDOZA_CLIENT")
+        self.cuit = os.getenv("TEST_MENDOZA_CUIT")
+        self.clave_fiscal = os.getenv("TEST_MENDOZA_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_MENDOZA_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -286,12 +286,12 @@ class TestCordoba(BaseTest, ErrorTest):
         from jurisdicciones.cordoba import Cordoba
 
         self.Jurisdiccion = Cordoba
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "20386165476"
-        self.clave_fiscal = "1994Gabriel"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_CORDOBA_CLIENT")
+        self.cuit = os.getenv("TEST_CORDOBA_CUIT")
+        self.clave_fiscal = os.getenv("TEST_CORDOBA_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_CORDOBA_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -325,12 +325,12 @@ class TestNeuquen(BaseTest, ErrorTest):
         from jurisdicciones.neuquen import Neuquen
 
         self.Jurisdiccion = Neuquen
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "30714604356"
-        self.clave_fiscal = "Edge2021"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_NEUQUEN_CLIENT")
+        self.cuit = os.getenv("TEST_NEUQUEN_CUIT")
+        self.clave_fiscal = os.getenv("TEST_NEUQUEN_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_NEUQUEN_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -364,12 +364,12 @@ class TestRioNegro(BaseTest, ErrorTest):
         from jurisdicciones.rio_negro import RioNegro
 
         self.Jurisdiccion = RioNegro
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "20386165476"
-        self.clave_fiscal = "1994Gabriel"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_RIO_NEGRO_CLIENT")
+        self.cuit = os.getenv("TEST_RIO_NEGRO_CUIT")
+        self.clave_fiscal = os.getenv("TEST_RIO_NEGRO_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_RIO_NEGRO_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -403,12 +403,12 @@ class TestTucuman(BaseTest, ErrorTest):
         from jurisdicciones.tucuman import Tucuman
 
         self.Jurisdiccion = Tucuman
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "20386165476"
-        self.clave_fiscal = "1994Gabriel"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_TUCUMAN_CLIENT")
+        self.cuit = os.getenv("TEST_TUCUMAN_CUIT")
+        self.clave_fiscal = os.getenv("TEST_TUCUMAN_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_TUCUMAN_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -442,12 +442,12 @@ class TestMisiones(BaseTest, ErrorTest):
         from jurisdicciones.misiones import Misiones
 
         self.Jurisdiccion = Misiones
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "30714604356"
-        self.clave_fiscal = "Edge2021"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_MISIONES_CLIENT")
+        self.cuit = os.getenv("TEST_MISIONES_CUIT")
+        self.clave_fiscal = os.getenv("TEST_MISIONES_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_MISIONES_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -481,12 +481,12 @@ class TestEntreRios(BaseTest, ErrorTest):
         from jurisdicciones.entre_rios import EntreRios
 
         self.Jurisdiccion = EntreRios
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "20386165476"
-        self.clave_fiscal = "1994Gabriel"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_ENTRE_RIOS_CLIENT")
+        self.cuit = os.getenv("TEST_ENTRE_RIOS_CUIT")
+        self.clave_fiscal = os.getenv("TEST_ENTRE_RIOS_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_ENTRE_RIOS_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -520,12 +520,12 @@ class TestJujuy(BaseTest, ErrorTest):
         from jurisdicciones.jujuy import Jujuy
 
         self.Jurisdiccion = Jujuy
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "30714604356"
-        self.clave_fiscal = "Edge2021!"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_JUJUY_CLIENT")
+        self.cuit = os.getenv("TEST_JUJUY_CUIT")
+        self.clave_fiscal = os.getenv("TEST_JUJUY_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_JUJUY_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -559,12 +559,12 @@ class TestChubut(BaseTest, ErrorTest):
         from jurisdicciones.chubut import Chubut
 
         self.Jurisdiccion = Chubut
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "30714604356"
-        self.clave_fiscal = "Edge2023"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_CHUBUT_CLIENT")
+        self.cuit = os.getenv("TEST_CHUBUT_CUIT")
+        self.clave_fiscal = os.getenv("TEST_CHUBUT_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_CHUBUT_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -598,12 +598,12 @@ class TestLaPampa(BaseTest, ErrorTest):
         from jurisdicciones.la_pampa import LaPampa
 
         self.Jurisdiccion = LaPampa
-        self.client = "NATURA COSMETICOS S.A"
-        self.cuit = "20252501852"
-        self.clave_fiscal = "natura2014"
-        self.fecha_desde = "01072024"
-        self.fecha_hasta = "30072024"
-        self.cuit_cliente_input = "30677757295"
+        self.client = os.getenv("TEST_LA_PAMPA_CLIENT")
+        self.cuit = os.getenv("TEST_LA_PAMPA_CUIT")
+        self.clave_fiscal = os.getenv("TEST_LA_PAMPA_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_LA_PAMPA_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -637,12 +637,12 @@ class TestChaco(BaseTest, ErrorTest):
         from jurisdicciones.chaco import Chaco
 
         self.Jurisdiccion = Chaco
-        self.client = "NATURA COSMETICOS S.A"
-        self.cuit = "30677757295"
-        self.clave_fiscal = "Natura0."
-        self.fecha_desde = "01072024"
-        self.fecha_hasta = "30072024"
-        self.cuit_cliente_input = "30677757295"
+        self.client = os.getenv("TEST_CHACO_CLIENT")
+        self.cuit = os.getenv("TEST_CHACO_CUIT")
+        self.clave_fiscal = os.getenv("TEST_CHACO_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_CHACO_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -676,12 +676,12 @@ class TestSanLuis(BaseTest, ErrorTest):
         from jurisdicciones.san_luis import SanLuis
 
         self.Jurisdiccion = SanLuis
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "20104314075"
-        self.clave_fiscal = "Edge2021"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_SAN_LUIS_CLIENT")
+        self.cuit = os.getenv("TEST_SAN_LUIS_CUIT")
+        self.clave_fiscal = os.getenv("TEST_SAN_LUIS_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_SAN_LUIS_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -715,12 +715,12 @@ class TestSantiagoDelEstero(BaseTest, ErrorTest):
         from jurisdicciones.santiago_del_estero import SantiagoDelEstero
 
         self.Jurisdiccion = SantiagoDelEstero
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "30714604356"
-        self.clave_fiscal = "Edge2023"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLIENT")
+        self.cuit = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT")
+        self.clave_fiscal = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -748,18 +748,17 @@ class TestSantiagoDelEstero(BaseTest, ErrorTest):
             self.cuit_cliente_input,  # headless=headless_state,
         )
 
-
 class TestSicnea(BaseTest, ErrorTest):
     def setup_method(self, method):
         from jurisdicciones.sicnea import Sicnea
 
         self.Jurisdiccion = Sicnea
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "20386165476"
-        self.clave_fiscal = "1994Gabriel"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_SICNEA_CLIENT")
+        self.cuit = os.getenv("TEST_SICNEA_CUIT")
+        self.clave_fiscal = os.getenv("TEST_SICNEA_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_SICNEA_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -793,12 +792,12 @@ class TestTucuman(BaseTest, ErrorTest):
         from jurisdicciones.tucuman import Tucuman
 
         self.Jurisdiccion = Tucuman
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "20386165476"
-        self.clave_fiscal = "1994Gabriel"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_TUCUMAN_CLIENT")
+        self.cuit = os.getenv("TEST_TUCUMAN_CUIT")
+        self.clave_fiscal = os.getenv("TEST_TUCUMAN_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_TUCUMAN_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -832,12 +831,12 @@ class TestCatamarca(BaseTest, ErrorTest):
         from jurisdicciones.catamarca import Catamarca
 
         self.Jurisdiccion = Catamarca
-        self.client = "EDGE ARGENTINA S.R.L"
-        self.cuit = "20408964823"
-        self.clave_fiscal = "Elcolo_1998&"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30714604356"
+        self.client = os.getenv("TEST_CATAMARCA_CLIENT")
+        self.cuit = os.getenv("TEST_CATAMARCA_CUIT")
+        self.clave_fiscal = os.getenv("TEST_CATAMARCA_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_CATAMARCA_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -871,12 +870,12 @@ class TestCorrientes(BaseTest, ErrorTest):
         from jurisdicciones.corrientes import Corrientes
 
         self.Jurisdiccion = Corrientes
-        self.client = "NATURA COSMETICOS S.A"
-        self.cuit = "30677757295"
-        self.clave_fiscal = "natura18"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30677757295"
+        self.client = os.getenv("TEST_CORRIENTES_CLIENT")
+        self.cuit = os.getenv("TEST_CORRIENTES_CUIT")
+        self.clave_fiscal = os.getenv("TEST_CORRIENTES_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_CORRIENTES_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -910,12 +909,12 @@ class TestFormosa(BaseTest, ErrorTest):
         from jurisdicciones.formosa import Formosa
 
         self.Jurisdiccion = Formosa
-        self.client = "NATURA COSMETICOS S.A"
-        self.cuit = "30677757295"
-        self.clave_fiscal = "natura2014"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30677757295"
+        self.client = os.getenv("TEST_FORMOSA_CLIENT")
+        self.cuit = os.getenv("TEST_FORMOSA_CUIT")
+        self.clave_fiscal = os.getenv("TEST_FORMOSA_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_FORMOSA_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -949,12 +948,12 @@ class TestLaRioja(BaseTest, ErrorTest):
         from jurisdicciones.la_rioja import LaRioja
 
         self.Jurisdiccion = LaRioja
-        self.client = "NATURA COSMETICOS S.A"
-        self.cuit = "30677757295"
-        self.clave_fiscal = "Natura2024"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30677757295"
+        self.client = os.getenv("TEST_LA_RIOJA_CLIENT")
+        self.cuit = os.getenv("TEST_LA_RIOJA_CUIT")
+        self.clave_fiscal = os.getenv("TEST_LA_RIOJA_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_LA_RIOJA_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -988,12 +987,12 @@ class TestSalta(BaseTest, ErrorTest):
         from jurisdicciones.salta import Salta
 
         self.Jurisdiccion = Salta
-        self.client = "NATURA COSMETICOS S.A"
-        self.cuit = "30677757295"
-        self.clave_fiscal = "natura18"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30677757295"
+        self.client = os.getenv("TEST_SALTA_CLIENT")
+        self.cuit = os.getenv("TEST_SALTA_CUIT")
+        self.clave_fiscal = os.getenv("TEST_SALTA_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_SALTA_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio
@@ -1027,12 +1026,12 @@ class TestSanJuan(BaseTest, ErrorTest):
         from jurisdicciones.san_juan import SanJuan
 
         self.Jurisdiccion = SanJuan
-        self.client = "NATURA COSMETICOS S.A"
-        self.cuit = "30677757295"
-        self.clave_fiscal = "GJdd0x"
-        self.fecha_desde = "01052024"
-        self.fecha_hasta = "30052024"
-        self.cuit_cliente_input = "30677757295"
+        self.client = os.getenv("TEST_SAN_JUAN_CLIENT")
+        self.cuit = os.getenv("TEST_SAN_JUAN_CUIT")
+        self.clave_fiscal = os.getenv("TEST_SAN_JUAN_CLAVE_FISCAL")
+        self.fecha_desde = os.getenv("FECHA_DESDE")
+        self.fecha_hasta = os.getenv("FECHA_HASTA")
+        self.cuit_cliente_input = os.getenv("TEST_SAN_JUAN_CUIT_CLIENTE_INPUT")
 
     @pytest.mark.base
     @pytest.mark.asyncio

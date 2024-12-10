@@ -120,16 +120,6 @@ async def main():
         clave_fiscal_Agip = "Cambio2020"
         cuit_cliente_input = "30500846301"
 
-        # client = "EDGE ARGENTINA S.R.L"
-        # cuit_Agip = "20236063586"
-        # clave_fiscal_Agip = "Bart41051"
-        # cuit_cliente_input = "30714604356"
-
-        # client = "NATURA COSMETICOS S.A"
-        # cuit_Agip = "20937892692"
-        # clave_fiscal_Agip = "Natura1860"
-        # cuit_cliente_input = "30677757295"
-
         agip = await Agip.create(
             playwright,
             client,

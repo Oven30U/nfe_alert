@@ -19,3 +19,4 @@ git
 .env
 *.db
 pruebas/database.db
+.env

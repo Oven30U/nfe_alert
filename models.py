@@ -1,36 +1,54 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, SmallInteger, String, DateTime, ForeignKey, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
+
 class MonitoreoBots(Base):
-    __tablename__ = 'monitoreo_bots'
-    id = Column(Integer, primary_key=True)
-    username = Column(String)
-    proceso = Column(String)
-    estado = Column(String)
-    iniciado = Column(DateTime)
-    finalizado = Column(DateTime)
-    cliente = Column(String)
+    __tablename__ = "monitoreo_bots"
+    id = Column(SmallInteger, primary_key=True, autoincrement=True)
+    username = Column(String(50), nullable=False)
+    proceso = Column(Text, nullable=False)
+    estado = Column(String(50), nullable=False)
+    iniciado = Column(DateTime, nullable=True)
+    finalizado = Column(DateTime, nullable=True)
+    cliente = Column(String(50), nullable=False)
+
+
+class MonitoreoBotsBackup(Base):
+    __tablename__ = "monitoreo_bots_backup"
+    id = Column(SmallInteger, primary_key=True, autoincrement=True)
+    username = Column(String, nullable=False)
+    proceso = Column(String, nullable=False)
+    estado = Column(String, nullable=False)
+    iniciado = Column(DateTime, nullable=True)
+    finalizado = Column(DateTime, nullable=True)
+    cliente = Column(String, nullable=False)
+
 
 class UsuarioAutorizado(Base):
-    __tablename__ = 'usuarios_autorizados'
-    id = Column(Integer, primary_key=True)
-    username = Column(String)
-    fecha_autorizacion = Column(DateTime)
+    __tablename__ = "usuarios_autorizados"
+    id = Column(SmallInteger, primary_key=True, autoincrement=True)
+    username = Column(String, nullable=False)
+    fecha_autorizacion = Column(DateTime, nullable=True)
+
 
 class Cliente(Base):
-    __tablename__ = 'clientes'
-    id = Column(Integer, primary_key=True)
-    nombre = Column(String)
-    pass_ = Column(String, name='pass')
-    fecha_actualizacion_pass = Column(DateTime)
+    __tablename__ = "clientes"
+    id = Column(SmallInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String, nullable=False)
+    pass_ = Column(String, nullable=False, name="pass")
+    fecha_actualizacion_pass = Column(DateTime, nullable=True)
+    fecha_vencimiento_pass = Column(DateTime, nullable=True)
+
 
 class UsuarioCliente(Base):
-    __tablename__ = 'usuario_cliente'
-    id = Column(Integer, primary_key=True)
-    id_cliente = Column(Integer, ForeignKey('clientes.id'))
-    id_usuario = Column(Integer, ForeignKey('usuarios_autorizados.id'))
-    cliente = relationship('Cliente')
-    usuario = relationship('UsuarioAutorizado')
+    __tablename__ = "usuario_cliente"
+    id = Column(SmallInteger, primary_key=True, autoincrement=True)
+    id_cliente = Column(SmallInteger, ForeignKey("clientes.id"), nullable=False)
+    id_usuario = Column(
+        SmallInteger, ForeignKey("usuarios_autorizados.id"), nullable=False
+    )
+    cliente = relationship("Cliente")
+    usuario = relationship("UsuarioAutorizado")

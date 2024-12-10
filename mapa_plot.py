@@ -3,11 +3,12 @@ import matplotlib.image as mpimg
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 
 from config import mapa_jurisdiccion_clases
 
+# Define a constant for the legend location
+LEGEND_LOCATION = "lower right"
 
 def crear_mapa(df, output_file):
 
@@ -19,15 +20,8 @@ def crear_mapa(df, output_file):
     df["Nombre"] = df["Nombre"].replace(mapa_jurisdiccion_clases)
     merged = provincias.set_index("nombre").join(df.set_index("Nombre"))
 
-    # Reemplazar NaN con False en la columna 'Error'
-    # merged["Error"].fillna(False, inplace=True)
-    #! // merged["Error"].replace({None: False}, inplace=True)
-    #! // merged["Error"] = merged["Error"].replace({None: False})
     merged["Error"] = merged["Error"].replace({None: False}).infer_objects(copy=False)
 
-    # Mapear los valores de string a booleanos
-    # merged["Notificaciones"] = (merged["Notificaciones"].map({"Hay notificaciones": True}).fillna(False))
-    # Map "Hay notificaciones" to True, fill NA with False and infer objects
     merged["Notificacion"] = (
         merged["Notificacion"]
         .map({"Hay notificaciones": True})
@@ -35,7 +29,6 @@ def crear_mapa(df, output_file):
         .infer_objects(copy=False)
     )
 
-    # merged["Screenshot"] = (merged["Screenshot"].map({"Se realizó Screenshot": True}).fillna(False))
     merged["Screenshot"] = (
         merged["Screenshot"]
         .map({"Se realizó Screenshot": True})
@@ -50,7 +43,7 @@ def crear_mapa(df, output_file):
         merged["Error"],
         "#000000",
         np.where(
-            (merged["Notificacion"] == False) & (merged["Screenshot"] == False),
+            (~merged["Notificacion"]) & (~merged["Screenshot"]),
             "#D0D0CE",
             np.where(
                 merged["Notificacion"] & merged["Screenshot"],
@@ -65,7 +58,7 @@ def crear_mapa(df, output_file):
     )
 
     # Crear el gráfico de mapa
-    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+    _, ax = plt.subplots(1, 1, figsize=(10, 10))
     merged.plot(color=merged["color"], ax=ax)
 
     # Crear un diccionario de colores con los valores de orden correspondientes
@@ -87,7 +80,7 @@ def crear_mapa(df, output_file):
     # Crear la segunda leyenda
     df_legend = plt.legend(
         handles=df_legend_elements,
-        loc="lower right",
+        loc=LEGEND_LOCATION,
         bbox_to_anchor=(1, 0.1),
         prop={"size": 6},
     )
@@ -107,7 +100,7 @@ def crear_mapa(df, output_file):
     # Agregar la leyenda de colores al plot
     legend = ax.legend(
         handles=legend_elements,
-        loc="lower right",
+        loc=LEGEND_LOCATION,
         bbox_to_anchor=(1, 0),
         prop={"size": 6},
     )
@@ -160,14 +153,7 @@ def crear_mapa_argentina(df, output_file):
     df_nacional["Screenshot"] = df_nacional["Screenshot"] == "Se realizó Screenshot"
 
     # Reemplazar NaN con False en la columna 'Error'
-    # df_nacional["Error"].fillna(False, inplace=True)
-    # //df_nacional["Error"].replace({None: False}, inplace=True)
-    # df_nacional["Error"].replace({None: False}, inplace=True)
     df_nacional["Error"] = df_nacional["Error"].replace({None: False})
-
-    # Todo reemplazar para evitar advertencia
-    # df_nacional["Error"] = df_nacional["Error"].astype('boolean')
-    # df_nacional["Error"].fillna(False, inplace=True)
 
     # Asignar colores
     df_nacional["color"] = np.where(
@@ -200,7 +186,7 @@ def crear_mapa_argentina(df, output_file):
     )
 
     # Crear el gráfico de mapa
-    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+    _, ax = plt.subplots(1, 1, figsize=(10, 10))
     gdf.plot(color=color, ax=ax)
 
     # Crear un LegendElement para cada color
@@ -215,7 +201,7 @@ def crear_mapa_argentina(df, output_file):
     # Agregar la leyenda de colores al plot
     legend = ax.legend(
         handles=legend_elements,
-        loc="lower right",
+        loc=LEGEND_LOCATION,
         bbox_to_anchor=(1, 0),
         prop={"size": 6},
     )
@@ -236,7 +222,7 @@ def crear_mapa_argentina(df, output_file):
     # Crear la segunda leyenda
     df_legend = plt.legend(
         handles=df_legend_elements,
-        loc="lower right",
+        loc=LEGEND_LOCATION,
         bbox_to_anchor=(1, 0.1),
         prop={"size": 6},
     )
@@ -270,16 +256,3 @@ def crear_mapa_argentina(df, output_file):
     # plt.show()
     # Guardar el gráfico como una imagen
     plt.savefig(output_file, bbox_extra_artists=(legend, df_legend))
-
-
-# #Todo - En lugar de esto reemplazar los merges de df's en mapas
-# merged["Error"].fillna(False, inplace=True)
-
-# # Haz esto
-# merged["Error"] = merged["Error"].fillna(False)
-
-# # Y en lugar de esto
-# merged["Notificaciones"].replace({None: False}, inplace=True)
-
-# # Haz esto
-# merged["Notificaciones"] = merged["Notificaciones"].replace({None: False})
