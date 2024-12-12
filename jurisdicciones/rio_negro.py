@@ -1,28 +1,52 @@
+import os
 from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class RioNegro(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -36,14 +60,14 @@ class RioNegro(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def AFIP_login(
-            self,
-            URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgrrn_sitio_seguro",
+        self,
+        URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgrrn_sitio_seguro",
     ):
         return await super().AFIP_login(URL_AFIP_LOGIN)
 
@@ -71,8 +95,8 @@ class RioNegro(Jurisdiccion):
         await self.page.wait_for_load_state("networkidle")
         await self.page.click("button#btn_e-ventanilla")
         secciones = [
-            ("notificaciones", 'a#tab_notif'),
-            ("mensajes", 'a#tab_msj'),
+            ("notificaciones", "a#tab_notif"),
+            ("mensajes", "a#tab_msj"),
         ]
         self.hay_screenshot = await super().tomar_varias_screenshots(
             secciones, self.page
@@ -85,12 +109,13 @@ class RioNegro(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
-        cuit_RioNegro = "20386165476"
-        clave_fiscal_RioNegro = "1994Gabriel"
-        cuit_cliente_input = "30714604356"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+        client = os.getenv("TEST_RIO_NEGRO_CLIENT")
+        cuit_RioNegro = os.getenv("TEST_RIO_NEGRO_CUIT")
+        clave_fiscal_RioNegro = os.getenv("TEST_RIO_NEGRO_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_RIO_NEGRO_CUIT_CLIENTE_INPUT")
+
         rio_negro = await RioNegro.create(
             playwright,
             client,

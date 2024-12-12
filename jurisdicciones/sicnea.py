@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
@@ -204,15 +205,14 @@ if __name__ == "__main__":
 
     async def main():
         async with async_playwright() as playwright:
-            # client = "EDGE ARGENTINA S.R.L"
-            # cuit_cliente_input = "30714604356"
-            client = "SIMPLOT ARGENTINA S.R.L"
-            cuit_cliente_input = "30710920075"
+            fecha_desde = os.getenv("FECHA_DESDE")
+            fecha_hasta = os.getenv("FECHA_HASTA")
 
-            clave_fiscal_Sicnea = "MaiS14822788"
-            cuit_Sicnea = "27291463385"
-            fecha_desde = "21072024"
-            fecha_hasta = "20082024"
+            client = os.getenv("TEST_SICNEA_CLIENT")
+            cuit_Sicnea = os.getenv("TEST_SICNEA_CUIT")
+            clave_fiscal_Sicnea = os.getenv("TEST_SICNEA_CLAVE_FISCAL")
+            cuit_cliente_input = os.getenv("TEST_SICNEA_CUIT_CLIENTE_INPUT")
+            
             sicnea = await Sicnea.create(
                 playwright,
                 client,

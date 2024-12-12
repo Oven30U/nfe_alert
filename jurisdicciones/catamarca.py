@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
@@ -6,23 +7,48 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Catamarca(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None, razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -36,7 +62,7 @@ class Catamarca(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -44,16 +70,18 @@ class Catamarca(Jurisdiccion):
     async def consultar_notificaciones(self):
         await self.page.goto("https://dgrentas.arca.gob.ar/rentascuA/principal.aspx")
         await self.page.wait_for_load_state("networkidle")
-        await self.page.locator("(//input[@value='Acceder'])[2]").click()  # https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=arca_dgr_contrib
+        await self.page.locator(
+            "(//input[@value='Acceder'])[2]"
+        ).click()  # https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=arca_dgr_contrib
         await self.page.locator("//input[@id='F1:username']").fill(f"{self._cuit}")
         await self.page.locator("//input[@id='F1:btnSiguiente']").click()
         await self.page.wait_for_load_state("networkidle")
-        await self.page.locator("//input[@id='F1:password']").fill(f"{self._clave_fiscal}")
+        await self.page.locator("//input[@id='F1:password']").fill(
+            f"{self._clave_fiscal}"
+        )
         await self.page.locator("//input[@id='F1:btnIngresar']").click()
         await self.page.wait_for_load_state("networkidle")
-        if (
-                await self.page.is_visible("text=Clave o usuario incorrecto")
-        ):
+        if await self.page.is_visible("text=Clave o usuario incorrecto"):
             raise LoginError(
                 "Error de login en Catamarca, al autorizar al usuario", self.cliente
             )
@@ -81,9 +109,12 @@ class Catamarca(Jurisdiccion):
         # 'Ud. no tiene Notificaciones'
 
     async def buscar_notificacion(self):
-        return False if await self.page.is_visible(
-            'text=No se encontraron novedades') and await self.page.is_visible(
-            'text=Ud. no tiene Notificaciones') else False
+        return (
+            False
+            if await self.page.is_visible("text=No se encontraron novedades")
+            and await self.page.is_visible("text=Ud. no tiene Notificaciones")
+            else False
+        )
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)
@@ -95,16 +126,15 @@ class Catamarca(Jurisdiccion):
 if __name__ == "__main__":
     import asyncio
 
-
     async def main():
         async with async_playwright() as playwright:
-            fecha_desde = "01082024"
-            fecha_hasta = "30082024"
+            fecha_desde = os.getenv("FECHA_DESDE")
+            fecha_hasta = os.getenv("FECHA_HASTA")
 
-            cuit_Catamarca = "20408964823"
-            clave_fiscal_Catamarca = "Elcolo_1998&"
-            cuit_cliente_input = "30714604356"
-            client = "EDGE ARGENTINA S.R.L"
+            client = os.getenv("TEST_CATAMARCA_CLIENT")
+            cuit_Catamarca = os.getenv("TEST_CATAMARCA_CUIT")
+            clave_fiscal_Catamarca = os.getenv("TEST_CATAMARCA_CLAVE_FISCAL")
+            cuit_cliente_input = os.getenv("TEST_CATAMARCA_CUIT_CLIENTE_INPUT")
 
             catamarca = await Catamarca.create(
                 playwright,
@@ -117,6 +147,5 @@ if __name__ == "__main__":
                 headless=False,
             )
             await catamarca.procesar_jurisdiccion()
-
 
     asyncio.run(main())

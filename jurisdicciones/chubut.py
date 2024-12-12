@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
@@ -6,23 +7,48 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Chubut(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None, razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -36,7 +62,7 @@ class Chubut(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -58,9 +84,11 @@ class Chubut(Jurisdiccion):
 
     async def buscar_notificacion(self):
         fechas_envio_comunicaciones = await self.page.locator(
-            "//table[@id='actos_grid']//tr[@tabindex='-1']//td[3]").all()
+            "//table[@id='actos_grid']//tr[@tabindex='-1']//td[3]"
+        ).all()
         fechas_envio_fiscalizaciones = await self.page.locator(
-            "//table[@id='actos_grid_fisca']//tr[@tabindex='-1']//td[3]").all()
+            "//table[@id='actos_grid_fisca']//tr[@tabindex='-1']//td[3]"
+        ).all()
 
         fechas_envio = fechas_envio_comunicaciones + fechas_envio_fiscalizaciones
 
@@ -96,21 +124,15 @@ class Chubut(Jurisdiccion):
 if __name__ == "__main__":
     import asyncio
 
-
     async def main():
         async with async_playwright() as playwright:
-            fecha_desde = "01052024"
-            fecha_hasta = "30052024"
+            fecha_desde = os.getenv("FECHA_DESDE")
+            fecha_hasta = os.getenv("FECHA_HASTA")
 
-            # cuit_Chubut = "30714604356"
-            # client = "EDGE ARGENTINA S.R.L"
-            # clave_fiscal_Chubut = "Edge2023"
-            # cuit_cliente_input = "30714604356"
-
-            cuit_Chubut = "30677757295"
-            client = "NATURA COSMETICOS S.A"
-            clave_fiscal_Chubut = "natura00"
-            cuit_cliente_input = "30677757295"
+            client = os.getenv("TEST_CHUBUT_CLIENT")
+            cuit_Chubut = os.getenv("TEST_CHUBUT_CUIT")
+            clave_fiscal_Chubut = os.getenv("TEST_CHUBUT_CLAVE_FISCAL")
+            cuit_cliente_input = os.getenv("TEST_CHUBUT_CUIT_CLIENTE_INPUT")
 
             chubut = await Chubut.create(
                 playwright,
@@ -122,6 +144,5 @@ if __name__ == "__main__":
                 cuit_cliente_input,
             )
             await chubut.procesar_jurisdiccion()
-
 
     asyncio.run(main())

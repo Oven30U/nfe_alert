@@ -24,6 +24,7 @@ Ejemplo de uso:
     cc=["cc@example.com"]
 """
 
+import os
 import smtplib
 from datetime import datetime
 from email import encoders
@@ -77,9 +78,9 @@ def enviar_correo(
         cc=["cc@example.com"])
     """
 
-    # Configurar el servidor SMTP (asegúrate de tener las credenciales correctas)
-    servidor_smtp = "appmail.atrame.deloitte.com"
-    puerto_smtp = 25
+    # Configurar el servidor SMTP con STARTTLS en puerto 25
+    servidor_smtp = os.getenv("SERVIDOR_SMTP")
+    puerto_smtp = os.getenv("PUERTO_SMTP")
 
     # Asegurarse de que 'receptor' es una lista y no un string
     if not isinstance(receptor, list):
@@ -93,10 +94,10 @@ def enviar_correo(
 
     # Crear el mensaje
     msg = MIMEMultipart()
-    msg["From"] = "robot-Tax-AR@deloitte.com"
+    msg["From"] = os.getenv("CORREO_REMITENTE")
     msg["To"] = ",".join(receptor)
-    msg["Cc"] = ",".join(cc)
-    correos_rpa = ["lmarinaro@deloitte.com", "rpa-tax-ar@deloitte.com"]
+    msg["Cc"] = ",".join(cc) if cc else ""
+    correos_rpa = os.getenv("CORREOS_RPA").split(",")
     # Dividir la cadena en varias cadenas utilizando el method split()
     receptor = receptor[0].split(";")
     receptor.extend(correos_rpa)
@@ -154,21 +155,14 @@ def enviar_correo(
     try:
         server = smtplib.SMTP(servidor_smtp, puerto_smtp)
         server.starttls()
-    except ConnectionRefusedError:
-        # Si la conexión es rechazada, intenta sin especificar el puerto
-        server = smtplib.SMTP(servidor_smtp)
-
-    # Intenta enviar el correo electrónico
-    try:
+        # Si se requiere autenticación:
+        # server.login('tu_usuario', 'tu_contraseña')
         server.sendmail(msg["From"], receptor + cc, msg.as_string())
-    except SMTPNotSupportedError:
-        # Si no se admite la autenticación, continuar sin autenticación
-        server = smtplib.SMTP(servidor_smtp)
-        server.sendmail(msg["From"], receptor + cc, msg.as_string())
-
-    # Cerrar la conexión
-    server.quit()
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        server.quit()
 
 
 if __name__ == "__main__":
-    enviar_correo(receptor="lmarinaro@deloitte.com", cliente="FACEBOOK ARGENTINA S.R.L")
+    enviar_correo(receptor=os.getenv("CORREO_RECEPTOR_TEST_MAIL"), cliente=os.getenv("CLIENTE_TEST_MAIL"))

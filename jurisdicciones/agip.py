@@ -1,27 +1,56 @@
+import os
 from playwright.async_api import Playwright, async_playwright
 
-from jurisdicciones.jurisdiccion import (ConsultarNotificacionesError,
-                                         Jurisdiccion, LoginError)
+from jurisdicciones.jurisdiccion import (
+    ConsultarNotificacionesError,
+    Jurisdiccion,
+    LoginError,
+)
 
 
 class Agip(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None, razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -35,10 +64,11 @@ class Agip(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
+
     async def consultar_notificaciones(self):
         try:
             await self.page.goto("https://claveciudad.agip.gob.ar/", timeout=1200000)
@@ -51,30 +81,47 @@ class Agip(Jurisdiccion):
             await self.page.select_option(
                 "select[name='cuit_representado']", f"{self._cuit_cliente_input}"
             )
-            await self.page.fill('xpath=//*[@id="filtro_app"]', "Domicilio Fiscal Electrónico", timeout=90000)
+            await self.page.fill(
+                'xpath=//*[@id="filtro_app"]',
+                "Domicilio Fiscal Electrónico",
+                timeout=90000,
+            )
 
             try:
                 # if await self.page.wait_for_selector(f"xpath=//*[@onclick='ir_servicio(54,{self._cuit_cliente_input})']", timeout=900000):
-                await self.page.click(f"xpath=//*[@onclick='ir_servicio(54,{self._cuit_cliente_input})']", timeout=5000)
+                await self.page.click(
+                    f"xpath=//*[@onclick='ir_servicio(54,{self._cuit_cliente_input})']",
+                    timeout=5000,
+                )
             except Exception as e:
                 # else:
                 # Si el selector del servicio no se encuentra, hacer click en el DFE de arriba
-                await self.page.click("xpath=//*[@onclick='ir_servicio(54, 0)']", timeout=900000)
-                # Clickear en Representados
-                await self.page.wait_for_selector(f"xpath=//li[@id='opRepresentados']//a[@class='dropdown-toggle']",
-                                                  timeout=900000)
-                await self.page.click(f"xpath=//li[@id='opRepresentados']//a[@class='dropdown-toggle']", timeout=900000)
-                # Seleccionar el DFE del CUIT representado
-                await self.page.wait_for_selector(f"a[data-id='{self._cuit_cliente_input}']", timeout=900000)
-                await self.page.click(f"xpath=//*[a[@data-id={self._cuit_cliente_input}]]", timeout=900000)
-            finally:
-                boton_filtro = "xpath=//button[@class='btnNoLeidas btn btn-default']" # no_leidas
-                # boton_filtro = "xpath=//button[@class='btnSinNotificar btn btn-default']" # sin_notificar
-                await self.page.wait_for_selector(boton_filtro,
-                                                  timeout=900000)
                 await self.page.click(
-                    boton_filtro, timeout=900000
-                )  # 15 min
+                    "xpath=//*[@onclick='ir_servicio(54, 0)']", timeout=900000
+                )
+                # Clickear en Representados
+                await self.page.wait_for_selector(
+                    f"xpath=//li[@id='opRepresentados']//a[@class='dropdown-toggle']",
+                    timeout=900000,
+                )
+                await self.page.click(
+                    f"xpath=//li[@id='opRepresentados']//a[@class='dropdown-toggle']",
+                    timeout=900000,
+                )
+                # Seleccionar el DFE del CUIT representado
+                await self.page.wait_for_selector(
+                    f"a[data-id='{self._cuit_cliente_input}']", timeout=900000
+                )
+                await self.page.click(
+                    f"xpath=//*[a[@data-id={self._cuit_cliente_input}]]", timeout=900000
+                )
+            finally:
+                boton_filtro = (
+                    "xpath=//button[@class='btnNoLeidas btn btn-default']"  # no_leidas
+                )
+                # boton_filtro = "xpath=//button[@class='btnSinNotificar btn btn-default']" # sin_notificar
+                await self.page.wait_for_selector(boton_filtro, timeout=900000)
+                await self.page.click(boton_filtro, timeout=900000)  # 15 min
         except Exception as e:
             raise ConsultarNotificacionesError(
                 f"Error al consultar notificaciones: {str(e)}", self.cliente
@@ -112,13 +159,13 @@ class Agip(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
 
-        client = "ABBOTT LABORATORIES ARG. S.A"
-        cuit_Agip = "27262736364"
-        clave_fiscal_Agip = "Cambio2020"
-        cuit_cliente_input = "30500846301"
+        client = os.getenv("TEST_AGIP_CLIENT")
+        cuit_Agip = os.getenv("TEST_AGIP_CUIT")
+        clave_fiscal_Agip = os.getenv("TEST_AGIP_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_AGIP_CUIT_CLIENTE_INPUT")
 
         agip = await Agip.create(
             playwright,
@@ -128,7 +175,7 @@ async def main():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False
+            headless=False,
         )
         await agip.procesar_jurisdiccion()
 

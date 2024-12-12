@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
@@ -6,25 +7,48 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Jujuy(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -38,7 +62,7 @@ class Jujuy(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -66,27 +90,35 @@ class Jujuy(Jurisdiccion):
         if await incorrect_login.count() > 0:
             raise LoginError("Login CUIT incorrecto", self.cliente)
 
-        await self.page.locator('text="DOMICILIO FISCAL ELECTRONICO"').wait_for(state="visible", timeout=60000)
+        await self.page.locator('text="DOMICILIO FISCAL ELECTRONICO"').wait_for(
+            state="visible", timeout=60000
+        )
         await self.page.goto(
             "https://www.rentasjujuyonline.gob.ar/cedulavirtual/HCon_NotDFEwwRes.aspx"
         )
         await self.page.wait_for_load_state("networkidle")
-        await self.page.locator('text="NOTIFICACIONES DE DOMICILIO FISCAL ELECTRONICO"').wait_for(state="visible",
-                                                                                                  timeout=60000)
+        await self.page.locator(
+            'text="NOTIFICACIONES DE DOMICILIO FISCAL ELECTRONICO"'
+        ).wait_for(state="visible", timeout=60000)
         await self.page.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
         await self.page.wait_for_load_state("networkidle")
-        await self.page.locator('table#Grid1ContainerTbl').wait_for(state='visible', timeout=60000)
+        await self.page.locator("table#Grid1ContainerTbl").wait_for(
+            state="visible", timeout=60000
+        )
         await self.page.wait_for_load_state("networkidle")
         await self.page.wait_for_load_state("load")
         await self.page.wait_for_load_state("domcontentloaded")
-        await self.page.wait_for_selector('table#Grid1ContainerTbl', state='visible', timeout=60000)
+        await self.page.wait_for_selector(
+            "table#Grid1ContainerTbl", state="visible", timeout=60000
+        )
 
         self.hay_notificaciones = False
 
         fecha_columna = await self.page.locator(
-            'xpath=//table[@id="Grid1ContainerTbl"]//tbody//tr[1]/td[7]').inner_text()
+            'xpath=//table[@id="Grid1ContainerTbl"]//tbody//tr[1]/td[7]'
+        ).inner_text()
         fecha_columna = datetime.strptime(fecha_columna, "%d/%m/%Y")
         fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
 
@@ -105,21 +137,15 @@ class Jujuy(Jurisdiccion):
 if __name__ == "__main__":
     import asyncio
 
-
     async def main():
         async with async_playwright() as playwright:
-            fecha_desde = "01012023"
-            fecha_hasta = "30082024"
+            fecha_desde = os.getenv("FECHA_DESDE")
+            fecha_hasta = os.getenv("FECHA_HASTA")
 
-            # client = "EDGE ARGENTINA S.R.L"
-            # cuit_Jujuy = "30714604356"
-            # clave_fiscal_Jujuy = "Edge2021!"
-            # cuit_cliente_input = "30714604356"
-
-            client = "NATURA COSMETICOS S.A"
-            cuit_Jujuy = "30677757295"
-            clave_fiscal_Jujuy = "Na12345$"
-            cuit_cliente_input = "30677757295"
+            client = os.getenv("TEST_JUJUY_CLIENT")
+            cuit_Jujuy = os.getenv("TEST_JUJUY_CUIT")
+            clave_fiscal_Jujuy = os.getenv("TEST_JUJUY_CLAVE_FISCAL")
+            cuit_cliente_input = os.getenv("TEST_JUJUY_CUIT_CLIENTE_INPUT")
 
             jujuy = await Jujuy.create(
                 playwright,
@@ -129,9 +155,8 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
-                headless=False
+                headless=False,
             )
             await jujuy.procesar_jurisdiccion()
-
 
     asyncio.run(main())

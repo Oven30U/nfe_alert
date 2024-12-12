@@ -1,3 +1,4 @@
+import os
 from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion
@@ -79,12 +80,14 @@ class Tucuman(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
-        cuit_Tucuman = "20386165476"
-        clave_fiscal_Tucuman = "1994Gabriel"
-        cuit_cliente_input = "30714604356"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_TUCUMAN_CLIENT")
+        cuit_Tucuman = os.getenv("TEST_TUCUMAN_CUIT")
+        clave_fiscal_Tucuman = os.getenv("TEST_TUCUMAN_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_TUCUMAN_CUIT_CLIENTE_INPUT")
+        
         tucuman = await Tucuman.create(
             playwright,
             client,

@@ -81,7 +81,7 @@ async def main():
                     estado = "Correo no enviado"
                 username = obtener_username(correo_output, socio_responsable)
                 registrar_ejecucion(
-                    proceso="NFE Alert",
+                    proceso=os.getenv("PROYECTO"),
                     cliente=cliente,
                     username=username,
                     inicio=inicio,
@@ -278,8 +278,9 @@ def enviar_email(df_final, zip_path, zip_name, output_folder, cliente, group):
 
         if receptor is None:
             raise ValueError("Receptor email address is None. Cannot send email.")
-
-        enviar_correo(
+        
+        from mail_outlook import enviar_correo_outlook
+        enviar_correo_outlook(
             receptor=receptor,
             cliente=cliente,
             ruta_archivo_adjunto=zip_path,
@@ -290,6 +291,18 @@ def enviar_email(df_final, zip_path, zip_name, output_folder, cliente, group):
             cuerpo_html_plantilla="html/mail_plantilla.html",
             cc=cc,
         )
+
+        # enviar_correo(
+        #     receptor=receptor,
+        #     cliente=cliente,
+        #     ruta_archivo_adjunto=zip_path,
+        #     nombre_archivo_adjunto=zip_name,
+        #     df=df_correo,
+        #     ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
+        #     ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
+        #     cuerpo_html_plantilla="html/mail_plantilla.html",
+        #     cc=cc,
+        # )
         return True
     except Exception as e:
         print(f"Error al enviar correo: {e}")

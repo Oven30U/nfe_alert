@@ -1,3 +1,4 @@
+import os
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Playwright, async_playwright
 
@@ -151,12 +152,14 @@ class Mendoza(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        fecha_desde = "01052020"
-        fecha_hasta = "30052024"
-        client = "EDGE ARGENTINA S.R.L"
-        cuit_Mendoza = "30714604356"
-        clave_fiscal_Mendoza = "Edge2023"
-        cuit_cliente_input = "30714604356"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_MENDOZA_CLIENT")
+        cuit_Mendoza = os.getenv("TEST_MENDOZA_CUIT")
+        clave_fiscal_Mendoza = os.getenv("TEST_MENDOZA_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_MENDOZA_CUIT_CLIENTE_INPUT")
+        
         mendoza = await Mendoza.create(
             playwright,
             client,

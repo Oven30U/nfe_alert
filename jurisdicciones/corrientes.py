@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
@@ -6,26 +7,49 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Corrientes(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-        # self.headless = headless
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+        # self.headless = headless
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -39,7 +63,7 @@ class Corrientes(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         self.headless = headless
@@ -49,12 +73,12 @@ class Corrientes(Jurisdiccion):
         await self.page.goto("https://miportal.dgrcorrientes.gov.ar/")
         await self.page.wait_for_load_state("networkidle")
         await self.page.locator("//input[@id='username']").fill(f"{self._cuit}")
-        await self.page.locator("//input[@id='loginPassword']").fill(f"{self._clave_fiscal}")
+        await self.page.locator("//input[@id='loginPassword']").fill(
+            f"{self._clave_fiscal}"
+        )
         await self.page.locator("//button[@id='ingresar']").click()
         await self.page.wait_for_load_state("networkidle")
-        if (
-                await self.page.is_visible("text=Los datos ingresados no son correctos.")
-        ):
+        if await self.page.is_visible("text=Los datos ingresados no son correctos."):
             raise LoginError(
                 "Error de login en Corrientes, al autorizar al usuario", self.cliente
             )
@@ -106,16 +130,15 @@ class Corrientes(Jurisdiccion):
 if __name__ == "__main__":
     import asyncio
 
-
     async def main():
         async with async_playwright() as playwright:
-            fecha_desde = "01082024"
-            fecha_hasta = "30082024"
+            fecha_desde = os.getenv("FECHA_DESDE")
+            fecha_hasta = os.getenv("FECHA_HASTA")
 
-            cuit_Corrientes = "30677757295"
-            clave_fiscal_Corrientes = "natura18"
-            cuit_cliente_input = "30677757295"
-            client = "NATURA COSMETICOS S.A"
+            client = os.getenv("TEST_CORRIENTES_CLIENT")
+            cuit_Corrientes = os.getenv("TEST_CORRIENTES_CUIT")
+            clave_fiscal_Corrientes = os.getenv("TEST_CORRIENTES_CLAVE_FISCAL")
+            cuit_cliente_input = os.getenv("TEST_CORRIENTES_CUIT_CLIENTE_INPUT")
 
             corrientes = await Corrientes.create(
                 playwright,
@@ -125,9 +148,8 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
-                headless=False
+                headless=False,
             )
             await corrientes.procesar_jurisdiccion()
-
 
     asyncio.run(main())

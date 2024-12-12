@@ -1,26 +1,53 @@
+import os
+import asyncio
 from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Arba(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None, razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -34,7 +61,7 @@ class Arba(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -48,13 +75,13 @@ class Arba(Jurisdiccion):
         await self.page.locator("//button[@value='Ingresar']").click()
         # await self.page.press("#clave_Cuit", "Enter")
         if (
-                await self.page.is_visible(
-                    "text=Ocurrio un error inesperado al autorizar al usuario"
-                )
-                or await self.page.is_visible(
-            "text=El usuario ingresado y/o la contraseña no son válidos."
-        )
-                or await self.page.is_visible("text=Servicio ocupado")
+            await self.page.is_visible(
+                "text=Ocurrio un error inesperado al autorizar al usuario"
+            )
+            or await self.page.is_visible(
+                "text=El usuario ingresado y/o la contraseña no son válidos."
+            )
+            or await self.page.is_visible("text=Servicio ocupado")
         ):
             raise LoginError(
                 "Error de login en ARBA, al autorizar al usuario", self.cliente
@@ -76,7 +103,8 @@ class Arba(Jurisdiccion):
         # Verificar si el texto "No se encontraron resultados" es visible
         return not await self.buscar_notificacion_xpath_visible(
             "//table[@id='listaNotificacionesTCTodas']//tbody/tr//*[contains(text(), 'No se encontraron resultados')]",
-            self.page)
+            self.page,
+        )
 
     async def tomar_screenshot(self):
         await self.page.wait_for_load_state("load")
@@ -88,23 +116,13 @@ class Arba(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        fecha_desde = "01072024"
-        fecha_hasta = "30072024"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
 
-        # cuit_Arba = "30712132554"
-        # clave_fiscal_Arba = "Facebook1819"
-        # cuit_cliente_input = "30712132554"
-        # client = "FACEBOOK ARGENTINA S.R.L"
-
-        client = "EDGE ARGENTINA S.R.L"
-        cuit_Arba = "30714604356"
-        clave_fiscal_Arba = "Edge2018"
-        cuit_cliente_input = "30714604356"
-
-        # client = "ABBOTT LABORATORIES ARG. S.A"
-        # cuit_Arba = "30500846301"
-        # clave_fiscal_Arba = "Abbott2018"
-        # cuit_cliente_input = "30500846301"
+        client = os.getenv("TEST_ARBA_CLIENT")
+        cuit_Arba = os.getenv("TEST_ARBA_CUIT")
+        clave_fiscal_Arba = os.getenv("TEST_ARBA_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_ARBA_CUIT_CLIENTE_INPUT")
 
         arba = await Arba.create(
             playwright,
@@ -119,6 +137,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
-
     asyncio.run(main())

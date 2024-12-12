@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
@@ -6,25 +7,48 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Formosa(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -38,7 +62,7 @@ class Formosa(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -50,9 +74,7 @@ class Formosa(Jurisdiccion):
         await self.page.locator("//input[@name='pass']").fill(f"{self._clave_fiscal}")
         await self.page.locator("//input[@value='Ingresar']").click()
         await self.page.wait_for_load_state("networkidle")
-        if (
-                await self.page.is_visible("text=No se encontraron datos.")
-        ):
+        if await self.page.is_visible("text=No se encontraron datos."):
             raise LoginError(
                 "Error de login en Formosa, al autorizar al usuario", self.cliente
             )
@@ -60,15 +82,20 @@ class Formosa(Jurisdiccion):
         await self.page.wait_for_selector("//span[contains(text(),'BUZÓN FISCAL')]")
         # await self.page.goto("https://www.atpformosa.gob.ar/consultas/buzon_fiscal_electronico.php")
         await self.page.goto(
-            "https://www.atpformosa.gob.ar/consultas/buzon_fiscal_electronico.php?caseid=notificaciones_lista")
+            "https://www.atpformosa.gob.ar/consultas/buzon_fiscal_electronico.php?caseid=notificaciones_lista"
+        )
         await self.page.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
-        if await self.page.locator("//div[contains(text(),'NO SE ENCONTRARON NOTIFICACIONES')]").is_visible():
+        if await self.page.locator(
+            "//div[contains(text(),'NO SE ENCONTRARON NOTIFICACIONES')]"
+        ).is_visible():
             return False
         else:
             # Seleccionar la segunda ocurrencia de fechas_disposicion
-            fecha_mas_actual = self.page.locator("//table[@id='table7']//tr//td[3]").nth(1)
+            fecha_mas_actual = self.page.locator(
+                "//table[@id='table7']//tr//td[3]"
+            ).nth(1)
             fecha_text = (await fecha_mas_actual.inner_text()).strip()
             try:
                 fecha_text = datetime.strptime(fecha_text, "%d/%m/%Y")
@@ -91,21 +118,15 @@ class Formosa(Jurisdiccion):
 if __name__ == "__main__":
     import asyncio
 
-
     async def main():
         async with async_playwright() as playwright:
-            fecha_desde = "01082024"
-            fecha_hasta = "30082024"
+            fecha_desde = os.getenv("FECHA_DESDE")
+            fecha_hasta = os.getenv("FECHA_HASTA")
 
-            # cuit_Formosa = "30714604356"
-            # clave_fiscal_Formosa = "Edge2021"
-            # cuit_cliente_input = "30714604356"
-            # client = "EDGE ARGENTINA S.R.L"
-
-            cuit_Formosa = "30677757295"
-            clave_fiscal_Formosa = "natura2014"
-            cuit_cliente_input = "30677757295"
-            client = "NATURA COSMETICOS S.A"
+            client = os.getenv("TEST_FORMOSA_CLIENT")
+            cuit_Formosa = os.getenv("TEST_FORMOSA_CUIT")
+            clave_fiscal_Formosa = os.getenv("TEST_FORMOSA_CLAVE_FISCAL")
+            cuit_cliente_input = os.getenv("TEST_FORMOSA_CUIT_CLIENTE_INPUT")
 
             formosa = await Formosa.create(
                 playwright,
@@ -117,6 +138,5 @@ if __name__ == "__main__":
                 cuit_cliente_input,
             )
             await formosa.procesar_jurisdiccion()
-
 
     asyncio.run(main())

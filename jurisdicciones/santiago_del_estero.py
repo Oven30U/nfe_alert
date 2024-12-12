@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
@@ -6,25 +7,48 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class SantiagoDelEstero(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -38,14 +62,15 @@ class SantiagoDelEstero(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def consultar_notificaciones(self):
         await self.page.goto(
-            'https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml')
+            "https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml"
+        )
         await self.page.wait_for_load_state("load")
 
         # self.page.set_default_timeout(60000)
@@ -53,21 +78,26 @@ class SantiagoDelEstero(Jurisdiccion):
         # context = await self.browser.new_context(bypass_csp=True)
         # self.page = await context.new_page()
         # await self.page.goto("https://dgronline.dgrsantiago.gob.ar/dgronline/hlogin.aspx")
-        await self.page.locator("//input[@id='loginForm:username']").fill(f"{self._cuit}")
-        await self.page.locator("//input[@name='loginForm:password']").fill(f"{self._clave_fiscal}")
+        await self.page.locator("//input[@id='loginForm:username']").fill(
+            f"{self._cuit}"
+        )
+        await self.page.locator("//input[@name='loginForm:password']").fill(
+            f"{self._clave_fiscal}"
+        )
         await self.page.locator("//button[@id='loginForm:loginButton']").click()
         await self.page.wait_for_load_state("load")
-        if (
-                await self.page.is_visible("text=Usuario y Contraseña Incorrectos!")
-        ):
+        if await self.page.is_visible("text=Usuario y Contraseña Incorrectos!"):
             raise LoginError(
-                "Error de login en SantiagoDelEstero, al autorizar al usuario", self.cliente
+                "Error de login en SantiagoDelEstero, al autorizar al usuario",
+                self.cliente,
             )
-        await  self.page.wait_for_selector("//h3[contains(text(),'Bandeja de Entrada')]")
+        await self.page.wait_for_selector("//h3[contains(text(),'Bandeja de Entrada')]")
         await self.page.wait_for_load_state("load")
 
     async def buscar_notificacion(self):
-        fechas_disposicion = await self.page.locator("//tbody[@id='form:tablanotificaciones_data']//tr//td[5]").all()
+        fechas_disposicion = await self.page.locator(
+            "//tbody[@id='form:tablanotificaciones_data']//tr//td[5]"
+        ).all()
 
         fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
         fecha_hasta_dt = datetime.strptime(self.fecha_hasta, "%d%m%Y")
@@ -95,16 +125,19 @@ class SantiagoDelEstero(Jurisdiccion):
 if __name__ == "__main__":
     import asyncio
 
-
     async def main():
         async with async_playwright() as playwright:
-            fecha_desde = "01082024"
-            fecha_hasta = "30082024"
+            fecha_desde = os.getenv("FECHA_DESDE")
+            fecha_hasta = os.getenv("FECHA_HASTA")
 
-            cuit_SantiagoDelEstero = "30714604356"
-            clave_fiscal_SantiagoDelEstero = "Edge2023"
-            cuit_cliente_input = "30714604356"
-            client = "EDGE ARGENTINA S.R.L"
+            client = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLIENT")
+            cuit_SantiagoDelEstero = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT")
+            clave_fiscal_SantiagoDelEstero = os.getenv(
+                "TEST_SANTIAGO_DEL_ESTERO_CLAVE_FISCAL"
+            )
+            cuit_cliente_input = os.getenv(
+                "TEST_SANTIAGO_DEL_ESTERO_CUIT_CLIENTE_INPUT"
+            )
 
             santiago_del_estero = await SantiagoDelEstero.create(
                 playwright,
@@ -114,9 +147,8 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
-                headless=False
+                headless=False,
             )
             await santiago_del_estero.procesar_jurisdiccion()
-
 
     asyncio.run(main())

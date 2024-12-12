@@ -248,11 +248,12 @@ def get_clientes_ejecutados_hoy(clientes: List[str]) -> List[str]:
         today = datetime.now().date()
         start_of_day = datetime.combine(today, datetime.min.time()).replace(microsecond=0)
         end_of_day = datetime.combine(today, datetime.max.time()).replace(microsecond=0)
+        proceso = os.getenv("PROYECTO")
 
         results = session.query(MonitoreoBots.cliente).filter(
             MonitoreoBots.finalizado >= start_of_day,
             MonitoreoBots.finalizado <= end_of_day,
-            MonitoreoBots.proceso == 'Revision de Domicilios Fiscales Electronicos',
+            MonitoreoBots.proceso == proceso,
             MonitoreoBots.cliente.in_(clientes),
             MonitoreoBots.estado == 'Correcto'
         ).group_by(MonitoreoBots.cliente).all()

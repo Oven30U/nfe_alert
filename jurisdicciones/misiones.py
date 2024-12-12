@@ -1,28 +1,52 @@
+import os
 from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Misiones(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -36,7 +60,7 @@ class Misiones(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -82,11 +106,10 @@ class Misiones(Jurisdiccion):
 
     async def tomar_screenshot(self):
         """Tomar dos screenshot's en la jurisdicción de Misiones."""
-        secciones = [
-            ('notificaciones', 'a#tab_notif'),
-            ('avisos', 'a#tab_comun')
-        ]
-        self.hay_screenshot = await super().tomar_varias_screenshots(secciones, self.page, delay=2)
+        secciones = [("notificaciones", "a#tab_notif"), ("avisos", "a#tab_comun")]
+        self.hay_screenshot = await super().tomar_varias_screenshots(
+            secciones, self.page, delay=2
+        )
         return self.hay_screenshot
 
     async def procesar_jurisdiccion(self):
@@ -95,12 +118,13 @@ class Misiones(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
-        cuit_Misiones = "30714604356"
-        clave_fiscal_Misiones = "Edge2021"
-        cuit_cliente_input = "30714604356"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_MISIONES_CLIENT")
+        cuit_Misiones = os.getenv("TEST_MISIONES_CUIT")
+        clave_fiscal_Misiones = os.getenv("TEST_MISIONES_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_MISIONES_CUIT_CLIENTE_INPUT")
         misiones = await Misiones.create(
             playwright,
             client,

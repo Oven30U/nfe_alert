@@ -1,4 +1,5 @@
 import re
+import os
 
 from playwright.async_api import Playwright, async_playwright
 
@@ -97,12 +98,13 @@ class Neuquen(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
-        cuit_Neuquen = "30714604356"
-        clave_fiscal_Neuquen = "Edge2021"
-        cuit_cliente_input = cuit_Neuquen
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+        client = os.getenv("TEST_NEUQUEN_CLIENT")
+        cuit_Neuquen = os.getenv("TEST_NEUQUEN_CUIT")
+        clave_fiscal_Neuquen = os.getenv("TEST_NEUQUEN_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_NEUQUEN_CUIT_CLIENTE_INPUT")
+        
         neuquen = await Neuquen.create(
             playwright,
             client,

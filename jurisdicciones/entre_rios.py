@@ -1,28 +1,52 @@
+import os
 from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class EntreRios(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -36,7 +60,7 @@ class EntreRios(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -115,12 +139,13 @@ class EntreRios(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
-        cuit_EntreRios = "20386165476"
-        clave_fiscal_EntreRios = "1994Gabriel"
-        cuit_cliente_input = "30714604356"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_ENTRE_RIOS_CLIENT")
+        cuit_EntreRios = os.getenv("TEST_ENTRE_RIOS_CUIT")
+        clave_fiscal_EntreRios = os.getenv("TEST_ENTRE_RIOS_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_ENTRE_RIOS_CUIT_CLIENTE_INPUT")
         entre_rios = await EntreRios.create(
             playwright,
             client,

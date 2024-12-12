@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
@@ -6,25 +7,48 @@ from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class Nacional(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -38,13 +62,13 @@ class Nacional(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def AFIP_login(
-            self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
     ):
         return await super().AFIP_login(URL_AFIP_LOGIN)
 
@@ -60,7 +84,9 @@ class Nacional(Jurisdiccion):
         await self.new_page.click('text="Recordar más tarde"')
         await self.new_page.click('text=" Comunicaciones de mis representados "')
         # await self.new_page.click("#d-select-81")
-        await self.new_page.click("(//div[@class='input-group'])[5]//div[@class='form-control dropdown-toggle']")
+        await self.new_page.click(
+            "(//div[@class='input-group'])[5]//div[@class='form-control dropdown-toggle']"
+        )
         await self.new_page.click(f'xpath=//button[@id="{self.cuit_cliente_input}"]')
         await self.page.wait_for_load_state("networkidle")
         try:
@@ -69,14 +95,24 @@ class Nacional(Jurisdiccion):
         except Exception:
             pass
         # await self.new_page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
-        self.fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y").strftime("%d/%m/%Y")
-        await self.new_page.fill("xpath=(//label[contains(text(), 'Desde')]/following::input[1])[2]",
-                                 f"{self.fecha_desde}")
+        self.fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y").strftime(
+            "%d/%m/%Y"
+        )
+        await self.new_page.fill(
+            "xpath=(//label[contains(text(), 'Desde')]/following::input[1])[2]",
+            f"{self.fecha_desde}",
+        )
         # await self.new_page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}") #\t\n
-        self.fecha_hasta = datetime.strptime(self.fecha_hasta, "%d%m%Y").strftime("%d/%m/%Y")
-        await self.new_page.fill("xpath=(//label[contains(text(), 'Hasta')]/following::input[1])[2]",
-                                 f"{self.fecha_hasta}")  # \t\n
-        await self.new_page.locator('//button[contains(text(), "Aplicar")]').nth(1).click()
+        self.fecha_hasta = datetime.strptime(self.fecha_hasta, "%d%m%Y").strftime(
+            "%d/%m/%Y"
+        )
+        await self.new_page.fill(
+            "xpath=(//label[contains(text(), 'Hasta')]/following::input[1])[2]",
+            f"{self.fecha_hasta}",
+        )  # \t\n
+        await self.new_page.locator('//button[contains(text(), "Aplicar")]').nth(
+            1
+        ).click()
         # await self.new_page.keyboard.press("Tab")
         # await self.new_page.keyboard.press("Enter")
 
@@ -104,9 +140,10 @@ class Nacional(Jurisdiccion):
         todos_screenshots_exitosos = True
         selectores_validos = 0
 
-
         # Expandir los grupos de filtros Notificaciones y/o Mensajes
-        filtros_colapsados = await self.new_page.locator("xpath=//div[@aria-expanded='false']").all()
+        filtros_colapsados = await self.new_page.locator(
+            "xpath=//div[@aria-expanded='false']"
+        ).all()
         for filtro in filtros_colapsados:
             await filtro.click()
 
@@ -118,8 +155,9 @@ class Nacional(Jurisdiccion):
             except Exception:
                 continue
 
-            no_hay_notificaciones = await super().buscar_notificacion(self.new_page,
-                                                                      "No hay comunicaciones para mostrar")
+            no_hay_notificaciones = await super().buscar_notificacion(
+                self.new_page, "No hay comunicaciones para mostrar"
+            )
 
             if not no_hay_notificaciones:
                 contador_filtro_hay_notificacion += 1
@@ -136,39 +174,59 @@ class Nacional(Jurisdiccion):
         self.fecha_hasta = self.fecha_hasta.replace("/", "")
         while True:
             # Primer Screenshot
-            await super().tomar_screenshot(self.new_page, nombre_extra=tipo_notificacion)
+            await super().tomar_screenshot(
+                self.new_page, nombre_extra=tipo_notificacion
+            )
 
             # Contar la cantidad de elementos <tr> dentro del selector especificado
-            selector_notificaciones = "//div[@class='tab-pane active card-body']//tbody[@role='rowgroup']/tr"
-            cantidad_notificaciones = await self.new_page.locator(selector_notificaciones).count()
+            selector_notificaciones = (
+                "//div[@class='tab-pane active card-body']//tbody[@role='rowgroup']/tr"
+            )
+            cantidad_notificaciones = await self.new_page.locator(
+                selector_notificaciones
+            ).count()
 
             # Sólo si hay 7 o más notificaciones continuo tomando screenshots
             if cantidad_notificaciones >= 7:
                 # Scroll hasta la última notificación
-                selector_ultima_notificacion = "(//div[@class='tab-pane active card-body']//tr)[last()]"
-                await self.new_page.evaluate("""
+                selector_ultima_notificacion = (
+                    "(//div[@class='tab-pane active card-body']//tr)[last()]"
+                )
+                await self.new_page.evaluate(
+                    """
                     (selector) => {
                         document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.scrollIntoView();
                     }
-                """, selector_ultima_notificacion)
+                """,
+                    selector_ultima_notificacion,
+                )
 
                 # Segundo Screenshot
-                await super().tomar_screenshot(self.new_page, nombre_extra=tipo_notificacion)
+                await super().tomar_screenshot(
+                    self.new_page, nombre_extra=tipo_notificacion
+                )
 
             # Verificar si hay más páginas, si hay -> navegar a la próxima y repetir
             selector_flecha_siguiente = "(//button[@role='menuitem'])[4]"
-            clases_flecha_siguiente = await self.new_page.get_attribute(selector_flecha_siguiente, "class")
+            clases_flecha_siguiente = await self.new_page.get_attribute(
+                selector_flecha_siguiente, "class"
+            )
             if "disabled" in clases_flecha_siguiente:
                 return True
             await self.new_page.click(selector_flecha_siguiente)
 
             # Scroll hasta la primera notificación
-            selector_primera_notificacion = "(//div[@class='tab-pane active card-body']//tr)[1]"
-            await self.new_page.evaluate("""
+            selector_primera_notificacion = (
+                "(//div[@class='tab-pane active card-body']//tr)[1]"
+            )
+            await self.new_page.evaluate(
+                """
                 (selector) => {
                     document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.scrollIntoView();
                 }
-            """, selector_primera_notificacion)
+            """,
+                selector_primera_notificacion,
+            )
 
     async def tomar_screenshot(self):
         return self.hay_screenshots_filtrados
@@ -179,15 +237,13 @@ class Nacional(Jurisdiccion):
 
 async def main():
     async with async_playwright() as playwright:
-        client = "EDGE ARGENTINA S.R.L"
-        cuit_cliente_input = "30714604356"
-        # client = "FACEBOOK ARGENTINA S.R.L"
-        # cuit_cliente_input = "30712132554"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
 
-        clave_fiscal_Nacional = "1994Gabriel"
-        cuit_Nacional = "20386165476"
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
+        client = os.getenv("TEST_NACIONAL_CLIENT")
+        cuit_Nacional = os.getenv("TEST_NACIONAL_CUIT")
+        clave_fiscal_Nacional = os.getenv("TEST_NACIONAL_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_NACIONAL_CUIT_CLIENTE_INPUT")
 
         nacional = await Nacional.create(
             playwright,
@@ -197,7 +253,7 @@ async def main():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False
+            headless=False,
         )
         await nacional.procesar_jurisdiccion()
 
