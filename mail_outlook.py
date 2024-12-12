@@ -1,3 +1,38 @@
+"""
+Este módulo proporciona una función para enviar correos electrónicos utilizando Microsoft Outlook.
+Es necesario que la cuenta logueada en Outlook tenga acceso a la casilla de
+sender_email que utiliza la variable de entorno SENDER_EMAIL_BEHAL.
+Puede utilizarse cómo BackUp en caso de no poder utilizar SMTP.
+
+Funciones:
+- enviar_correo_outlook: Envía un correo electrónico utilizando Outlook 
+con la posibilidad de adjuntar archivos, incluir tablas y mapas en el cuerpo del correo,
+y personalizar el contenido HTML.
+
+Dependencias:
+- win32com.client
+- os
+- datetime
+- config (mapa_jurisdiccion_clases)
+- generar_html (convertir_imagen_en_html, grabar_html, insertar_mapas_en_html, insertar_tabla_en_html, reemplazar_contenido_en_html)
+- pandas
+- dotenv (load_dotenv)
+
+Variables de entorno requeridas:
+- SENDER_EMAIL_BEHAL: Correo electrónico del remitente en nombre del cual se enviará el correo.
+- CORREO_RECEPTOR_TEST_MAIL: Correo electrónico del receptor para pruebas.
+
+Ejemplo de uso:
+    receptor=["receptor@example.com"],
+    ruta_archivo_adjunto="ruta/al/archivo.pdf",
+    nombre_archivo_adjunto="archivo.pdf",
+    df=dataframe,
+    ruta_imagen_png="ruta/a/imagen1.png",
+    ruta_imagen_png_2="ruta/a/imagen2.png",
+    cc=["cc@example.com"],
+
+"""
+
 import win32com.client as win32
 import os
 from datetime import datetime
@@ -10,6 +45,9 @@ from generar_html import (
     reemplazar_contenido_en_html,
 )
 import pandas as pd
+from dotenv import load_dotenv
+
+load_dotenv()  # Cargar las variables de entorno desde el archivo .env
 
 
 def enviar_correo_outlook(
@@ -34,6 +72,13 @@ def enviar_correo_outlook(
         # Configurar destinatarios
         mail.To = "; ".join(receptor)
         mail.CC = "; ".join(cc) if cc else ""
+        sender_email = os.getenv("SENDER_EMAIL_BEHAL")
+        if sender_email:
+            mail.SentOnBehalfOfName = sender_email
+        else:
+            print(
+                "Advertencia: SENDER_EMAIL no está definido en las variables de entorno."
+            )
 
         # Asunto del correo
         mail.Subject = f"NFE Alert: Revisión de Domicilios Fiscales Electrónicos del cliente {cliente}"
@@ -89,20 +134,14 @@ def enviar_correo_outlook(
 
 
 if __name__ == "__main__":
-    # Ejemplo de uso
     enviar_correo_outlook(
-        receptor=["lmarinaro@deloitte.com"],
-        cliente="FACEBOOK ARGENTINA S.R.L",
-        ruta_archivo_adjunto="mail.zip",
-        nombre_archivo_adjunto="mail.zip",
-        df=pd.DataFrame(
-            {  # Ejemplo de DataFrame
-                "Jurisdicción": ["Región 1", "Región 2"],
-                "Valor": [100, 200],
-            }
-        ),
-        ruta_imagen_png="mapa.png",
-        ruta_imagen_png_2="mapa2.png",
-        cuerpo_html_plantilla="html/mail_plantilla.html",
-        cc=["cc@example.com"],
+        receptor=[os.getenv("CORREO_RECEPTOR_TEST_MAIL")],
+        cliente="Cliente S.R.L",
+        ruta_archivo_adjunto=None,
+        nombre_archivo_adjunto=None,
+        df=None,
+        ruta_imagen_png=None,
+        ruta_imagen_png_2=None,
+        cuerpo_html_plantilla=None,
+        cc=[os.getenv("CORREO_RECEPTOR_TEST_MAIL")],
     )

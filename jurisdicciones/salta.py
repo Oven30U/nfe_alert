@@ -82,12 +82,12 @@ if __name__ == "__main__":
 
     async def main():
         async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-        client = os.getenv("TEST_SALTA_CLIENT")
-        cuit_Salta = os.getenv("TEST_SALTA_CUIT")
-        clave_fiscal_Salta = os.getenv("TEST_SALTA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_SALTA_CUIT_CLIENTE_INPUT")
+            fecha_desde = os.getenv("FECHA_DESDE")
+            fecha_hasta = os.getenv("FECHA_HASTA")
+            client = os.getenv("TEST_SALTA_CLIENT")
+            cuit_Salta = os.getenv("TEST_SALTA_CUIT")
+            clave_fiscal_Salta = os.getenv("TEST_SALTA_CLAVE_FISCAL")
+            cuit_cliente_input = os.getenv("TEST_SALTA_CUIT_CLIENTE_INPUT")
 
             salta = await Salta.create(
                 playwright,
