@@ -244,6 +244,8 @@ def obtener_correo(group):
 
 
 def obtener_socio(group):
+    if ENVIAR_CORREO_TEST:
+        return CORREO_TEST
     if "Socio responsable" in group.columns:
         socio_responsable = group["Socio responsable"].iloc[0]
         return socio_responsable if pd.notna(socio_responsable) else None
@@ -278,9 +280,8 @@ def enviar_email(df_final, zip_path, zip_name, output_folder, cliente, group):
 
         if receptor is None:
             raise ValueError("Receptor email address is None. Cannot send email.")
-        
-        from mail_outlook import enviar_correo_outlook
-        enviar_correo_outlook(
+
+        enviar_correo(
             receptor=receptor,
             cliente=cliente,
             ruta_archivo_adjunto=zip_path,
@@ -291,18 +292,6 @@ def enviar_email(df_final, zip_path, zip_name, output_folder, cliente, group):
             cuerpo_html_plantilla="html/mail_plantilla.html",
             cc=cc,
         )
-
-        # enviar_correo(
-        #     receptor=receptor,
-        #     cliente=cliente,
-        #     ruta_archivo_adjunto=zip_path,
-        #     nombre_archivo_adjunto=zip_name,
-        #     df=df_correo,
-        #     ruta_imagen_png=f"{output_folder}/mapa_nacional_{cliente}.png",
-        #     ruta_imagen_png_2=f"{output_folder}/mapa_jurisdicciones_{cliente}.png",
-        #     cuerpo_html_plantilla="html/mail_plantilla.html",
-        #     cc=cc,
-        # )
         return True
     except Exception as e:
         print(f"Error al enviar correo: {e}")

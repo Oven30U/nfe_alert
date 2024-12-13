@@ -106,13 +106,13 @@ if __name__ == "__main__":
 
     async def main():
         async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
+            fecha_desde = os.getenv("FECHA_DESDE")
+            fecha_hasta = os.getenv("FECHA_HASTA")
 
-        client = os.getenv("TEST_SAN_JUAN_CLIENT")
-        cuit_SanJuan = os.getenv("TEST_SAN_JUAN_CUIT")
-        clave_fiscal_SanJuan = os.getenv("TEST_SAN_JUAN_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_SAN_JUAN_CUIT_CLIENTE_INPUT")
+            client = os.getenv("TEST_SAN_JUAN_CLIENT")
+            cuit_SanJuan = os.getenv("TEST_SAN_JUAN_CUIT")
+            clave_fiscal_SanJuan = os.getenv("TEST_SAN_JUAN_CLAVE_FISCAL")
+            cuit_cliente_input = os.getenv("TEST_SAN_JUAN_CUIT_CLIENTE_INPUT")
 
             san_juan = await SanJuan.create(
                 playwright,
