@@ -1,31 +1,54 @@
 import os
 from datetime import datetime
-
+import requests
 from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class Salta(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = await super().create(
             playwright,
@@ -39,34 +62,78 @@ class Salta(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def consultar_notificaciones(self):
-        await self.page.goto("https://www.dgrsalta.gov.ar/rentassalta/login.jsp")
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.locator("//input[@name='usuario']").fill(f"{self._cuit}")
-        await self.page.locator("//input[@name='password']").fill(f"{self._clave_fiscal}")
-        await self.page.locator("//span[contains(text(),'Ingresar')]").click()
-        await self.page.wait_for_load_state("networkidle")
-        if (
-                await self.page.is_visible("text=Usuario o Password Incorrecto")
-        ):
+        # Hacer login con requests
+        client = requests.Session()
+
+        login_information = {
+            "usuario": self._cuit,
+            "password": self._clave_fiscal,
+            "pagina": "/login.jsp",
+            "disconect": "No",
+            "tokengRecaptcha": "",
+        }
+
+        response = client.post(
+            "https://www.dgrsalta.gov.ar/rentassalta/form.login", data=login_information
+        )
+
+        if "Usuario o Password Incorrecto" in response.text:
             raise LoginError(
                 "Error de login en Salta, al autorizar al usuario", self.cliente
             )
+
+        # Obtener las cookies de la sesión
+        cookies = client.cookies.get_dict()
+
+        # Añadir las cookies a la sesión de Playwright
+        for name, value in cookies.items():
+            await self.context.add_cookies(
+                [
+                    {
+                        "name": name,
+                        "value": value,
+                        "domain": "www.dgrsalta.gov.ar",
+                        "path": "/",
+                    }
+                ]
+            )
+
+        # Navegar a la página después de iniciar sesión
+        await self.page.goto("https://www.dgrsalta.gov.ar/rentassalta/login.jsp")
         await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_selector("//a[contains(text(), 'Domicilio Fiscal Electrónico')]")
-        await self.page.locator("//a[contains(text(), 'Domicilio Fiscal Electrónico')]").click()
+
+        # Verificar si el login fue exitoso buscando un elemento específico
+        if not await self.page.query_selector("#enviaLogout"):
+            raise LoginError(
+                "Error de login en Salta, autenticación fallida", self.cliente
+            )
+
+        # Continuar con las acciones en la página
+        await self.page.wait_for_selector(
+            "//a[contains(text(), 'Domicilio Fiscal Electrónico')]"
+        )
+        await self.page.locator(
+            "//a[contains(text(), 'Domicilio Fiscal Electrónico')]"
+        ).click()
         await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_selector("//a[contains(text(), 'Ventanilla Única de Novedades')]")
-        await self.page.locator("//a[contains(text(), 'Ventanilla Única de Novedades')]").click()
+        await self.page.wait_for_selector(
+            "//a[contains(text(), 'Ventanilla Única de Novedades')]"
+        )
+        await self.page.locator(
+            "//a[contains(text(), 'Ventanilla Única de Novedades')]"
+        ).click()
         await self.page.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
-        elements = await self.page.locator("//td[contains(text(),'Por el momento no tiene novedades...')]").all()
+        elements = await self.page.locator(
+            "//td[contains(text(),'Por el momento no tiene novedades...')]"
+        ).all()
         return False if len(elements) == 2 else True
 
     async def tomar_screenshot(self):
@@ -78,7 +145,6 @@ class Salta(Jurisdiccion):
 
 if __name__ == "__main__":
     import asyncio
-
 
     async def main():
         async with async_playwright() as playwright:
@@ -97,8 +163,8 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
+                headless=False,
             )
             await salta.procesar_jurisdiccion()
-
 
     asyncio.run(main())

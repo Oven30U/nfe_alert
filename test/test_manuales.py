@@ -1,5 +1,15 @@
+import sys
+import os
 import asyncio
+from dotenv import load_dotenv
 from playwright.async_api import async_playwright
+
+# Cargar las variables de entorno desde el archivo .env
+load_dotenv()
+
+# Agregar el directorio que contiene el módulo 'jurisdicciones' al PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba, Arba, Salta, Chaco
 
 async def catamarca_test():
@@ -109,18 +119,12 @@ async def arba_test():
 
 async def salta_test():
     async with async_playwright() as playwright:
-        fecha_desde = "01082024"
-        fecha_hasta = "30082024"
-
-        # cuit_Salta = "30714604356"
-        # clave_fiscal_Salta = "Edge2021"
-        # cuit_cliente_input = "30714604356"
-        # client = "EDGE ARGENTINA S.R.L"
-
-        cuit_Salta = "30677757295"
-        clave_fiscal_Salta = "natura18"
-        cuit_cliente_input = "30677757295"
-        client = "NATURA COSMETICOS S.A"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+        client = os.getenv("TEST_SALTA_CLIENT")
+        cuit_Salta = os.getenv("TEST_SALTA_CUIT")
+        clave_fiscal_Salta = os.getenv("TEST_SALTA_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_SALTA_CUIT_CLIENTE_INPUT")
 
         salta = await Salta.create(
             playwright,
@@ -137,13 +141,13 @@ async def salta_test():
 
 async def chaco_test():
     async with async_playwright() as playwright:
-        fecha_desde = "01082024"
-        fecha_hasta = "30082024"
-
-        cuit_chaco = "30500846301"
-        clave_fiscal_chaco = "Chaco22."
-        cuit_cliente_input = "30500846301"
-        client = "ABBOTT LABORATORIES ARG. S.A"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+        
+        client = os.getenv("TEST_CHACO_CLIENT")
+        cuit_Chaco = os.getenv("TEST_CHACO_CUIT")
+        clave_fiscal_Chaco = os.getenv("TEST_CHACO_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_CHACO_CUIT_CLIENTE_INPUT")
 
         chaco = await Chaco.create(
             playwright,
@@ -162,5 +166,5 @@ if __name__ == '__main__':
     # asyncio.run(santiago_test())
     # asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
-    # asyncio.run(salta_test())
-    asyncio.run(chaco_test())
+    asyncio.run(salta_test())
+    # asyncio.run(chaco_test())
