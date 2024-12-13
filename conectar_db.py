@@ -571,6 +571,60 @@ def get_pass_zip(
         session.close()
 
 
+def resend_pass_email(cliente: str) -> bool:
+    """
+    Función para reenviar manualmente la contraseña a los usuarios relacionados de un cliente.
+    """
+    try:
+        session = get_sqlite_session()
+        cliente = cliente[:255]  # Asegurar que el nombre del cliente no exceda la longitud máxima
+        cliente_obj = session.query(Cliente).filter_by(nombre=cliente).first()
+        if not cliente_obj:
+            print(f"No se encontró el cliente: {cliente}")
+            return False
+
+        pass_value = cliente_obj.pass_
+        fecha_actualizacion_pass = cliente_obj.fecha_actualizacion_pass
+        if fecha_actualizacion_pass:
+            dias_transcurridos = (datetime.now() - fecha_actualizacion_pass).days
+            dias_vigencia_actuales_pass = DIAS_VIGENCIA_PASS_ZIP - dias_transcurridos
+        else:
+            dias_vigencia_actuales_pass = DIAS_VIGENCIA_PASS_ZIP
+
+        cliente_id = cliente_obj.id
+        related_emails = get_related_users_emails(cliente_id)
+        related_emails.append(os.getenv("CORREO_RECEPTOR_TEST_MAIL"))
+
+        if not related_emails:
+            print(f"No hay usuarios relacionados para el cliente: {cliente}")
+            return False
+
+        # Enviar el correo electrónico con el pass_value a los usuarios relacionados
+        successful_emails, failed_emails = send_email_smtp(
+            sender_email=SENDER_EMAIL,
+            receiver_emails=related_emails,
+            subject=f"Clave de seguridad para NFE Alert: Revisión de Domicilios Fiscales Electrónicos - {cliente}",
+            html_file_path=None,
+            zip_file_paths=None,
+            html_content=read_and_modify_html(
+                cliente, pass_value, dias_vigencia_actuales_pass
+            ),
+        )
+
+        if failed_emails:
+            print(f"Error al enviar correos a: {', '.join(failed_emails)}")
+            return False
+
+        print("Correos enviados exitosamente a los usuarios relacionados.")
+        return True
+
+    except Exception as e:
+        print(f"Error al reenviar la contraseña: {e}")
+        return False
+
+    finally:
+        session.close()
+
 if __name__ == "__main__":
     pass
     # verify_and_add_user_client_relationship(
@@ -599,3 +653,10 @@ if __name__ == "__main__":
     # )
 
     # verify_and_add_users(correo_output=["lmarinaro@deloitte.com", "rtolaba@deloitte.com"])
+    
+    cliente = "Europ Assistance Argentina S.A"
+    resultado = resend_pass_email(cliente)
+    if resultado:
+        print("Correo enviado exitosamente.")
+    else:
+        print("Hubo un problema al enviar el correo.")

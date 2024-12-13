@@ -62,9 +62,9 @@ def send_email_smtp(
         zip_file_paths: Optional[list[str]] = None,
         html_content: Optional[str] = None,
 ) -> tuple[list[str], list[str]]:
-    # SMTP server configuration
-    servidor_smtp = "appmail.atrame.deloitte.com"
-    puerto_smtp = 25
+    # Configurar el servidor SMTP con STARTTLS en puerto 25
+    servidor_smtp = os.getenv("SERVIDOR_SMTP")
+    puerto_smtp = os.getenv("PUERTO_SMTP")
 
     # Create the email message
     msg = MIMEMultipart()
