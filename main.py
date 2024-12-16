@@ -63,7 +63,7 @@ async def main():
                 print(f"{cliente}\n{df_final}")
 
                 generar_mapas(df_final, output_folder, cliente)
-                zip_path, zip_name = crear_zip(df_final, output_folder, cliente)
+                zip_path, zip_name = crear_zip(df_final, output_folder, cliente, correo_output, socio_responsable)
 
                 estado = (
                     "Correcto"
@@ -209,7 +209,7 @@ def generar_mapas(df_final, output_folder, cliente):
     crear_mapa_argentina(df_final, f"{output_folder}/mapa_nacional_{cliente}.png")
 
 
-def crear_zip(df_final, output_folder, cliente):
+def crear_zip(df_final, output_folder, cliente, correo_output, correo_socio):
     now = datetime.now()
     fecha_actual = now.strftime("%Y%m%d")
     hora_actual = now.strftime("%H%M")
@@ -218,7 +218,7 @@ def crear_zip(df_final, output_folder, cliente):
     png_files = glob.glob(os.path.join(output_folder, "*.png"))
 
     pass_zip = get_pass_zip(
-        cliente, f"{obtener_correo(df_final)};{obtener_socio(df_final)}"
+        cliente, f"{correo_output};{correo_socio}"
     )
     with pyzipper.AESZipFile(
         zip_path,

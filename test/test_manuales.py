@@ -10,7 +10,7 @@ load_dotenv()
 # Agregar el directorio que contiene el módulo 'jurisdicciones' al PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba, Arba, Salta, Chaco
+from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba, Arba, Salta, Chaco, Sicnea
 
 async def catamarca_test():
     async with async_playwright() as playwright:
@@ -139,6 +139,28 @@ async def salta_test():
         await salta.procesar_jurisdiccion()
 
 
+async def sicnea_test():
+    async with async_playwright() as playwright:
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+        client = os.getenv("TEST_SICNEA_CLIENT")
+        cuit_Sicnea = os.getenv("TEST_SICNEA_CUIT")
+        clave_fiscal_Sicnea = os.getenv("TEST_SICNEA_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_SICNEA_CUIT_CLIENTE_INPUT")
+
+        sicnea = await sicnea.create(
+            playwright,
+            client,
+            cuit_Sicnea,
+            clave_fiscal_Sicnea,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False
+        )
+        await sicnea.procesar_jurisdiccion()
+
+
 async def chaco_test():
     async with async_playwright() as playwright:
         fecha_desde = os.getenv("FECHA_DESDE")
@@ -166,5 +188,6 @@ if __name__ == '__main__':
     # asyncio.run(santiago_test())
     # asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
-    asyncio.run(salta_test())
+    # asyncio.run(salta_test())
     # asyncio.run(chaco_test())
+    asyncio.run(sicnea_test())
