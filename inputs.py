@@ -175,7 +175,7 @@ def obtener_clientes(
         hoy = dias_semana_es[datetime.today().weekday()]
         # Filtrar las filas donde la columna "Día/s de ejecución" contenga el día de hoy
         df_clientes = df_clientes[
-            df_clientes[df_clientes.columns[-1]].str.contains(hoy, case=False, na=False)
+            df_clientes['Dia/s de ejecución'].str.contains(hoy, case=False, na=False)
         ]
 
         clientes_si_verificar = df_clientes["Cliente"].unique().tolist()
