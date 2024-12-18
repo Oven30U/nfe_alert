@@ -49,24 +49,25 @@ Para realizar los test unitarios de cada jurisdiccion se debe ejecutar el siguie
 pytest
 
 # Ejecutar tests de una clase específica
+pytest test/test_unit.py::TestSantiagoDelEstero::test_santiago_del_estero
 pytest test_unit.py::TestJujuy
 
 # Ejecutar tests de un método específico en una clase
-pytest test_unit.py::TestJujuy::test_jujuy
-pytest test_unit.py::TestJujuy::test_jujuy_error
+pytest test/test_unit.py::TestJujuy::test_jujuy
+pytest test/test_unit.py::TestJujuy::test_jujuy_error
 
 # Ejecutar tests con un marcador específico
 pytest -m base
 pytest -m error
 
 # Ejecutar tests múltiples veces
-pytest --count=4 test_unit.py::TestLaPampa
+pytest --count=4 test/test_unit.py::TestLaPampa
 
 # Detener al primer fallo y reintentar test fallido hasta 3 veces
 pytest --maxfail=1 --reruns 3
 
 # Definir la cantidad de veces a ejecutar el test
-pytest --count=10 test_unit.py::TestJujuy
+pytest --count=10 test/test_unit.py::TestJujuy
 ```
 
 

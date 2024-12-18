@@ -63,7 +63,9 @@ async def main():
                 print(f"{cliente}\n{df_final}")
 
                 generar_mapas(df_final, output_folder, cliente)
-                zip_path, zip_name = crear_zip(df_final, output_folder, cliente, correo_output, socio_responsable)
+                zip_path, zip_name = crear_zip(
+                    df_final, output_folder, cliente, correo_output, socio_responsable
+                )
 
                 estado = (
                     "Correcto"
@@ -217,9 +219,7 @@ def crear_zip(df_final, output_folder, cliente, correo_output, correo_socio):
     zip_path = os.path.join(output_folder, zip_name)
     png_files = glob.glob(os.path.join(output_folder, "*.png"))
 
-    pass_zip = get_pass_zip(
-        cliente, f"{correo_output};{correo_socio}"
-    )
+    pass_zip = get_pass_zip(cliente, f"{correo_output};{correo_socio}")
     with pyzipper.AESZipFile(
         zip_path,
         "w",
@@ -246,8 +246,8 @@ def obtener_correo(group):
 def obtener_socio(group):
     if ENVIAR_CORREO_TEST:
         return CORREO_TEST
-    if "Socio responsable" in group.columns:
-        socio_responsable = group["Socio responsable"].iloc[0]
+    if "CC: Equipo Deloitte" in group.columns:
+        socio_responsable = group["CC: Equipo Deloitte"].iloc[0]
         return socio_responsable if pd.notna(socio_responsable) else None
     else:
         return None

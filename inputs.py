@@ -130,12 +130,12 @@ def cerrar_excel(nombres_archivos):
 
 
 def obtener_clientes(
-        # debug,
-        # ejecutar_todos_clientes,
-        # ejecutar_clientes_lista,
-        # sin_debug_ejecutar_ejecutar_lista,
-        # clientes_si_verificar_config,
-        jurisdiccion_clases,
+    # debug,
+    # ejecutar_todos_clientes,
+    # ejecutar_clientes_lista,
+    # sin_debug_ejecutar_ejecutar_lista,
+    # clientes_si_verificar_config,
+    jurisdiccion_clases,
 ):
     cerrar_excel(NOMBRE_ARCHIVO_CLIENTE)
 
@@ -146,18 +146,18 @@ def obtener_clientes(
         InputException(f"No se pudo crear el df_clientes, {e}", cliente)
         # print("No se pudo acceder al archivo %s: %s", PATH_CLIENTES, str(e))
 
-    # Drop rows where all columns except 'Socio responsable' or 'Correos destinatarios' are NaN
+    # Drop rows where all columns except 'CC: Equipo Deloitte' or 'To: Equipo Cliente' are NaN
     df_clientes = df_clientes.dropna(
         how="all",
         subset=[
             col
             for col in df_clientes.columns
-            if col not in ["Socio responsable", "Correos destinatarios"]
+            if col not in ["CC: Equipo Deloitte", "To: Equipo Cliente"]
         ],
     )
-    # Drop rows where both 'Socio responsable' and 'Correos destinatarios' are NaN
+    # Drop rows where both 'CC: Equipo Deloitte' and 'To: Equipo Cliente' are NaN
     df_clientes = df_clientes.dropna(
-        subset=["Socio responsable", "Correos destinatarios"], how="all"
+        subset=["CC: Equipo Deloitte", "To: Equipo Cliente"], how="all"
     )
     df_clientes = df_clientes[df_clientes["Consultar"].str.lower() == "si"]
 
@@ -175,7 +175,7 @@ def obtener_clientes(
         hoy = dias_semana_es[datetime.today().weekday()]
         # Filtrar las filas donde la columna "Día/s de ejecución" contenga el día de hoy
         df_clientes = df_clientes[
-            df_clientes['Dia/s de ejecución'].str.contains(hoy, case=False, na=False)
+            df_clientes["Dia/s de ejecución"].str.contains(hoy, case=False, na=False)
         ]
 
         clientes_si_verificar = df_clientes["Cliente"].unique().tolist()
@@ -207,7 +207,7 @@ def obtener_clientes(
             columns={
                 "Código-Jurisdicción": "Jurisdiccion",
                 "CUIT": "cuit_cliente",
-                "Correos destinatarios": "Correo Output",
+                "To: Equipo Cliente": "Correo Output",
             },
             inplace=True,
         )
@@ -236,11 +236,15 @@ def obtener_clientes(
 
         df_clientes["cuit_cliente"] = df_clientes["cuit_cliente"].str.replace("-", "")
 
-        df_clientes["Jurisdiccion"] = df_clientes["Jurisdiccion"].apply(lambda x: x.strip())
+        df_clientes["Jurisdiccion"] = df_clientes["Jurisdiccion"].apply(
+            lambda x: x.strip()
+        )
         df_clientes["Jurisdiccion"] = df_clientes["Jurisdiccion"].replace(
             jurisdiccion_clases
         )
 
-        df_clientes['Password'] = df_clientes['Password'].apply(lambda x: str(x).strip())
+        df_clientes["Password"] = df_clientes["Password"].apply(
+            lambda x: str(x).strip()
+        )
 
     return df_clientes

@@ -2,7 +2,7 @@ import os
 import pytest
 from playwright.async_api import async_playwright
 
-# headless_state = True
+headless_state = True
 
 
 class BaseTest:
