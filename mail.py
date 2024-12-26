@@ -155,14 +155,17 @@ def enviar_correo(
     try:
         server = smtplib.SMTP(servidor_smtp, puerto_smtp)
         server.starttls()
-        # Si se requiere autenticación:
-        # server.login('tu_usuario', 'tu_contraseña')
         server.sendmail(msg["From"], receptor + cc, msg.as_string())
     except Exception as e:
-        print(f"Error: {e}")
+        print(
+            "El servidor no soporta SMTP AUTH. No se enviará el correo para mantener la seguridad."
+        )
     finally:
         server.quit()
 
 
 if __name__ == "__main__":
-    enviar_correo(receptor=os.getenv("CORREO_RECEPTOR_TEST_MAIL"), cliente=os.getenv("CLIENTE_TEST_MAIL"))
+    enviar_correo(
+        receptor=os.getenv("CORREO_RECEPTOR_TEST_MAIL"),
+        cliente=os.getenv("CLIENTE_TEST_MAIL"),
+    )
