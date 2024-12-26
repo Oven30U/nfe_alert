@@ -2,7 +2,7 @@
 Este módulo proporciona una función para enviar correos electrónicos
 con archivos adjuntos y/o contenido HTML generado a partir de un DataFrame.
 Funciones:
-- enviar_correo: Envía un correo electrónico 
+- enviar_correo: Envía un correo electrónico
     con un archivo adjunto y/o un DataFrame en el cuerpo del correo.
 Dependencias:
 - smtplib
@@ -12,11 +12,11 @@ Dependencias:
 - email.mime.multipart
 - email.mime.text
 - config (mapa_jurisdiccion_clases)
-- generar_html (convertir_imagen_en_html, 
-    grabar_html, insertar_mapas_en_html, insertar_tabla_en_html, 
+- generar_html (convertir_imagen_en_html,
+    grabar_html, insertar_mapas_en_html, insertar_tabla_en_html,
     reemplazar_contenido_en_html)
 Ejemplo de uso:
-    receptor="socio@deloitte.com", 
+    receptor="socio@deloitte.com",
     cliente="Cliente S.R.L.",
     ruta_archivo_adjunto="mail.zip",
     ruta_imagen_png="mapa.png",
@@ -156,7 +156,7 @@ def enviar_correo(
         server = smtplib.SMTP(servidor_smtp, puerto_smtp)
         server.starttls()
         server.sendmail(msg["From"], receptor + cc, msg.as_string())
-    except Exception as e:
+    except SMTPNotSupportedError:
         print(
             "El servidor no soporta SMTP AUTH. No se enviará el correo para mantener la seguridad."
         )
