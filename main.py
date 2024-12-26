@@ -23,13 +23,35 @@ from inputs import obtener_clientes
 import jurisdicciones
 from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
+from contextlib import contextmanager
+from database import get_session, get_sqlite_session
+from models import MonitoreoBots, MonitoreoBotsBackup
+
+
+@contextmanager
+def managed_session(db_type="sqlserver"):
+    session = None
+    try:
+        if db_type == "sqlserver":
+            session = get_session()
+        elif db_type == "sqlite":
+            session = get_sqlite_session()
+        yield session
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"Error en la sesión: {e}")
+        raise
+    finally:
+        if session:
+            session.close()
+
 
 pd.set_option("display.max_columns", None)
 
 
 async def main():
     async with async_playwright() as playwright:
-
         df_input = obtener_datos_clientes()
         if df_input.empty:
             registrar_sin_clientes()
@@ -108,26 +130,37 @@ def obtener_datos_clientes():
     return df_clientes
 
 
-def get_clientes_procesados_hoy():
-    conn = sqlite3.connect("pruebas/database.db")
-    cursor = conn.cursor()
+def get_clientes_procesados_hoy(db_type="sqlite"):
+    today = date.today()
+    clientes_procesados = []
 
-    today = date.today().strftime("%Y-%m-%d")
+    try:
+        with managed_session(db_type) as session:
+            # Consultar clientes procesados hoy con estado 'Correcto'
+            clientes_correctos = (
+                session.query(MonitoreoBots.cliente)
+                .filter(
+                    MonitoreoBots.estado == "Correcto",
+                    MonitoreoBots.iniciado
+                    >= datetime.combine(today, datetime.min.time()),
+                    MonitoreoBots.iniciado
+                    <= datetime.combine(today, datetime.max.time()),
+                )
+                .union(
+                    session.query(MonitoreoBotsBackup.cliente).filter(
+                        MonitoreoBotsBackup.estado == "Correcto",
+                        MonitoreoBotsBackup.iniciado
+                        >= datetime.combine(today, datetime.min.time()),
+                        MonitoreoBotsBackup.iniciado
+                        <= datetime.combine(today, datetime.max.time()),
+                    )
+                )
+                .all()
+            )
 
-    query = """
-        SELECT Cliente FROM monitoreo_bots
-        WHERE estado = 'Correcto' AND DATE(iniciado) = ?
-        UNION
-        SELECT Cliente FROM monitoreo_bots_backup
-        WHERE estado = 'Correcto' AND DATE(iniciado) = ?
-    """
-
-    cursor.execute(query, (today, today))
-    rows = cursor.fetchall()
-
-    clientes_procesados = [row[0] for row in rows]
-
-    conn.close()
+            clientes_procesados = [cliente[0] for cliente in clientes_correctos]
+    except Exception as e:
+        print(f"Error al obtener clientes procesados hoy: {e}")
 
     return clientes_procesados
 

@@ -16,7 +16,7 @@ SQLSERVER_USERNAME = os.getenv("SQLSERVER_USERNAME")
 SQLSERVER_PASSWORD = os.getenv("SQLSERVER_PASSWORD")
 
 # SQLite configuration
-SQLITE_DATABASE_FILE = os.getenv("SQLITE_DATABASE_FILE", "pruebas/database.db")
+SQLITE_DATABASE_FILE = os.getenv("SQLITE_DATABASE_FILE", "database.db")
 
 # Function to create SQL Server session
 def get_session(max_retries=5, delay=3):
