@@ -78,7 +78,6 @@ def enviar_correo(
         cc=["cc@example.com"])
     """
 
-    # Configurar el servidor SMTP con STARTTLS en puerto 25
     servidor_smtp = os.getenv("SERVIDOR_SMTP")
     puerto_smtp = os.getenv("PUERTO_SMTP")
 

@@ -59,7 +59,7 @@ def send_email_smtp(
     html_file_path: Optional[str] = None,
     zip_file_paths: Optional[list[str]] = None,
     html_content: Optional[str] = None,
-) -> tuple[list[str], list[str]]:
+    ) -> tuple[list[str], list[str]]:
     # Configurar el servidor SMTP con SSL en puerto 465
     servidor_smtp = os.getenv("SERVIDOR_SMTP")
     puerto_smtp = int(os.getenv("PUERTO_SMTP", 465))
@@ -121,6 +121,78 @@ def send_email_smtp(
     return successful_emails, failed_emails
 
 
+def send_email_smtp_starttls(
+    sender_email: str,
+    receiver_emails: list[str],
+    subject: str = None,
+    html_file_path: Optional[str] = None,
+    zip_file_paths: Optional[list[str]] = None,
+    html_content: Optional[str] = None,
+) -> tuple[list[str], list[str]]:
+    """
+    Envía correos electrónicos utilizando SMTP con STARTTLS.
+    """
+    servidor_smtp = os.getenv("SERVIDOR_SMTP")
+    puerto_smtp = int(os.getenv("PUERTO_SMTP", 25))
+    
+    # Crear el mensaje de correo
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = ", ".join(receiver_emails)
+    correos_rpa = os.getenv("CORREOS_RPA", "").split(",")
+    receptor = [email.strip() for email in receiver_emails[0].split(";")]
+    receptor.extend([email.strip() for email in correos_rpa])
+    receptor = list(set(receptor))  # Eliminar duplicados
+    msg["Subject"] = subject if subject else ""
+    
+    # Adjuntar archivos ZIP
+    if zip_file_paths:
+        for zip_file_path in zip_file_paths:
+            try:
+                with open(zip_file_path, "rb") as file:
+                    part = MIMEBase("application", "octet-stream")
+                    part.set_payload(file.read())
+                encoders.encode_base64(part)
+                part.add_header(
+                    "Content-Disposition",
+                    f"attachment; filename={os.path.basename(zip_file_path)}",
+                )
+                msg.attach(part)
+            except Exception as e:
+                print(f"Error adjuntando archivo {zip_file_path}: {e}")
+    
+    # Adjuntar contenido HTML
+    if html_content:
+        msg.attach(MIMEText(html_content, "html"))
+    
+    successful_emails = []
+    failed_emails = []
+    
+    # Enviar el correo vía SMTP con STARTTLS
+    try:
+        with smtplib.SMTP(servidor_smtp, puerto_smtp) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            # Remover la llamada a server.login() ya que no es soportada
+            # server.login(correo_remitente, contrasena_remitente)
+            for email in receptor:
+                try:
+                    server.sendmail(sender_email, email, msg.as_string())
+                    successful_emails.append(email)
+                    print(f"Email enviado a {email} exitosamente!")
+                except Exception as e:
+                    failed_emails.append(email)
+                    print(f"Error enviando email a {email}: {e}")
+    except smtplib.SMTPNotSupportedError as e:
+        print(f"No se soporta la extensión SMTP AUTH: {e}")
+        notify_error(sender_email, e, successful_emails, failed_emails)
+    except Exception as e:
+        print(f"Error conectando al servidor SMTP con STARTTLS: {e}")
+        notify_error(sender_email, e, successful_emails, failed_emails)
+    
+    return successful_emails, failed_emails
+
 def notify_error(
     sender_email: str,
     particular_exception: Exception,
@@ -148,7 +220,7 @@ def notify_error(
 
     # Enviar el correo de notificación de error
     try:
-        with smtplib.SMTP_SSL("appmail.atrame.deloitte.com", 465) as server:
+        with smtplib.SMTP_SSL(os.getenv("SERVIDOR_SMTP"), 465) as server:
             server.sendmail(sender_email, os.getenv("CORREO_NOTIFICACION_ERROR"), msg.as_string())
             print(f"Notificación de error enviada a {os.getenv('CORREO_NOTIFICACION_ERROR')}")
     except Exception as e:
@@ -167,32 +239,43 @@ if __name__ == "__main__":
     ]
 
     # Probar enviar correo usando Outlook
-    try:
-        send_email_outlook(
-            sender_email,
-            receiver_emails,
-            subject_outlook,
-            html_file_path,
-            zip_file_paths,
-        )
-        print("Correo enviado exitosamente vía Outlook.")
-    except Exception as e:
-        print(f"Error enviando correo vía Outlook: {e}")
+    # try:
+    #     send_email_outlook(
+    #         sender_email,
+    #         receiver_emails,
+    #         subject_outlook,
+    #         html_file_path,
+    #         zip_file_paths,
+    #     )
+    #     print("Correo enviado exitosamente vía Outlook.")
+    # except Exception as e:
+    #     print(f"Error enviando correo vía Outlook: {e}")
 
-    # Probar enviar correo usando SMTP
+    # # Probar enviar correo usando SMTP
+    # try:
+    #     successful, failed = send_email_smtp(
+    #         sender_email, receiver_emails, subject, html_file_path, zip_file_paths
+    #     )
+    #     print(f"Correos enviados exitosamente a: {successful}")
+    #     if failed:
+    #         print(f"Errores al enviar correos a: {failed}")
+    # except Exception as e:
+    #     print(f"Error general al enviar correos vía SMTP: {e}")
+
+    # Probar enviar correo usando SMTP con STARTTLS
     try:
-        successful, failed = send_email_smtp(
+        successful, failed = send_email_smtp_starttls(
             sender_email, receiver_emails, subject, html_file_path, zip_file_paths
         )
         print(f"Correos enviados exitosamente a: {successful}")
         if failed:
             print(f"Errores al enviar correos a: {failed}")
     except Exception as e:
-        print(f"Error general al enviar correos vía SMTP: {e}")
+        print(f"Error general al enviar correos vía SMTP con STARTTLS: {e}")
 
-    # Prueba de notify_error
-    try:
-        # Intentar enviar correo con un servidor SMTP incorrecto para forzar un fallo
-        notify_error(sender_email, particular_exception = "Excepcion particular", successful_emails = "succeful@deloitte.com", failed_emails = "failed@deloitte.com")
-    except Exception as e:
-        print("Prueba de notify_error realizada.")
+    # # Prueba de notify_error
+    # try:
+    #     # Intentar enviar correo con un servidor SMTP incorrecto para forzar un fallo
+    #     notify_error(sender_email, particular_exception = "Excepcion particular", successful_emails = "succeful@deloitte.com", failed_emails = "failed@deloitte.com")
+    # except Exception as e:
+    #     print("Prueba de notify_error realizada.")
