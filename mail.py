@@ -26,6 +26,7 @@ Ejemplo de uso:
 
 import os
 import smtplib
+import ssl
 from datetime import datetime
 from email import encoders
 from email.mime.base import MIMEBase
@@ -152,8 +153,9 @@ def enviar_correo(
 
     # Intenta crear conexión al servidor SMTP
     try:
+        context = ssl.create_default_context()
         server = smtplib.SMTP(servidor_smtp, puerto_smtp)
-        server.starttls()
+        server.starttls(context=context)
         server.sendmail(msg["From"], receptor + cc, msg.as_string())
     except SMTPNotSupportedError:
         print(

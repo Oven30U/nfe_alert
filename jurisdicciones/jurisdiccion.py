@@ -6,15 +6,18 @@ import asyncio
 import logging
 import os
 import smtplib
-from abc import ABC, abstractmethod
-from datetime import datetime
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import List, Optional, Tuple, Union
 
 from playwright.async_api import Page, Playwright
 
-from config import PATH_ESTRUCTURA_ROBOT, log_file_path  # headless_state
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class LoggedException(Exception):
@@ -25,7 +28,7 @@ class LoggedException(Exception):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.ERROR)
 
-        # log_file_path = "../Estructura-robot/System/logfile.log"
+        log_file_path = os.getenv("log_file_path")
         log_file_dir = os.path.dirname(log_file_path)
         os.makedirs(log_file_dir, exist_ok=True)
         handler = logging.FileHandler(log_file_path)
@@ -103,18 +106,18 @@ class Jurisdiccion(ABC):
     """
 
     def __init__(
-            self,
-            nombre,
-            codigo,
-            cliente,
-            cuit,
-            clave_fiscal,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input=None,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True,
+        self,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self.nombre = nombre
         self.codigo = codigo
@@ -132,24 +135,24 @@ class Jurisdiccion(ABC):
         self.hay_notificacion = False
         self.hay_screenshot = False
         self.hora_actual = datetime.now().strftime("%H%M%S")
-        self.error = None,
+        self.error = (None,)
         self.headless = headless
 
     @classmethod
     async def create(
-            cls,
-            playwright: Playwright,
-            nombre,
-            codigo,
-            cliente,
-            cuit,
-            clave_fiscal,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input=None,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True,
+        cls,
+        playwright: Playwright,
+        nombre,
+        codigo,
+        cliente,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         self = cls(
             nombre,
@@ -181,7 +184,7 @@ class Jurisdiccion(ABC):
         return self
 
     async def AFIP_login(
-            self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
     ):
         await self.page.goto(URL_AFIP_LOGIN)
         await self.page.get_by_role("spinbutton").click()
@@ -211,7 +214,7 @@ class Jurisdiccion(ABC):
         pass
 
     async def buscar_notificacion(
-            self, page: Optional[Page] = None, texto: Optional[str] = None
+        self, page: Optional[Page] = None, texto: Optional[str] = None
     ) -> bool:
         """
         Si aparece el texto retorna hay_notificacion = true
@@ -225,7 +228,7 @@ class Jurisdiccion(ABC):
         return self.hay_notificacion
 
     async def buscar_notificacion_texto_visible(
-            self, texto: str, page: Optional[Page] = None
+        self, texto: str, page: Optional[Page] = None
     ) -> bool:
         """
         Verifica si un texto específico es visible en la página.
@@ -249,7 +252,9 @@ class Jurisdiccion(ABC):
         es_visible = await page.is_visible(f"text={texto}")
         return es_visible
 
-    async def buscar_notificacion_xpath_visible(self, xpath: str, page: Optional[Page] = None) -> bool:
+    async def buscar_notificacion_xpath_visible(
+        self, xpath: str, page: Optional[Page] = None
+    ) -> bool:
         """
         Verifica si un elemento específico es visible en la página utilizando un XPath.
 
@@ -273,10 +278,13 @@ class Jurisdiccion(ABC):
         es_visible = await page.is_visible(f"xpath={xpath}")
         return es_visible
 
-    async def tomar_screenshot(self, page: Optional[Page] = None, nombre_extra: Optional[str] = None) -> bool:
+    async def tomar_screenshot(
+        self, page: Optional[Page] = None, nombre_extra: Optional[str] = None
+    ) -> bool:
         """Metodo utilizado para tomar un screenshot de la sección de notificaciones de la jurisdicción."""
         if page is None:
             page = self.page
+        PATH_ESTRUCTURA_ROBOT = os.getenv("PATH_ESTRUCTURA_ROBOT")
         base_nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}"
         if nombre_extra:
             base_nombre_archivo += f"_{nombre_extra}"
@@ -289,24 +297,36 @@ class Jurisdiccion(ABC):
         try:
             await page.wait_for_load_state("domcontentloaded")
             await page.wait_for_load_state("networkidle")
-            await page.wait_for_timeout(5000)  # Wait an additional 5 seconds to ensure everything is loaded
-            await page.screenshot(path=nombre_archivo, full_page=True, timeout=60000)  # Increase timeout to 60 seconds
+            await page.wait_for_timeout(
+                5000
+            )  # Wait an additional 5 seconds to ensure everything is loaded
+            await page.screenshot(
+                path=nombre_archivo, full_page=True, timeout=60000
+            )  # Increase timeout to 60 seconds
             self.hay_screenshot = True
         except Exception as e:
-            print(f"Error taking screenshot: {e}. Reintentando sin minimizar el navegador.")
+            print(
+                f"Error taking screenshot: {e}. Reintentando sin minimizar el navegador."
+            )
             await self.maximizar_ventana()
             try:
                 await page.wait_for_load_state("domcontentloaded")
                 await page.wait_for_load_state("networkidle")
                 await page.wait_for_timeout(5000)
-                await page.screenshot(path=nombre_archivo, full_page=True, timeout=60000)
+                await page.screenshot(
+                    path=nombre_archivo, full_page=True, timeout=60000
+                )
                 self.hay_screenshot = True
             except Exception as e:
                 print(f"Reintento de screenshot falló: {e}")
         return self.hay_screenshot
 
-    async def tomar_varias_screenshots(self, secciones: List[Tuple[str, str]], page: Optional[Page] = None,
-                                       delay: int = 0) -> bool:
+    async def tomar_varias_screenshots(
+        self,
+        secciones: List[Tuple[str, str]],
+        page: Optional[Page] = None,
+        delay: int = 0,
+    ) -> bool:
         """Metodo utilizado para tomar varios screenshots de diferentes secciones de la jurisdicción."""
         if page is None:
             page = self.page
@@ -317,6 +337,7 @@ class Jurisdiccion(ABC):
                 await page.wait_for_load_state("networkidle")
                 await page.wait_for_load_state("domcontentloaded")
                 await page.wait_for_load_state("load")
+                PATH_ESTRUCTURA_ROBOT = os.getenv("PATH_ESTRUCTURA_ROBOT")
                 nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
                 await page.screenshot(path=nombre_archivo, full_page=True)
                 self.hay_screenshot = True
@@ -332,35 +353,35 @@ class Jurisdiccion(ABC):
     async def maximizar_ventana(self):
         if not self.headless:
             client = await self.page.context.new_cdp_session(self.page)
-            window_info = await client.send('Browser.getWindowForTarget')
-            window_id = window_info['windowId']
+            window_info = await client.send("Browser.getWindowForTarget")
+            window_id = window_info["windowId"]
 
             # Restaurar a estado normal si está minimizado o en pantalla completa
-            await client.send('Browser.setWindowBounds', {
-                'windowId': window_id,
-                'bounds': {'windowState': 'normal'}
-            })
+            await client.send(
+                "Browser.setWindowBounds",
+                {"windowId": window_id, "bounds": {"windowState": "normal"}},
+            )
 
             # Maximizar la ventana
-            await client.send('Browser.setWindowBounds', {
-                'windowId': window_id,
-                'bounds': {'windowState': 'maximized'}
-            })
+            await client.send(
+                "Browser.setWindowBounds",
+                {"windowId": window_id, "bounds": {"windowState": "maximized"}},
+            )
 
     async def minimizar_ventana(self):
         if not self.headless:
             client = await self.page.context.new_cdp_session(self.page)
-            window_info = await client.send('Browser.getWindowForTarget')
-            window_id = window_info['windowId']
+            window_info = await client.send("Browser.getWindowForTarget")
+            window_id = window_info["windowId"]
 
             # Minimizar la ventana
-            await client.send('Browser.setWindowBounds', {
-                'windowId': window_id,
-                'bounds': {'windowState': 'minimized'}
-            })
+            await client.send(
+                "Browser.setWindowBounds",
+                {"windowId": window_id, "bounds": {"windowState": "minimized"}},
+            )
 
     async def procesar_jurisdiccion(
-            self,
+        self,
     ) -> Tuple[str, str, str, Optional[Union[LoggedException, None]]]:
         self.error = None
 
@@ -422,29 +443,38 @@ class Jurisdiccion(ABC):
         return self.nombre, self.hay_notificacion, self.hay_screenshot, self.error
 
     def enviar_correo_errores(self, error):
-        servidor_smtp = "appmail.atrame.deloitte.com"
-        puerto_smtp = 25
-        remitente = "robot-Tax-AR@deloitte.com"
-        # remitente = "cgonzaleztorres@deloitte.com"
-        receptor = [
-            "lmarinaro@deloitte.com"
-        ]
-        # "cgonzaleztorres@deloitte.com; lmarinaro@deloitte.com; apiselli@deloitte.com; lecaracciolo@deloitte.com; rtolaba@deloitte.com; amiriarte@deloitte.com"
+        servidor_smtp = os.getenv("SERVIDOR_SMTP")
+        puerto_smtp = os.getenv("PUERTO_SMTP")
+        remitente = os.getenv("SENDER_EMAIL")
+        receptor = [os.getenv("CORREO_NOTIFICACION_ERROR")]
 
         # Crear el mensaje
         msg = MIMEMultipart()
         msg["From"] = remitente
         msg["To"] = ";".join(receptor)
-        msg["Subject"] = (
-            f"Revisión de Domicilios Fiscales Electronicos del cliente {self.cliente}"
-        )
+        msg["Subject"] = f"NFE Alert del cliente {self.cliente}"
         msg.attach(
             MIMEText(
-                f"En la ejecución de Revisión de Domicilios fiscales del Cliente:\n <h3>{self.cliente}</h3>\n Se ha detectado el siguiente <b>Error: {str(self.error)}<b>\n Jurisdicción: {self.nombre}\n Cuit: {self._cuit}\n Fecha Desde: {self.fecha_desde}\n Fecha Hasta: {self.fecha_hasta}\n \n Por favor, revisar el log para más detalles.",
+                f"""En la ejecución de NFE Alert del Cliente:
+    <h3>{self.cliente}</h3>
+    Se ha detectado el siguiente <b>Error: {str(error)}</b>
+    Jurisdicción: {self.nombre}
+    Cuit: {self._cuit}
+    Fecha Desde: {self.fecha_desde}
+    Fecha Hasta: {self.fecha_hasta}
+    
+    Por favor, revisar el log para más detalles.""",
                 "html",
             )
         )
 
-        # Enviar el correo electrónico
-        with smtplib.SMTP(servidor_smtp, puerto_smtp) as server:
-            server.send_message(msg)
+        try:
+            context = ssl.create_default_context()
+            with smtplib.SMTP(servidor_smtp, puerto_smtp) as server:
+                server.ehlo()
+                server.starttls(context=context)
+                server.ehlo()
+                server.send_message(msg)
+                print(f"Notificación de error enviada a {', '.join(receptor)}")
+        except smtplib.SMTPException as e:
+            print(f"Error al enviar el correo electrónico: {e}")

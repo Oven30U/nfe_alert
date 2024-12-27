@@ -1,5 +1,6 @@
 import os
 import smtplib
+import ssl
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -170,9 +171,10 @@ def send_email_smtp_starttls(
     
     # Enviar el correo vía SMTP con STARTTLS
     try:
+        context = ssl.create_default_context()
         with smtplib.SMTP(servidor_smtp, puerto_smtp) as server:
             server.ehlo()
-            server.starttls()
+            server.starttls(context=context)
             server.ehlo()
             # Remover la llamada a server.login() ya que no es soportada
             # server.login(correo_remitente, contrasena_remitente)
