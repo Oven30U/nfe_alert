@@ -26,6 +26,9 @@ from mapa_plot import crear_mapa, crear_mapa_argentina
 from contextlib import contextmanager
 from database import get_session, get_sqlite_session
 from models import MonitoreoBots, MonitoreoBotsBackup
+from logger import Logger
+
+logger = Logger.get_logger()
 
 
 @contextmanager
@@ -40,7 +43,7 @@ def managed_session(db_type="sqlserver"):
         session.commit()
     except Exception as e:
         session.rollback()
-        print(f"Error en la sesión: {e}")
+        logger.error("Error para obtener una sesión de sql's en main.")
         raise
     finally:
         if session:
@@ -54,6 +57,7 @@ async def main():
     async with async_playwright() as playwright:
         df_input = obtener_datos_clientes()
         if df_input.empty:
+            logger.info("No se encontraron clientes para procesar.")
             registrar_sin_clientes()
             return
 
@@ -75,14 +79,14 @@ async def main():
                     playwright, group
                 )
 
-                print(f"Cliente: {cliente}")
-                print(f"Jurisdicciones encontradas: {encontradas}")
-                print(f"Jurisdicciones no encontradas: {no_encontradas}")
+                logger.info(
+                    f"Cliente: {cliente} - Jurisdicciones encontradas: {encontradas} -Jurisdicciones no encontradas: {no_encontradas}"
+                )
 
                 df_final = await ejecutar_jurisdicciones(instances)
                 df_final = await reintentar_errores(playwright, df_final, group)
 
-                print(f"{cliente}\n{df_final}")
+                logger.info(f"Resultados para {cliente}:\n{df_final}")
 
                 generar_mapas(df_final, output_folder, cliente)
                 zip_path, zip_name = crear_zip(
@@ -95,7 +99,7 @@ async def main():
                     else "Proceso terminado con errores"
                 )
             except Exception as e:
-                print(f"Error en el cliente {cliente}: {e}")
+                logger.error(f"Error en el procesamiento del cliente {cliente}")
                 estado = "Erróneo"
             finally:
                 correo_exitoso = enviar_email(
@@ -160,7 +164,7 @@ def get_clientes_procesados_hoy(db_type="sqlite"):
 
             clientes_procesados = [cliente[0] for cliente in clientes_correctos]
     except Exception as e:
-        print(f"Error al obtener clientes procesados hoy: {e}")
+        logger.error("Error al obtener clientes procesados hoy")
 
     return clientes_procesados
 
@@ -327,7 +331,7 @@ def enviar_email(df_final, zip_path, zip_name, output_folder, cliente, group):
         )
         return True
     except Exception as e:
-        print(f"Error al enviar correo: {e}")
+        logger.error(f"Error al enviar correo: receptor:{receptor} cliente: {cliente}")
         return False
 
 

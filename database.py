@@ -27,7 +27,7 @@ def get_session(max_retries=5, delay=3):
         f"mssql+pyodbc://{SQLSERVER_USERNAME}:{SQLSERVER_PASSWORD}@{SQLSERVER_SERVER}/{SQLSERVER_DATABASE}"
         f"?driver={SQLSERVER_DRIVER}"
     )
-    engine = create_engine(connection_string, fast_executemany=True, echo=True)
+    engine = create_engine(connection_string, fast_executemany=True, echo=False)
 
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

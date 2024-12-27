@@ -12,6 +12,7 @@ from email.mime.text import MIMEText
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List, Optional, Tuple, Union
+from logger import Logger
 
 from playwright.async_api import Page, Playwright
 
@@ -25,22 +26,9 @@ class LoggedException(Exception):
 
     def __init__(self, message, cliente):
         self.cliente = cliente
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.ERROR)
-
-        log_file_path = os.getenv("log_file_path")
-        log_file_dir = os.path.dirname(log_file_path)
-        os.makedirs(log_file_dir, exist_ok=True)
-        handler = logging.FileHandler(log_file_path)
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
-        handler.setFormatter(formatter)
-
-        self.logger.addHandler(handler)
+        self.logger = Logger.get_logger()
         self.logger.error(f"Cliente: {self.cliente}, Error: {message}")
         self.logger.exception(message)
-
         super().__init__(message)
 
 
