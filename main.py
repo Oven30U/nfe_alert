@@ -98,7 +98,7 @@ async def main():
                     if df_final["Error"].isna().all()
                     else "Proceso terminado con errores"
                 )
-            except Exception as e:
+            except Exception:
                 logger.error(f"Error en el procesamiento del cliente {cliente}")
                 estado = "Erróneo"
             finally:

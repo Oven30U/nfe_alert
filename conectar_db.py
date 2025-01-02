@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from config import PATH_HTML_SET_PASS, DIAS_VIGENCIA_PASS_ZIP, CORREO_NOTIFICACION_ERROR
 from database import get_session, get_sqlite_session
-from pruebas.correo_cli import send_email_smtp
+from correo_cli import send_email_smtp
 from models import MonitoreoBots, MonitoreoBotsBackup, UsuarioAutorizado, Cliente, UsuarioCliente
 
 # Load environment variables from .env file

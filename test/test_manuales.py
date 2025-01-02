@@ -10,7 +10,7 @@ load_dotenv()
 # Agregar el directorio que contiene el módulo 'jurisdicciones' al PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba, Arba, Salta, Chaco, Sicnea
+from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba, Arba, Salta, Chaco, Sicnea, Agip
 
 async def catamarca_test():
     async with async_playwright() as playwright:
@@ -182,6 +182,30 @@ async def chaco_test():
             headless=False
         )
         await chaco.procesar_jurisdiccion()
+        
+
+async def agip_test():
+    async with async_playwright() as playwright:
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+        
+        client = os.getenv("TEST_CHACO_CLIENT")
+        cuit_agip = os.getenv("TEST_AGIP_CUIT")
+        clave_fiscal_agip = os.getenv("TEST_AGIP_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_AGIP_CUIT_CLIENTE_INPUT")
+
+        agip = await Agip.create(
+            playwright,
+            client,
+            cuit_agip,
+            clave_fiscal_agip,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False
+        )
+        await agip.procesar_jurisdiccion()  # https://claveciudad.agip.gob.ar/
+
 
 if __name__ == '__main__':
     # asyncio.run(catamarca_test())
@@ -190,4 +214,5 @@ if __name__ == '__main__':
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
     # asyncio.run(chaco_test())
-    asyncio.run(sicnea_test())
+    # asyncio.run(sicnea_test())
+    asyncio.run(agip_test())
