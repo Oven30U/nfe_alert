@@ -50,7 +50,7 @@ def managed_session(db_type="sqlserver"):
             session.close()
 
 
-pd.set_option("display.max_columns", None)
+# pd.set_option("display.max_columns", None)
 
 
 async def main():

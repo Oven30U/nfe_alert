@@ -66,26 +66,26 @@ def get_sqlite_session(max_retries=5, delay=3):
                 raise Exception("Failed to connect to SQLite after multiple attempts.") from e
 
 if __name__ == "__main__":
-    # try:
-    #     # Test SQL Server connection
-    #     session = get_session()
-    #     print("SQL Server session created successfully!")
-    #
-    #     # Crear un cursor desde la conexión
-    #     cursor = session.connection().connection.cursor()
-    #
-    #     # Ejecutar la consulta
-    #     cursor.execute("SELECT TOP 1 * FROM usuarios_autorizados")
-    #
-    #     # Obtener y mostrar los resultados
-    #     results = cursor.fetchall()
-    #     for row in results:
-    #         print(row)
-    # except Exception as e:
-    #     print(f"Error creating SQL Server session: {e}")
-    # finally:
-    #     if session:
-    #         session.close()
+    try:
+        # Test SQL Server connection
+        session = get_session()
+        print("SQL Server session created successfully!")
+    
+        # Crear un cursor desde la conexión
+        cursor = session.connection().connection.cursor()
+    
+        # Ejecutar la consulta
+        cursor.execute("SELECT TOP 1 * FROM usuarios_autorizados")
+    
+        # Obtener y mostrar los resultados
+        results = cursor.fetchall()
+        for row in results:
+            print(row)
+    except Exception as e:
+        print(f"Error creating SQL Server session: {e}")
+    finally:
+        if session:
+            session.close()
 
     try:
         # Test SQLite connection

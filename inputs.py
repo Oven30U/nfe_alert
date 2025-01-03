@@ -29,6 +29,7 @@ def cargar_excels():
     dataframes = []
 
     for root, dirs, files in os.walk(PATH_ESTRUCTURA_ROBOT):
+        dirs[:] = [d for d in dirs if d != "System"]
         for file in files:
             if NOMBRE_ARCHIVO_CLIENTE in file:
                 file_path = os.path.join(root, file)
