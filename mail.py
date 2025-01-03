@@ -32,7 +32,8 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from smtplib import SMTPNotSupportedError
+from smtplib import SMTPNotSupportedError, SMTPException
+from logger import Logger
 
 from config import mapa_jurisdiccion_clases
 from generar_html import (
@@ -43,6 +44,7 @@ from generar_html import (
     reemplazar_contenido_en_html,
 )
 
+logger = Logger.get_logger()
 
 def enviar_correo(
     receptor,
@@ -151,16 +153,19 @@ def enviar_correo(
         body = MIMEText(html_content, "html")
         msg.attach(body)
 
-    # Intenta crear conexión al servidor SMTP
     try:
         context = ssl.create_default_context()
         server = smtplib.SMTP(servidor_smtp, puerto_smtp)
         server.starttls(context=context)
         server.sendmail(msg["From"], receptor + cc, msg.as_string())
     except SMTPNotSupportedError:
-        print(
+        logger.error(
             "El servidor no soporta SMTP AUTH. No se enviará el correo para mantener la seguridad."
         )
+    except SMTPException as e:
+        logger.error(f"Error al enviar correo: {e}")
+    except Exception as e:
+        logger.error(f"Error inesperado al enviar correo: {e}")
     finally:
         server.quit()
 

@@ -14,13 +14,13 @@ from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba, Arba, Salta, C
 
 async def catamarca_test():
     async with async_playwright() as playwright:
-        fecha_desde = "01082024"
-        fecha_hasta = "30082024"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
 
-        cuit_Catamarca = "20408964823"
-        clave_fiscal_Catamarca = "Elcolo_1998&"
-        cuit_cliente_input = "30714604356"
-        client = "EDGE ARGENTINA S.R.L"
+        client = os.getenv("TEST_CATAMARCA_CLIENT")
+        cuit_Catamarca = os.getenv("TEST_CATAMARCA_CUIT")
+        clave_fiscal_Catamarca = os.getenv("TEST_CATAMARCA_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_CATAMARCA_CUIT_CLIENTE_INPUT")
 
         catamarca = await Catamarca.create(
             playwright,
@@ -30,7 +30,7 @@ async def catamarca_test():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            # headless=False,
+            headless=False
         )
         await catamarca.procesar_jurisdiccion()
 
@@ -208,11 +208,11 @@ async def agip_test():
 
 
 if __name__ == '__main__':
-    # asyncio.run(catamarca_test())
+    asyncio.run(catamarca_test())
     # asyncio.run(santiago_test())
     # asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
     # asyncio.run(chaco_test())
     # asyncio.run(sicnea_test())
-    asyncio.run(agip_test())
+    # asyncio.run(agip_test())
