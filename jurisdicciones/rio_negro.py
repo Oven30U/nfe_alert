@@ -79,6 +79,11 @@ class RioNegro(Jurisdiccion):
             'xpath=//select[@id="cuit_opera"]', str(self._cuit_cliente_input)
         )
         await self.page.click("#btn_ingresar")
+        await self.page.wait_for_load_state("networkidle")
+        popup_aceptar_button = self.page.get_by_text("ACEPTAR")
+        if await popup_aceptar_button.is_visible():
+            await popup_aceptar_button.click()
+        
 
     async def buscar_notificacion(self):
         cantidad_mensajes = await self.page.locator("#cantidad_msj").inner_text()

@@ -40,13 +40,14 @@ async def main():
                 ) = await processor.procesar_jurisdicciones(playwright)
 
                 logger.info(
-                    f"Cliente: {cliente} - Jurisdicciones encontradas: {encontradas} -Jurisdicciones no encontradas: {no_encontradas}"
+                    "Cliente: %s - Jurisdicciones encontradas: %s - Jurisdicciones no encontradas: %s",
+                    cliente, encontradas, no_encontradas
                 )
 
                 df_final = await processor.ejecutar_jurisdicciones(instances)
                 df_final = await processor.reintentar_errores(playwright, df_final)
 
-                logger.info(f"Resultados para {cliente}:\n{df_final}")
+                logger.info("Resultados para %s:\n%s", cliente, df_final)
 
                 processor.generar_mapas(df_final)
                 processor.zip_path, processor.zip_name = processor.crear_zip()

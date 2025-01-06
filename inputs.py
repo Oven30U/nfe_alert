@@ -141,25 +141,13 @@ def obtener_clientes(
     cerrar_excel(NOMBRE_ARCHIVO_CLIENTE)
 
     try:
-        # df_clientes = pd.read_excel(PATH_CLIENTES, sheet_name="System-Clientes")
         df_clientes = cargar_excels()
     except Exception as e:
-        InputException(f"No se pudo crear el df_clientes, {e}", cliente)
-        # print("No se pudo acceder al archivo %s: %s", PATH_CLIENTES, str(e))
+        InputException(f"No se pudo crear el df_clientes, {str(e)}")
 
-    # Drop rows where all columns except 'CC: Equipo Deloitte' or 'To: Equipo Cliente' are NaN
-    df_clientes = df_clientes.dropna(
-        how="all",
-        subset=[
-            col
-            for col in df_clientes.columns
-            if col not in ["CC: Equipo Deloitte", "To: Equipo Cliente"]
-        ],
-    )
-    # Drop rows where both 'CC: Equipo Deloitte' and 'To: Equipo Cliente' are NaN
-    df_clientes = df_clientes.dropna(
-        subset=["CC: Equipo Deloitte", "To: Equipo Cliente"], how="all"
-    )
+    subset_cols = [col for col in df_clientes.columns if col not in ["CC: Equipo Deloitte", "To: Equipo Cliente"]]
+    df_clientes = df_clientes.dropna(how="all", subset=subset_cols)
+    df_clientes = df_clientes.dropna(subset=["CC: Equipo Deloitte", "To: Equipo Cliente"], how="all")
     df_clientes = df_clientes[df_clientes["Consultar"].str.lower() == "si"]
 
     if not EJECUTAR_CLIENTES_LISTA:

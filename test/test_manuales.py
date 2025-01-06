@@ -8,9 +8,20 @@ from playwright.async_api import async_playwright
 load_dotenv()
 
 # Agregar el directorio que contiene el módulo 'jurisdicciones' al PYTHONPATH
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from jurisdicciones import Catamarca, SantiagoDelEstero, Cordoba, Arba, Salta, Chaco, Sicnea, Agip
+from jurisdicciones import (
+    Catamarca,
+    SantiagoDelEstero,
+    Cordoba,
+    Arba,
+    Salta,
+    Chaco,
+    Sicnea,
+    Agip,
+    RioNegro,
+)
+
 
 async def catamarca_test():
     async with async_playwright() as playwright:
@@ -30,7 +41,7 @@ async def catamarca_test():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False
+            headless=False,
         )
         await catamarca.procesar_jurisdiccion()
 
@@ -53,7 +64,7 @@ async def santiago_test():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False
+            headless=False,
         )
         await santiago_del_estero.procesar_jurisdiccion()
 
@@ -81,10 +92,11 @@ async def cordoba_test():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False
+            headless=False,
         )
         await cordoba.procesar_jurisdiccion()
-        
+
+
 async def arba_test():
     async with async_playwright() as playwright:
         fecha_desde = "01072024"
@@ -113,9 +125,10 @@ async def arba_test():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False
+            headless=False,
         )
         await arba.procesar_jurisdiccion()
+
 
 async def salta_test():
     async with async_playwright() as playwright:
@@ -134,7 +147,7 @@ async def salta_test():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False
+            headless=False,
         )
         await salta.procesar_jurisdiccion()
 
@@ -156,7 +169,7 @@ async def sicnea_test():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False
+            headless=False,
         )
         await sicnea.procesar_jurisdiccion()
 
@@ -165,7 +178,7 @@ async def chaco_test():
     async with async_playwright() as playwright:
         fecha_desde = os.getenv("FECHA_DESDE")
         fecha_hasta = os.getenv("FECHA_HASTA")
-        
+
         client = os.getenv("TEST_CHACO_CLIENT")
         cuit_Chaco = os.getenv("TEST_CHACO_CUIT")
         clave_fiscal_Chaco = os.getenv("TEST_CHACO_CLAVE_FISCAL")
@@ -179,17 +192,17 @@ async def chaco_test():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False
+            headless=False,
         )
         await chaco.procesar_jurisdiccion()
-        
+
 
 async def agip_test():
     async with async_playwright() as playwright:
         fecha_desde = os.getenv("FECHA_DESDE")
         fecha_hasta = os.getenv("FECHA_HASTA")
-        
-        client = os.getenv("TEST_CHACO_CLIENT")
+
+        client = os.getenv("TEST_AGIP_CLIENT")
         cuit_agip = os.getenv("TEST_AGIP_CUIT")
         clave_fiscal_agip = os.getenv("TEST_AGIP_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_AGIP_CUIT_CLIENTE_INPUT")
@@ -202,13 +215,36 @@ async def agip_test():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            headless=False
+            headless=False,
         )
         await agip.procesar_jurisdiccion()  # https://claveciudad.agip.gob.ar/
 
 
-if __name__ == '__main__':
-    asyncio.run(catamarca_test())
+async def rio_negro_test():
+    async with async_playwright() as playwright:
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_RIO_NEGRO_CLIENT")
+        cuit_rio_negro = os.getenv("TEST_RIO_NEGRO_CUIT")
+        clave_fiscal_rio_negro = os.getenv("TEST_RIO_NEGRO_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_RIO_NEGRO_CUIT_CLIENTE_INPUT")
+
+        rio_negro = await RioNegro.create(
+            playwright,
+            client,
+            cuit_rio_negro,
+            clave_fiscal_rio_negro,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False,
+        )
+        await rio_negro.procesar_jurisdiccion()
+
+
+if __name__ == "__main__":
+    # asyncio.run(catamarca_test())
     # asyncio.run(santiago_test())
     # asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
@@ -216,3 +252,4 @@ if __name__ == '__main__':
     # asyncio.run(chaco_test())
     # asyncio.run(sicnea_test())
     # asyncio.run(agip_test())
+    asyncio.run(rio_negro_test())
