@@ -25,11 +25,19 @@ async def main():
             registrar_sin_clientes()
             return
 
-        df_por_cliente = df_input.groupby("Cliente")
+        df_por_cliente = df_input.groupby(["Cliente", "Correo Output"])
 
-        for cliente, group in df_por_cliente:
+
+        for cliente_tuple, group in df_por_cliente:
+            cliente = cliente_tuple[0]
+            cuit_cliente = group["cuit_cliente"].values[0]
             inicio = datetime.now()
-            processor = ClienteProcessor(cliente, group)
+            processor = ClienteProcessor(cliente, group, cuit_cliente, inicio)
+            
+            #! Descomentar para volver a procesar en producción
+            processor.correo_output = "lmarinaro@deloitte.com"
+            processor.socio_responsable = "lmarinaro@deloitte.com"
+            
             processor.respaldar_archivos()
 
             try:

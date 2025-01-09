@@ -24,14 +24,16 @@ from conectar_db import conectar_db, get_pass_zip
 logger = Logger.get_logger()
 
 class ClienteProcessor:
-    def __init__(self, cliente, group):
-        self.cliente = cliente
-        self.group = group
+    def __init__(self, cliente: str, group: pd.DataFrame, cuit_cliente: str, inicio: datetime):
+        self.cliente: str = cliente
+        self.group: pd.DataFrame = group
+        self.cuit_cliente: str = cuit_cliente
+        self.inicio: datetime = inicio
         self.output_folder, self.backup_folder = self.preparar_directorios()
-        self.correo_output = self.obtener_correo()
-        self.socio_responsable = self.obtener_socio()
-        self.zip_path = None
-        self.zip_name = None
+        self.correo_output: str = self.obtener_correo()
+        self.socio_responsable: str = self.obtener_socio()
+        self.zip_path: str = None
+        self.zip_name: str = None
 
     def preparar_directorios(self):
         base_folder = f"Estructura-robot/{self.cliente}"
@@ -162,14 +164,16 @@ class ClienteProcessor:
                 receptor = self.socio_responsable
                 cc = None
             else:
-                raise ValueError("No valid email address found for sending the email.")
+                raise ValueError("No valid email address found for sending the zip email.")
 
             if receptor is None:
-                raise ValueError("Receptor email address is None. Cannot send email.")
+                raise ValueError("Receptor email address is None. Cannot send zip email.")
 
             enviar_correo(
                 receptor=receptor,
                 cliente=self.cliente,
+                cuit=self.cuit_cliente,
+                inicio=self.inicio,
                 ruta_archivo_adjunto=self.zip_path,
                 nombre_archivo_adjunto=self.zip_name,
                 df=df_correo,

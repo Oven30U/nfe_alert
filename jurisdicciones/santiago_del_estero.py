@@ -69,15 +69,34 @@ class SantiagoDelEstero(Jurisdiccion):
 
     async def consultar_notificaciones(self):
         await self.page.goto(
-            "https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml"
+            "https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml",
+            timeout = 900000
         )
-        await self.page.wait_for_load_state("load")
+        
+        # Desde la página de login princial: 
+        # await self.page.goto(
+        #     "https://dgronline.dgrsantiago.gob.ar/dgronline/hlogin.aspx"
+        # )
+        # await self.page.locator("//input[@id='vUSUID']").fill(f"{self._cuit}")
+        # await self.page.locator("//input[@id='vUSUPWD']").fill(f"{self._clave_fiscal}")
+        # await self.page.locator("//input[@value='Confirmar']").click()
+        # await self.page.wait_for_load_state("load", timeout=90000)
+        # await self.page.locator(
+        #     "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[1]"
+        # ).click()
+        # await self.page.wait_for_load_state("load", timeout=90000)
+        # await self.page.locator(
+        #     "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[2]"
+        # ).click()
+        # await self.page.locator("#vBOTDOMICILIOELECTRONICO").click()
+        
 
         # self.page.set_default_timeout(60000)
         # Create a new browser context with bypass_csp=True
         # context = await self.browser.new_context(bypass_csp=True)
         # self.page = await context.new_page()
         # await self.page.goto("https://dgronline.dgrsantiago.gob.ar/dgronline/hlogin.aspx")
+        
         await self.page.locator("//input[@id='loginForm:username']").fill(
             f"{self._cuit}"
         )

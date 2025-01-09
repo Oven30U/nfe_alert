@@ -48,13 +48,13 @@ async def catamarca_test():
 
 async def santiago_test():
     async with async_playwright() as playwright:
-        fecha_desde = "01082024"
-        fecha_hasta = "30082024"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
 
-        cuit_SantiagoDelEstero = "30714604356"
-        clave_fiscal_SantiagoDelEstero = "Edge2023"
-        cuit_cliente_input = "30714604356"
-        client = "EDGE ARGENTINA S.R.L"
+        cuit_SantiagoDelEstero = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT")
+        clave_fiscal_SantiagoDelEstero = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT_CLIENTE_INPUT")
+        client = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLIENT")
 
         santiago_del_estero = await SantiagoDelEstero.create(
             playwright,
@@ -245,11 +245,11 @@ async def rio_negro_test():
 
 if __name__ == "__main__":
     # asyncio.run(catamarca_test())
-    # asyncio.run(santiago_test())
+    asyncio.run(santiago_test())
     # asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
     # asyncio.run(chaco_test())
     # asyncio.run(sicnea_test())
     # asyncio.run(agip_test())
-    asyncio.run(rio_negro_test())
+    # asyncio.run(rio_negro_test())

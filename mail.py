@@ -34,6 +34,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from smtplib import SMTPNotSupportedError, SMTPException
 from logger import Logger
+from datetime import datetime
 
 from config import mapa_jurisdiccion_clases
 from generar_html import (
@@ -49,6 +50,8 @@ logger = Logger.get_logger()
 def enviar_correo(
     receptor,
     cliente,
+    cuit,
+    inicio,
     ruta_archivo_adjunto=None,
     nombre_archivo_adjunto=None,
     df=None,
@@ -86,13 +89,13 @@ def enviar_correo(
 
     # Asegurarse de que 'receptor' es una lista y no un string
     if not isinstance(receptor, list):
-        receptor = [receptor]
+        receptor = receptor.split(';')
 
     # Asegurarse de que 'cc' es una lista y no un string
     if cc is None:
         cc = []
     elif not isinstance(cc, list):
-        cc = [cc]
+        cc = cc.split(';')
 
     # Crear el mensaje
     msg = MIMEMultipart()
@@ -106,7 +109,7 @@ def enviar_correo(
     # Eliminar duplicados de la lista de receptores
     receptor = list(set(receptor))
     msg["Subject"] = (
-        f"NFE Alert: Revisión de Domicilios Fiscales Electrónicos del cliente {cliente}"
+        f"{cliente} - NFE Alert_Revisión de Domicilios Fiscales Electrónicos"
     )
 
     # Adjuntar el archivo si se proporciona
@@ -127,26 +130,46 @@ def enviar_correo(
 
         df["Jurisdicción"] = df["Jurisdicción"].replace(
             mapa_jurisdiccion_clases
-        )  # mapa_jurisdiccion_clases jurisdiccion_clases
+        )
+        
         html_con_tabla = insertar_tabla_en_html(
             df,
             cuerpo_html_plantilla,
             "id",
             "tabla_jurisdicciones",
         )
+        
         html_con_tabla_y_mapas = insertar_mapas_en_html(
             mapa_provincias_html, mapa_argentina_html, html_con_tabla
         )
 
-        # Obtener el día actual
         dia_actual = datetime.today().strftime("%d/%m/%Y")
-        html_con_tabla_mapas_y_dia = reemplazar_contenido_en_html(
+        html_con_tabla_mapas_dia = reemplazar_contenido_en_html(
             html_con_tabla_y_mapas,
             "id",
             "span-fecha-dinamica",
-            f"Deloitte Argentina | Impuestos | {dia_actual}",
+            f"Deloitte Argentina | Impuestos | {dia_actual}"
         )
-        archivo_html_a_enviar = grabar_html(cliente, html_con_tabla_mapas_y_dia)
+        
+        cuit_formateado = f"{cuit[:2]}-{cuit[2:10]}-{cuit[10:]}"
+        html_con_tabla_mapas_dia_cuit = reemplazar_contenido_en_html(
+            html_con_tabla_mapas_dia,
+            "id",
+            "span-cliente-cuit",
+            f"{cliente} CUIT {cuit_formateado}"
+        )
+        
+        inicio_formateado = inicio.strftime("%H:%M")
+        html_con_tabla_mapas_dia_cuit_fecha = reemplazar_contenido_en_html(
+            html_con_tabla_mapas_dia_cuit,
+            "id",
+            "span-fecha-hora-procesamiento",
+            f"Con fecha {dia_actual} a las {inicio_formateado} horas se realizó la revisión de los domicilios fiscales de las jurisdicciones por ustedes informadas.",
+        )
+        
+        archivo_html_a_enviar = grabar_html(
+            cliente, html_con_tabla_mapas_dia_cuit_fecha
+        )
 
         with open(archivo_html_a_enviar, "r", encoding="utf-8") as f:
             html_content = f.read()
