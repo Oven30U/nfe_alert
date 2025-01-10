@@ -128,11 +128,12 @@ class Nacional(Jurisdiccion):
         # await completar_fechas(self.new_page, self.fecha_desde, self.fecha_hasta)
 
     async def buscar_notificacion(self):
+        # TODO separar los informes por selector o definir correctamente el tema con FCE
         selectores = {
             "notificaciones": "xpath=//a[contains(text(), ' Notificaciones ')]",
             "requerimientos": "xpath=//a[contains(text(), ' Requerimientos ')]",
             "otras_notificaciones": "xpath=//a[contains(text(), ' Otras notificaciones ')]",
-            "fce": "xpath=//a[contains(text(), ' Factura de Crédito Electrónica ')]",
+            # "fce": "xpath=//a[contains(text(), ' Factura de Crédito Electrónica ')]",
             "induccion": "xpath=//a[contains(text(), ' Inducción ')]",
             "otros_mensajes": "xpath=//a[contains(text(), ' Otros mensajes')]",
         }

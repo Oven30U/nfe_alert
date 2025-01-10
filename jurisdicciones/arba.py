@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 import asyncio
 from playwright.async_api import Playwright, async_playwright
 
@@ -100,11 +101,31 @@ class Arba(Jurisdiccion):
         await self.page.click('a[href="#tabs-Todas"]')
 
     async def buscar_notificacion(self):
-        # Verificar si el texto "No se encontraron resultados" es visible
-        return not await self.buscar_notificacion_xpath_visible(
+        no_results = await self.buscar_notificacion_xpath_visible(
             "//table[@id='listaNotificacionesTCTodas']//tbody/tr//*[contains(text(), 'No se encontraron resultados')]",
-            self.page,
+            self.page
         )
+        if no_results:
+            return False
+
+        date_elements = await self.page.query_selector_all("//table[@id='listaNotificacionesTCTodas']//tbody/tr/td[3]")
+        
+        if not date_elements:
+            return False
+            
+        fecha_desde = datetime.strptime(self.fecha_desde, '%d%m%Y')
+        fecha_hasta = datetime.strptime(self.fecha_hasta, '%d%m%Y')
+        
+        for date_element in date_elements:
+            date_text = await date_element.text_content()
+            try:
+                notification_date = datetime.strptime(date_text.strip(), '%d-%m-%Y')
+                if fecha_desde <= notification_date <= fecha_hasta:
+                    return True
+            except ValueError:
+                continue
+                
+        return False
 
     async def tomar_screenshot(self):
         await self.page.wait_for_load_state("load")
