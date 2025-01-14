@@ -47,6 +47,7 @@ from generar_html import (
 
 logger = Logger.get_logger()
 
+
 def enviar_correo(
     receptor,
     cliente,
@@ -88,57 +89,74 @@ def enviar_correo(
     puerto_smtp = os.getenv("PUERTO_SMTP")
 
     # Asegurarse de que 'receptor' es una lista y no un string
-    if not isinstance(receptor, list):
-        receptor = receptor.split(';')
+    if isinstance(receptor, str):
+        display_recipients = [r.strip() for r in receptor.split(";") if r.strip()]
+    else:
+        display_recipients = [r.strip() for r in receptor if r.strip()]
 
     # Asegurarse de que 'cc' es una lista y no un string
     if cc is None:
-        cc = []
-    elif not isinstance(cc, list):
-        cc = cc.split(';')
+        cc_recipients = []
+    elif isinstance(cc, str):
+        cc_recipients = [c.strip() for c in cc.split(";") if c.strip()]
+    else:
+        cc_recipients = [c.strip() for c in cc if c.strip()]
+
+    rpa_emails = [
+        email.strip()
+        for email in os.getenv("CORREOS_RPA", "").split(",")
+        if email.strip()
+    ]
 
     # Crear el mensaje
     msg = MIMEMultipart()
     msg["From"] = os.getenv("CORREO_REMITENTE")
-    msg["To"] = ",".join(receptor)
-    msg["Cc"] = ",".join(cc) if cc else ""
-    correos_rpa = os.getenv("CORREOS_RPA").split(",")
-    # Dividir la cadena en varias cadenas utilizando el method split()
-    receptor = receptor[0].split(";")
-    receptor.extend(correos_rpa)
-    # Eliminar duplicados de la lista de receptores
-    receptor = list(set(receptor))
+    msg["To"] = ",".join(display_recipients)
+    msg["Cc"] = ",".join(cc_recipients)
+
+    all_recipients = list(set(display_recipients + cc_recipients + rpa_emails))
+
     msg["Subject"] = (
         f"{cliente} - NFE Alert_Revisión de Domicilios Fiscales Electrónicos"
     )
 
     # Adjuntar el archivo si se proporciona
     if ruta_archivo_adjunto is not None and nombre_archivo_adjunto is not None:
-        part = MIMEBase("application", "octet-stream")
-        with open(ruta_archivo_adjunto, "rb") as file:
-            part.set_payload(file.read())
-        encoders.encode_base64(part)
-        part.add_header(
-            "Content-Disposition", "attachment", filename=nombre_archivo_adjunto
-        )
-        msg.attach(part)
+        try:
+            # Use application/x-zip-compressed for legacy compatibility
+            part = MIMEBase('application', 'x-zip-compressed')
+            with open(ruta_archivo_adjunto, "rb") as file:
+                content = file.read()
+                if not content:
+                    raise ValueError("Archivo ZIP vacío")
+                part.set_payload(content)
+                
+            encoders.encode_base64(part)
+            part.add_header(
+                'Content-Disposition',
+                'attachment',
+                filename=nombre_archivo_adjunto
+            )
+            part.add_header('Content-Type', 'application/x-zip-compressed')
+            msg.attach(part)
+        except (IOError, ValueError) as e:
+            logger.error(f"Error adjuntando archivo ZIP: {e}")
+            raise
 
     # Creamos el cuerpo del mensaje
     if df is not None:
         mapa_provincias_html = convertir_imagen_en_html(ruta_imagen_png)
         mapa_argentina_html = convertir_imagen_en_html(ruta_imagen_png_2)
 
-        df["Jurisdicción"] = df["Jurisdicción"].replace(
-            mapa_jurisdiccion_clases
-        )
-        
+        df["Jurisdicción"] = df["Jurisdicción"].replace(mapa_jurisdiccion_clases)
+
         html_con_tabla = insertar_tabla_en_html(
             df,
             cuerpo_html_plantilla,
             "id",
             "tabla_jurisdicciones",
         )
-        
+
         html_con_tabla_y_mapas = insertar_mapas_en_html(
             mapa_provincias_html, mapa_argentina_html, html_con_tabla
         )
@@ -148,25 +166,32 @@ def enviar_correo(
             html_con_tabla_y_mapas,
             "id",
             "span-fecha-dinamica",
-            f"Deloitte Argentina | Impuestos | {dia_actual}"
+            f"Deloitte Argentina | Impuestos | {dia_actual}",
         )
-        
+
         cuit_formateado = f"{cuit[:2]}-{cuit[2:10]}-{cuit[10:]}"
         html_con_tabla_mapas_dia_cuit = reemplazar_contenido_en_html(
             html_con_tabla_mapas_dia,
             "id",
-            "span-cliente-cuit",
-            f"{cliente} CUIT {cuit_formateado}"
+            "span-cuit",
+            f"CUIT {cuit_formateado}",
         )
-        
+
+        html_con_tabla_mapas_dia_cuit_cliente = reemplazar_contenido_en_html(
+            html_con_tabla_mapas_dia_cuit,
+            "id",
+            "span-cliente",
+            f"{cliente.title()}",
+        )
+
         inicio_formateado = inicio.strftime("%H:%M")
         html_con_tabla_mapas_dia_cuit_fecha = reemplazar_contenido_en_html(
-            html_con_tabla_mapas_dia_cuit,
+            html_con_tabla_mapas_dia_cuit_cliente,
             "id",
             "span-fecha-hora-procesamiento",
             f"Con fecha {dia_actual} a las {inicio_formateado} horas se realizó la revisión de los domicilios fiscales de las jurisdicciones por ustedes informadas.",
         )
-        
+
         archivo_html_a_enviar = grabar_html(
             cliente, html_con_tabla_mapas_dia_cuit_fecha
         )
@@ -180,7 +205,7 @@ def enviar_correo(
         context = ssl.create_default_context()
         server = smtplib.SMTP(servidor_smtp, puerto_smtp)
         server.starttls(context=context)
-        server.sendmail(msg["From"], receptor + cc, msg.as_string())
+        server.sendmail(msg["From"], all_recipients, msg.as_string())
     except SMTPNotSupportedError:
         logger.error(
             "El servidor no soporta SMTP AUTH. No se enviará el correo para mantener la seguridad."
@@ -197,4 +222,6 @@ if __name__ == "__main__":
     enviar_correo(
         receptor=os.getenv("CORREO_RECEPTOR_TEST_MAIL"),
         cliente=os.getenv("CLIENTE_TEST_MAIL"),
+        cuit=os.getenv("CUIT_TEST_MAIL"),
+        inicio=os.getenv("INICIO_TEST_MAIL"),
     )

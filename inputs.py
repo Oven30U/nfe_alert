@@ -33,6 +33,9 @@ def cargar_excels():
         for file in files:
             if NOMBRE_ARCHIVO_CLIENTE in file:
                 file_path = os.path.join(root, file)
+                client_folder = os.path.basename(
+                    os.path.dirname(root)
+                )  # Obtener la carpeta padre
 
                 # Leer el archivo de Excel utilizando pandas
                 xls = pd.ExcelFile(file_path)
@@ -83,6 +86,8 @@ def cargar_excels():
                     # Añadir las columnas de df_tabla_cliente a df_tabla_jurisdiccion
                     for col in df_tabla_cliente.columns:
                         df_tabla_jurisdiccion[col] = repeated_cliente_values[col]
+
+                    df_tabla_jurisdiccion["client_folder"] = client_folder
 
                     dataframes.append(df_tabla_jurisdiccion)
 
@@ -145,9 +150,15 @@ def obtener_clientes(
     except Exception as e:
         InputException(f"No se pudo crear el df_clientes, {str(e)}")
 
-    subset_cols = [col for col in df_clientes.columns if col not in ["CC: Equipo Deloitte", "To: Equipo Cliente"]]
+    subset_cols = [
+        col
+        for col in df_clientes.columns
+        if col not in ["CC: Equipo Deloitte", "To: Equipo Cliente"]
+    ]
     df_clientes = df_clientes.dropna(how="all", subset=subset_cols)
-    df_clientes = df_clientes.dropna(subset=["CC: Equipo Deloitte", "To: Equipo Cliente"], how="all")
+    df_clientes = df_clientes.dropna(
+        subset=["CC: Equipo Deloitte", "To: Equipo Cliente"], how="all"
+    )
     df_clientes = df_clientes[df_clientes["Consultar"].str.lower() == "si"]
 
     if not EJECUTAR_CLIENTES_LISTA:

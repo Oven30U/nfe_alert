@@ -23,12 +23,22 @@ from conectar_db import conectar_db, get_pass_zip
 
 logger = Logger.get_logger()
 
+
 class ClienteProcessor:
-    def __init__(self, cliente: str, group: pd.DataFrame, cuit_cliente: str, inicio: datetime):
+    def __init__(
+        self,
+        cliente: str,
+        group: pd.DataFrame,
+        cuit_cliente: str,
+        inicio: datetime,
+        client_folder: str,
+    ):
         self.cliente: str = cliente
+        self.client_folder = client_folder
         self.group: pd.DataFrame = group
         self.cuit_cliente: str = cuit_cliente
         self.inicio: datetime = inicio
+        self.client_folder: str = client_folder
         self.output_folder, self.backup_folder = self.preparar_directorios()
         self.correo_output: str = self.obtener_correo()
         self.socio_responsable: str = self.obtener_socio()
@@ -36,7 +46,7 @@ class ClienteProcessor:
         self.zip_name: str = None
 
     def preparar_directorios(self):
-        base_folder = f"Estructura-robot/{self.cliente}"
+        base_folder = f"Estructura-robot/{self.client_folder}"
         output_folder = os.path.join(base_folder, "Output")
         backup_folder = os.path.join(base_folder, "Backup")
         os.makedirs(output_folder, exist_ok=True)
@@ -81,11 +91,15 @@ class ClienteProcessor:
                 no_encontradas.append(jurisdiction)
                 continue
             encontradas.append(jurisdiction)
-            instance = await self.crear_instancia_jurisdiccion(playwright, row, jurisdiction)
+            instance = await self.crear_instancia_jurisdiccion(
+                playwright, row, jurisdiction, retry=False
+            )
             instances[jurisdiction] = instance
         return instances, encontradas, no_encontradas
 
-    async def crear_instancia_jurisdiccion(self, playwright, row, jurisdiction):
+    async def crear_instancia_jurisdiccion(
+        self, playwright, row, jurisdiction, retry=False
+    ):
         JurisdictionClass = getattr(jurisdicciones, jurisdiction)
         create_args = {
             "playwright": playwright,
@@ -95,6 +109,7 @@ class ClienteProcessor:
             "fecha_desde": row["fecha_desde"],
             "fecha_hasta": row["fecha_hasta"],
             "cuit_cliente_input": int(row["cuit_cliente"]),
+            "headless": not retry,  #! TODO colocar True para producción
         }
         return await JurisdictionClass.create(**create_args)
 
@@ -110,18 +125,32 @@ class ClienteProcessor:
         errores = df_final[df_final["Error"].notna()]
         for _, error_row in errores.iterrows():
             jurisdiction = error_row["Nombre"]
+            # error = error_row["Error"]
+
+            # if isinstance(error, jurisdicciones.LoginError):
+            #     print(f"Skipping retry for {jurisdiction} due to LoginError")
+            #     continue
+
             row = self.group[self.group["Jurisdiccion"] == jurisdiction].iloc[0]
             for _ in range(LIMITES_REINTENTO):
-                instance = await self.crear_instancia_jurisdiccion(playwright, row, jurisdiction)
+                instance = await self.crear_instancia_jurisdiccion(
+                    playwright, row, jurisdiction, retry=True
+                )
                 resultado = await instance.procesar_jurisdiccion()
                 df_final.loc[df_final["Nombre"] == jurisdiction] = list(resultado)
-                if pd.isna(df_final.loc[df_final["Nombre"] == jurisdiction, "Error"]).all():
+                if pd.isna(
+                    df_final.loc[df_final["Nombre"] == jurisdiction, "Error"]
+                ).all():
                     break
         return df_final
 
     def generar_mapas(self, df_final):
-        crear_mapa(df_final, f"{self.output_folder}/mapa_jurisdicciones_{self.cliente}.png")
-        crear_mapa_argentina(df_final, f"{self.output_folder}/mapa_nacional_{self.cliente}.png")
+        crear_mapa(
+            df_final, f"{self.output_folder}/mapa_jurisdicciones_{self.cliente}.png"
+        )
+        crear_mapa_argentina(
+            df_final, f"{self.output_folder}/mapa_nacional_{self.cliente}.png"
+        )
 
     def crear_zip(self):
         now = datetime.now()
@@ -131,7 +160,9 @@ class ClienteProcessor:
         zip_path = os.path.join(self.output_folder, zip_name)
         png_files = glob.glob(os.path.join(self.output_folder, "*.png"))
 
-        pass_zip = get_pass_zip(self.cliente, f"{self.correo_output};{self.socio_responsable}")
+        pass_zip = get_pass_zip(
+            self.cliente, f"{self.correo_output};{self.socio_responsable}"
+        )
         with pyzipper.AESZipFile(
             zip_path,
             "w",
@@ -164,10 +195,14 @@ class ClienteProcessor:
                 receptor = self.socio_responsable
                 cc = None
             else:
-                raise ValueError("No valid email address found for sending the zip email.")
+                raise ValueError(
+                    "No valid email address found for sending the zip email."
+                )
 
             if receptor is None:
-                raise ValueError("Receptor email address is None. Cannot send zip email.")
+                raise ValueError(
+                    "Receptor email address is None. Cannot send zip email."
+                )
 
             enviar_correo(
                 receptor=receptor,
@@ -184,7 +219,9 @@ class ClienteProcessor:
             )
             return True
         except Exception as e:
-            logger.error(f"Error al enviar correo: receptor:{receptor} cliente: {self.cliente}")
+            logger.error(
+                f"Error al enviar correo: receptor:{receptor} cliente: {self.cliente}"
+            )
             return False
 
     def obtener_username(self):
@@ -198,7 +235,7 @@ class ClienteProcessor:
     def registrar_ejecucion(self, proceso, inicio, estado):
         conectar_db(
             proceso=proceso,
-            cliente=self.cliente,
+            cliente=self.client_folder,
             username=self.obtener_username(),
             inicio_value=inicio,
             estado_value=estado,

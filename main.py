@@ -25,19 +25,47 @@ async def main():
             registrar_sin_clientes()
             return
 
-        df_por_cliente = df_input.groupby(["Cliente", "Correo Output"])
+        #! Descomentar para volver a procesar en producción
+        # df_input = df_input[df_input['Cliente'] == 'JANSSEN CILAG FARMACEUTICA SOCIEDAD ANONIMA']
+        # df_input = df_input[df_input['Cliente'] == 'JOHNSON & JOHNSON MEDICAL SOCIEDAD ANONIMA']
+        # df_input = df_input[
+        #     df_input["Jurisdiccion"].isin(
+        #         [
+        #             "Nacional",
+        #             "Sicnea",
+        #             "Agip",
+        #             "Cordoba",
+        #             "EntreRios",
+        #             "SanLuis",
+        #             "Tucuman",
+        #         ]
+        #     )
+        # ]
+        # df_input = df_input[df_input['Cliente'].isin(['JANSSEN CILAG FARMACEUTICA SOCIEDAD ANONIMA', 'JOHNSON & JOHNSON MEDICAL SOCIEDAD ANONIMA'])]
+        # df_input = df_input[~df_input["Jurisdiccion"].isin(["Cordoba", "EntreRios", "SanLuis"])]
+        #! Descomentar para volver a procesar en producción
+
+        df_por_cliente = df_input.groupby(["client_folder", "Cliente"])
 
 
         for cliente_tuple, group in df_por_cliente:
             cliente = cliente_tuple[0]
             cuit_cliente = group["cuit_cliente"].values[0]
+            client_folder = group["client_folder"].values[0]
             inicio = datetime.now()
-            processor = ClienteProcessor(cliente, group, cuit_cliente, inicio)
-            
+            processor = ClienteProcessor(
+                cliente=cliente,
+                group=group,
+                cuit_cliente=cuit_cliente,
+                inicio=inicio,
+                client_folder=client_folder
+            )
+
             #! Descomentar para volver a procesar en producción
-            processor.correo_output = "lmarinaro@deloitte.com"
-            processor.socio_responsable = "lmarinaro@deloitte.com"
-            
+            # processor.correo_output = "lmarinaro@deloitte.com"
+            # processor.socio_responsable = "lmarinaro@deloitte.com"
+            #! Descomentar para volver a procesar en producción
+
             processor.respaldar_archivos()
 
             try:

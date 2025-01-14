@@ -90,7 +90,7 @@ class Nacional(Jurisdiccion):
         await self.new_page.click(f'xpath=//button[@id="{self.cuit_cliente_input}"]')
         await self.page.wait_for_load_state("networkidle")
         try:
-            await self.new_page.wait_for_selector('text="Cerrar"', timeout=2000)
+            await self.new_page.wait_for_selector('text="Cerrar"', timeout=9000)
             await self.new_page.click('text="Cerrar"')
         except Exception:
             pass

@@ -33,10 +33,10 @@ def verificar_html():
 
 def test_enviar_correo(carpeta_cliente, verificar_html):
     receptor = "lmarinaro@deloitte.com"
-    cc = "lmarinaro@deloitte.com;lmarinaro@deloitte.com"
+    cc = "lmarinaro@deloitte.com"
     cuit_cliente = '30123456789'
     inicio = datetime.now()
-    cliente = "Cliente Test"
+    cliente = "CLIENTE TEST"
     data = {
         "Jurisdicción": [
             "924 TUCUMAN",
@@ -115,7 +115,7 @@ def test_enviar_correo(carpeta_cliente, verificar_html):
     )
     
     cuit_formateado = f"{cuit_cliente[:2]}-{cuit_cliente[2:10]}-{cuit_cliente[10:]}"
-    textos_a_buscar = [f"{cliente}", f"{cuit_formateado}"]
+    textos_a_buscar = [f"{cliente.title()}", f"{cuit_formateado}"]
     fecha_actual = datetime.now().strftime("%Y%m%d")
     archivo_html = os.path.join(carpeta_cliente, f"output\{cliente}_{fecha_actual}.html")
     verificar_html(archivo_html, textos_a_buscar)

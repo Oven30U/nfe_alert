@@ -24,7 +24,9 @@ load_dotenv()
 class LoggedException(Exception):
     """Excepción base que registra errores."""
 
-    def __init__(self, message, cliente):
+    def __init__(
+        self, message="Error de Login", cliente="Cliente no especificado"
+    ):
         self.cliente = cliente
         self.logger = Logger.get_logger()
         self.logger.error(f"Cliente: {self.cliente}, Error: {message}")
@@ -174,27 +176,32 @@ class Jurisdiccion(ABC):
     async def AFIP_login(
         self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
     ):
-        await self.page.goto(URL_AFIP_LOGIN)
-        await self.page.get_by_role("spinbutton").click()
-        await self.page.get_by_role("spinbutton").fill(self._cuit)
-        await self.page.get_by_role("button", name="Siguiente").click()
-        incorrect_login = await self.page.query_selector(
-            ":has-text('Número de CUIL/CUIT incorrecto')"
-        )
-        if incorrect_login:
-            raise LoginError("Login CUIT incorrecto")
-        await self.page.get_by_label("TU CLAVE").click()
-        await self.page.get_by_label("TU CLAVE").fill(self._clave_fiscal)
-        await self.page.get_by_role("button", name="Ingresar").click()
-        await self.page.wait_for_load_state(
-            "networkidle"
-        )  # esperar que cargue la página, si el link no es AFIP puro, entonces redirige a juridiscción
-        if URL_AFIP_LOGIN == "https://auth.afip.gob.ar/contribuyente_/login.xhtml":
+        try:
+            await self.page.goto(URL_AFIP_LOGIN)
+            await self.page.get_by_role("spinbutton").click()
+            await self.page.get_by_role("spinbutton").fill(self._cuit)
+            await self.page.get_by_role("button", name="Siguiente").click()
+
             incorrect_login = await self.page.query_selector(
-                ":has-text('Clave o usuario incorrecto')"
+                ":has-text('Número de CUIL/CUIT incorrecto')"
             )
             if incorrect_login:
-                raise LoginError("Login pass incorrecto")
+                raise LoginError("CUIT/CUIL incorrecto", self.cliente)
+
+            await self.page.get_by_label("TU CLAVE").click()
+            await self.page.get_by_label("TU CLAVE").fill(self._clave_fiscal)
+            await self.page.get_by_role("button", name="Ingresar").click()
+            await self.page.wait_for_load_state("networkidle")
+
+            # Check for login errors after attempting login
+            error_selector = await self.page.query_selector(".mensajeError")
+            if error_selector:
+                raise LoginError("Error en credenciales AFIP", self.cliente)
+
+        except Exception as e:
+            if not isinstance(e, LoginError):
+                raise LoginError(f"Error en login AFIP: {str(e)}", self.cliente)
+            raise
 
     @abstractmethod
     def consultar_notificaciones(self):

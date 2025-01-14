@@ -20,6 +20,11 @@ from jurisdicciones import (
     Sicnea,
     Agip,
     RioNegro,
+    Nacional,
+    EntreRios,
+    SanLuis,
+    Tucuman,
+    LaPampa,
 )
 
 
@@ -52,7 +57,9 @@ async def santiago_test():
         fecha_hasta = os.getenv("FECHA_HASTA")
 
         cuit_SantiagoDelEstero = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT")
-        clave_fiscal_SantiagoDelEstero = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLAVE_FISCAL")
+        clave_fiscal_SantiagoDelEstero = os.getenv(
+            "TEST_SANTIAGO_DEL_ESTERO_CLAVE_FISCAL"
+        )
         cuit_cliente_input = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT_CLIENTE_INPUT")
         client = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLIENT")
 
@@ -71,18 +78,13 @@ async def santiago_test():
 
 async def cordoba_test():
     async with async_playwright() as playwright:
-        fecha_desde = "01052024"
-        fecha_hasta = "30052024"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
 
-        client = "EDGE ARGENTINA S.R.L"
-        cuit_Cordoba = "20386165476"
-        clave_fiscal_Cordoba = "1994Gabriel"
-        cuit_cliente_input = "30714604356"
-
-        # client = "MAGNETI MARELLI CONJ.DE ESCAPE S.A"
-        # cuit_Cordoba = "23381628124"
-        # clave_fiscal_Cordoba = "Achavesgaspar24"
-        # cuit_cliente_input = "30707570144"
+        client = os.getenv("TEST_CORDOBA_CLIENT")
+        cuit_Cordoba = os.getenv("TEST_CORDOBA_CUIT")
+        clave_fiscal_Cordoba = os.getenv("TEST_CORDOBA_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_CORDOBA_CUIT_CLIENTE_INPUT")
 
         cordoba = await Cordoba.create(
             playwright,
@@ -99,23 +101,13 @@ async def cordoba_test():
 
 async def arba_test():
     async with async_playwright() as playwright:
-        fecha_desde = "01072024"
-        fecha_hasta = "30072024"
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
 
-        # cuit_Arba = "30712132554"
-        # clave_fiscal_Arba = "Facebook1819"
-        # cuit_cliente_input = "30712132554"
-        # client = "FACEBOOK ARGENTINA S.R.L"
-
-        client = "EDGE ARGENTINA S.R.L"
-        cuit_Arba = "30714604356"
-        clave_fiscal_Arba = "Edge2018"
-        cuit_cliente_input = "30714604356"
-
-        # client = "ABBOTT LABORATORIES ARG. S.A"
-        # cuit_Arba = "30500846301"
-        # clave_fiscal_Arba = "Abbott2018"
-        # cuit_cliente_input = "30500846301"
+        client = os.getenv("TEST_ARBA_CLIENT")
+        cuit_Arba = os.getenv("TEST_ARBA_CUIT")
+        clave_fiscal_Arba = os.getenv("TEST_ARBA_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_ARBA_CLIENTE_INPUT")
 
         arba = await Arba.create(
             playwright,
@@ -180,8 +172,8 @@ async def chaco_test():
         fecha_hasta = os.getenv("FECHA_HASTA")
 
         client = os.getenv("TEST_CHACO_CLIENT")
-        cuit_Chaco = os.getenv("TEST_CHACO_CUIT")
-        clave_fiscal_Chaco = os.getenv("TEST_CHACO_CLAVE_FISCAL")
+        cuit_chaco = os.getenv("TEST_CHACO_CUIT")
+        clave_fiscal_chaco = os.getenv("TEST_CHACO_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_CHACO_CUIT_CLIENTE_INPUT")
 
         chaco = await Chaco.create(
@@ -243,9 +235,124 @@ async def rio_negro_test():
         await rio_negro.procesar_jurisdiccion()
 
 
+async def nacional_test():
+    async with async_playwright() as playwright:
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_NACIONAL_CLIENT")
+        cuit_nacional = os.getenv("TEST_NACIONAL_CUIT")
+        clave_fiscal_nacional = os.getenv("TEST_NACIONAL_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_NACIONAL_CUIT_CLIENTE_INPUT")
+
+        nacional = await Nacional.create(
+            playwright,
+            client,
+            cuit_nacional,
+            clave_fiscal_nacional,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False,
+        )
+        await nacional.procesar_jurisdiccion()
+
+
+async def entre_rios_test():
+    async with async_playwright() as playwright:
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_ENTRERIOS_CLIENT")
+        cuit_entre_rios = os.getenv("TEST_ENTRERIOS_CUIT")
+        clave_fiscal_entre_rios = os.getenv("TEST_ENTRERIOS_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_ENTRERIOS_CUIT_CLIENTE_INPUT")
+
+        entre_rios = await EntreRios.create(
+            playwright,
+            client,
+            cuit_entre_rios,
+            clave_fiscal_entre_rios,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False,
+        )
+        await entre_rios.procesar_jurisdiccion()
+
+
+async def san_luis_test():
+    async with async_playwright() as playwright:
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_SANLUIS_CLIENT")
+        cuit_san_luis = os.getenv("TEST_SANLUIS_CUIT")
+        clave_fiscal_san_luis = os.getenv("TEST_SANLUIS_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_SANLUIS_CUIT_CLIENTE_INPUT")
+
+        san_luis = await SanLuis.create(
+            playwright,
+            client,
+            cuit_san_luis,
+            clave_fiscal_san_luis,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False,
+        )
+        await san_luis.procesar_jurisdiccion()
+
+
+async def tucuman_test():
+    async with async_playwright() as playwright:
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_TUCUMAN_CLIENT")
+        cuit_tucuman = os.getenv("TEST_TUCUMAN_CUIT")
+        clave_fiscal_tucuman = os.getenv("TEST_TUCUMAN_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_TUCUMAN_CUIT_CLIENTE_INPUT")
+
+        tucuman = await Tucuman.create(
+            playwright,
+            client,
+            cuit_tucuman,
+            clave_fiscal_tucuman,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False,
+        )
+        await tucuman.procesar_jurisdiccion()
+
+
+async def la_pampa_test():
+    async with async_playwright() as playwright:
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_LA_PAMPA_CLIENT")
+        cuit_la_pampa = os.getenv("TEST_LA_PAMPA_CUIT")
+        clave_fiscal_la_pampa = os.getenv("TEST_LA_PAMPA_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_LA_PAMPA_CUIT_CLIENTE_INPUT")
+
+        la_pampa = await LaPampa.create(
+            playwright,
+            client,
+            cuit_la_pampa,
+            clave_fiscal_la_pampa,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False,
+        )
+        await la_pampa.procesar_jurisdiccion()
+
+
 if __name__ == "__main__":
     # asyncio.run(catamarca_test())
-    asyncio.run(santiago_test())
+    # asyncio.run(santiago_test())
     # asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
@@ -253,3 +360,8 @@ if __name__ == "__main__":
     # asyncio.run(sicnea_test())
     # asyncio.run(agip_test())
     # asyncio.run(rio_negro_test())
+    # asyncio.run(nacional_test())
+    # asyncio.run(entre_rios_test())
+    # asyncio.run(san_luis_test())
+    # asyncio.run(tucuman_test())
+    asyncio.run(la_pampa_test())

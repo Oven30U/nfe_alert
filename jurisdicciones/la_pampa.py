@@ -1,5 +1,6 @@
 import os
 from playwright.async_api import Playwright, async_playwright
+from datetime import datetime
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
@@ -65,8 +66,6 @@ class LaPampa(Jurisdiccion):
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
-    # Existing methods...
-
     async def consultar_notificaciones(self):
         await self.page.goto(
             "https://dgr.lapampa.gob.ar/ServiciosEnLinea/?programa=MenuCuenta"
@@ -93,14 +92,39 @@ class LaPampa(Jurisdiccion):
 
     async def buscar_notificacion(self):
         iframe = self.page.frame(name="iframe1")
-        # Obtener todas las celdas que coinciden con el XPath
-        cells = await iframe.query_selector_all("//table//tr//td[position() mod 6 = 0]")
 
-        # Iterar a través de las celdas y verificar si alguna contiene el texto "LEIDO"
-        for cell in cells:
-            text = await cell.inner_text()
-            if "LEIDO" not in text:
-                return True
+        fecha_desde_formated = (datetime.strptime(self.fecha_desde, "%d%m%Y") 
+                            if isinstance(self.fecha_desde, str) 
+                            else self.fecha_desde)
+        
+        fecha_hasta_formated = (datetime.strptime(self.fecha_hasta, "%d%m%Y")
+                            if isinstance(self.fecha_hasta, str)
+                            else self.fecha_hasta)
+
+        rows = await iframe.query_selector_all("//table//tr")
+
+        for row in rows:
+            if await row.query_selector("th"):
+                continue
+
+            date_cell = await row.query_selector("xpath=./td[5]")
+            status_cell = await row.query_selector("xpath=./td[6]")
+
+            if date_cell and status_cell:
+                date_text = await date_cell.inner_text()
+                status_text = await status_cell.inner_text()
+
+                try:
+                    notification_date = datetime.strptime(date_text.strip(), "%d/%m/%Y")
+
+                    if (
+                        fecha_desde_formated <= notification_date <= fecha_hasta_formated
+                        and "LEIDO" not in status_text
+                    ):
+                        return True
+
+                except ValueError:
+                    continue
 
         return False
 

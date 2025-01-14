@@ -84,7 +84,7 @@ class Neuquen(Jurisdiccion):
         self.fecha_desde = self.fecha_desde.replace("/", "")
         self.fecha_hasta = self.fecha_hasta.replace("/", "")
         secciones = [
-            ("notiicaciones", 'xpath=//a[@href="div_notificaciones"]'),
+            ("notificaciones", 'xpath=//a[@href="div_notificaciones"]'),
             ("comunicaciones", 'xpath=//a[@href="div_comunicaciones"]'),
         ]
         self.hay_screenshot = await super().tomar_varias_screenshots(
