@@ -44,9 +44,16 @@ from generar_html import (
     insertar_tabla_en_html,
     reemplazar_contenido_en_html,
 )
+import zipfile
+import os
 
 logger = Logger.get_logger()
 
+def zip_files(folder_path, zip_name):
+    with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), folder_path))
 
 def enviar_correo(
     receptor,
@@ -123,21 +130,19 @@ def enviar_correo(
     # Adjuntar el archivo si se proporciona
     if ruta_archivo_adjunto is not None and nombre_archivo_adjunto is not None:
         try:
-            # Use application/x-zip-compressed for legacy compatibility
-            part = MIMEBase('application', 'x-zip-compressed')
-            with open(ruta_archivo_adjunto, "rb") as file:
+            zip_files(os.path.dirname(ruta_archivo_adjunto), nombre_archivo_adjunto)
+            part = MIMEBase("application", "zip")
+            with open(nombre_archivo_adjunto, "rb") as file:
                 content = file.read()
                 if not content:
                     raise ValueError("Archivo ZIP vacío")
                 part.set_payload(content)
-                
+
             encoders.encode_base64(part)
             part.add_header(
-                'Content-Disposition',
-                'attachment',
-                filename=nombre_archivo_adjunto
+                "Content-Disposition", "attachment", filename=nombre_archivo_adjunto
             )
-            part.add_header('Content-Type', 'application/x-zip-compressed')
+            part.add_header("Content-Type", "application/zip")
             msg.attach(part)
         except (IOError, ValueError) as e:
             logger.error(f"Error adjuntando archivo ZIP: {e}")

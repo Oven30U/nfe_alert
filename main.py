@@ -117,7 +117,7 @@ def obtener_datos_clientes():
     clientes_procesados_hoy = get_clientes_procesados_hoy()
 
     if not df_clientes.empty and clientes_procesados_hoy:
-        df_clientes = df_clientes[~df_clientes["Cliente"].isin(clientes_procesados_hoy)]
+        df_clientes = df_clientes[~df_clientes["client_folder"].isin(clientes_procesados_hoy)]
 
     return df_clientes
 
