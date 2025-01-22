@@ -132,6 +132,7 @@ class ClienteProcessor:
         ]
         for _, error_row in errores.iterrows():
             jurisdiction = error_row["Nombre"]
+            # ToDo no reintentar LoginError + identificar los de ARCA
             # error = error_row["Error"]
 
             # if isinstance(error, jurisdicciones.LoginError):
