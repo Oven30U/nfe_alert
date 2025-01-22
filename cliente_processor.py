@@ -125,7 +125,10 @@ class ClienteProcessor:
         )
 
     async def reintentar_errores(self, playwright, df_final):
-        errores = df_final[df_final["Error"].notna()]
+        errores = df_final[
+            (df_final["Error"].notna())
+            | (df_final["Screenshot"] == "No se realizó Screenshot")
+        ]
         for _, error_row in errores.iterrows():
             jurisdiction = error_row["Nombre"]
             # error = error_row["Error"]
