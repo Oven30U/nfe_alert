@@ -57,7 +57,10 @@ class ClienteProcessor:
         files = os.listdir(self.output_folder)
         for file in files:
             file_path = os.path.join(self.output_folder, file)
+            backup_path = os.path.join(self.backup_folder, file)
             if file.endswith(".zip"):
+                if os.path.exists(backup_path):
+                    os.remove(backup_path)
                 shutil.move(file_path, self.backup_folder)
             else:
                 os.remove(file_path)

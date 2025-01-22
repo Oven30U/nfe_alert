@@ -49,11 +49,6 @@ import os
 
 logger = Logger.get_logger()
 
-def zip_files(folder_path, zip_name):
-    with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), folder_path))
 
 def enviar_correo(
     receptor,
@@ -130,9 +125,8 @@ def enviar_correo(
     # Adjuntar el archivo si se proporciona
     if ruta_archivo_adjunto is not None and nombre_archivo_adjunto is not None:
         try:
-            zip_files(os.path.dirname(ruta_archivo_adjunto), nombre_archivo_adjunto)
             part = MIMEBase("application", "zip")
-            with open(nombre_archivo_adjunto, "rb") as file:
+            with open(ruta_archivo_adjunto, "rb") as file:
                 content = file.read()
                 if not content:
                     raise ValueError("Archivo ZIP vacío")
