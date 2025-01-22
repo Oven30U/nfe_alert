@@ -9,15 +9,15 @@ from jurisdicciones.jurisdiccion import (ConsultarNotificacionesError,
 
 
 class Cordoba(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None, razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input, texto_notificacion, headless)
+    def __init__(self, nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None, razon_social_cliente_input=None, texto_notificacion=None, headless=True):
+        super().__init__(nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input, razon_social_cliente_input, texto_notificacion, headless)
         self.cuit_cliente_input = str(cuit_cliente_input)
 
     @classmethod
     async def create(
             cls,
             playwright: Playwright,
-            cliente,
+            cliente, client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -31,7 +31,7 @@ class Cordoba(Jurisdiccion):
             playwright,
             "Cordoba",
             "904 CORDOBA",
-            cliente,
+            cliente, client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,

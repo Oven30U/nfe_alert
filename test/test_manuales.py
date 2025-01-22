@@ -149,15 +149,17 @@ async def sicnea_test():
         fecha_desde = os.getenv("FECHA_DESDE")
         fecha_hasta = os.getenv("FECHA_HASTA")
         client = os.getenv("TEST_SICNEA_CLIENT")
-        cuit_Sicnea = os.getenv("TEST_SICNEA_CUIT")
-        clave_fiscal_Sicnea = os.getenv("TEST_SICNEA_CLAVE_FISCAL")
+        client_folder = os.getenv("TEST_SICNEA_CLIENT_FOLDER")
+        cuit_sicnea = os.getenv("TEST_SICNEA_CUIT")
+        clave_fiscal_sicnea = os.getenv("TEST_SICNEA_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_SICNEA_CUIT_CLIENTE_INPUT")
 
-        sicnea = await sicnea.create(
+        sicnea = await Sicnea.create(
             playwright,
             client,
-            cuit_Sicnea,
-            clave_fiscal_Sicnea,
+            client_folder,
+            cuit_sicnea,
+            clave_fiscal_sicnea,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
@@ -357,11 +359,11 @@ if __name__ == "__main__":
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
     # asyncio.run(chaco_test())
-    # asyncio.run(sicnea_test())
+    asyncio.run(sicnea_test())
     # asyncio.run(agip_test())
     # asyncio.run(rio_negro_test())
     # asyncio.run(nacional_test())
     # asyncio.run(entre_rios_test())
     # asyncio.run(san_luis_test())
     # asyncio.run(tucuman_test())
-    asyncio.run(la_pampa_test())
+    # asyncio.run(la_pampa_test())

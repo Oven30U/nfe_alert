@@ -107,6 +107,7 @@ class ClienteProcessor:
         create_args = {
             "playwright": playwright,
             "cliente": row["Cliente"],
+            "client_folder": row["client_folder"],
             "cuit": int(row["Usuario"]),
             "clave_fiscal": row["Password"],
             "fecha_desde": row["fecha_desde"],

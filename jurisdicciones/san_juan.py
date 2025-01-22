@@ -7,9 +7,9 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class SanJuan(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+    def __init__(self, nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
                  razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+        super().__init__(nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
                          razon_social_cliente_input, texto_notificacion, headless)
         self.cuit_cliente_input = str(cuit_cliente_input)
 
@@ -17,7 +17,7 @@ class SanJuan(Jurisdiccion):
     async def create(
             cls,
             playwright: Playwright,
-            cliente,
+            cliente, client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -31,7 +31,7 @@ class SanJuan(Jurisdiccion):
             playwright,
             "SanJuan",
             "918 SAN JUAN",
-            cliente,
+            cliente, client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,

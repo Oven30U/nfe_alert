@@ -25,28 +25,7 @@ async def main():
             registrar_sin_clientes()
             return
 
-        #! Descomentar para volver a procesar en producción
-        # df_input = df_input[df_input['Cliente'] == 'JANSSEN CILAG FARMACEUTICA SOCIEDAD ANONIMA']
-        # df_input = df_input[df_input['Cliente'] == 'JOHNSON & JOHNSON MEDICAL SOCIEDAD ANONIMA']
-        # df_input = df_input[
-        #     df_input["Jurisdiccion"].isin(
-        #         [
-        #             "Nacional",
-        #             "Sicnea",
-        #             "Agip",
-        #             "Cordoba",
-        #             "EntreRios",
-        #             "SanLuis",
-        #             "Tucuman",
-        #         ]
-        #     )
-        # ]
-        # df_input = df_input[df_input['Cliente'].isin(['JANSSEN CILAG FARMACEUTICA SOCIEDAD ANONIMA', 'JOHNSON & JOHNSON MEDICAL SOCIEDAD ANONIMA'])]
-        # df_input = df_input[~df_input["Jurisdiccion"].isin(["Cordoba", "EntreRios", "SanLuis"])]
-        #! Descomentar para volver a procesar en producción
-
         df_por_cliente = df_input.groupby(["client_folder", "Cliente"])
-
 
         for cliente_tuple, group in df_por_cliente:
             cliente = cliente_tuple[0]
@@ -58,13 +37,8 @@ async def main():
                 group=group,
                 cuit_cliente=cuit_cliente,
                 inicio=inicio,
-                client_folder=client_folder
+                client_folder=client_folder,
             )
-
-            #! Descomentar para volver a procesar en producción
-            # processor.correo_output = "lmarinaro@deloitte.com"
-            # processor.socio_responsable = "lmarinaro@deloitte.com"
-            #! Descomentar para volver a procesar en producción
 
             processor.respaldar_archivos()
 
@@ -77,7 +51,9 @@ async def main():
 
                 logger.info(
                     "Cliente: %s - Jurisdicciones encontradas: %s - Jurisdicciones no encontradas: %s",
-                    cliente, encontradas, no_encontradas
+                    cliente,
+                    encontradas,
+                    no_encontradas,
                 )
 
                 df_final = await processor.ejecutar_jurisdicciones(instances)
@@ -93,8 +69,8 @@ async def main():
                     if df_final["Error"].isna().all()
                     else "Proceso terminado con errores"
                 )
-            except Exception:
-                logger.error("Error en el procesamiento del cliente %s", cliente)
+            except Exception as e:
+                logger.error("Error en el procesamiento del cliente %s, %s", cliente, e)
                 estado = "Erróneo"
             finally:
                 correo_exitoso = processor.enviar_email(df_final)
@@ -113,11 +89,20 @@ def obtener_datos_clientes():
     df_clientes = obtener_clientes(
         jurisdiccion_clases=jurisdiccion_clases,
     )
-
     clientes_procesados_hoy = get_clientes_procesados_hoy()
 
     if not df_clientes.empty and clientes_procesados_hoy:
-        df_clientes = df_clientes[~df_clientes["client_folder"].isin(clientes_procesados_hoy)]
+        df_clientes = df_clientes[
+            ~df_clientes["client_folder"].isin(clientes_procesados_hoy)
+        ]
+    #! Descomentar para volver a procesar en producción
+    # df_clientes = df_clientes[
+    #     df_clientes["client_folder"] == "ADIDAS ARGENTINA S.A - PROVINCIALES"
+    # ]
+    # df_clientes['CC: Equipo Deloitte'] = 'lmarinaro@deloitte.com'
+    # df_clientes['Correo Output'] = 'lmarinaro@deloitte.com'
+    # df_clientes = df_clientes[df_clientes["Jurisdiccion"].isin(["Cordoba", "EntreRios", "SanLuis"])]
+    #! Descomentar para volver a procesar en producción
 
     return df_clientes
 

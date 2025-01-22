@@ -6,9 +6,9 @@ from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class Mendoza(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+    def __init__(self, nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
                  razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+        super().__init__(nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
                          razon_social_cliente_input, texto_notificacion, headless)
         self.cuit_cliente_input = str(cuit_cliente_input)
 
@@ -16,7 +16,7 @@ class Mendoza(Jurisdiccion):
     async def create(
             cls,
             playwright: Playwright,
-            cliente,
+            cliente, client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -30,7 +30,7 @@ class Mendoza(Jurisdiccion):
             playwright,
             "Mendoza",
             "913 MENDOZA",
-            cliente,
+            cliente, client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -104,7 +104,7 @@ class Mendoza(Jurisdiccion):
         """Tomar tres screenshot's en la jurisdicción de Mendoza."""
         await self.new_page.get_by_text("NOTIFICACIONES CON VENCIMIENTO").click()
         seccion = "notificaciones_con_vencimiento"
-        nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
+        nombre_archivo = f"Estructura-robot/{self.client_folder}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
         try:
             await self.new_page.wait_for_load_state("domcontentloaded")
             await self.new_page.screenshot(path=nombre_archivo, full_page=True)
@@ -116,7 +116,7 @@ class Mendoza(Jurisdiccion):
 
         await self.new_page.get_by_text("INTIMACIONES").click()
         seccion = "intimaciones"
-        nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
+        nombre_archivo = f"Estructura-robot/{self.client_folder}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
         try:
             await self.new_page.wait_for_load_state("domcontentloaded")
             await self.new_page.screenshot(path=nombre_archivo, full_page=True)
@@ -128,7 +128,7 @@ class Mendoza(Jurisdiccion):
 
         await self.new_page.get_by_text("COMUNICACIONES").click()
         seccion = "comunicaciones"
-        nombre_archivo = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
+        nombre_archivo = f"Estructura-robot/{self.client_folder}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
         try:
             await self.new_page.wait_for_load_state("domcontentloaded")
             await self.new_page.screenshot(path=nombre_archivo, full_page=True)

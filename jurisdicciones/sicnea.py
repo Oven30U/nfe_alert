@@ -7,25 +7,51 @@ from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class Sicnea(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        client_folder,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        super().__init__(
+            nombre,
+            codigo,
             cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        client_folder,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
         # Convertir las fechas al formato dd/mm/yyyy
         fecha_desde = datetime.strptime(fecha_desde, "%d%m%Y").strftime("%d/%m/%Y")
@@ -35,6 +61,7 @@ class Sicnea(Jurisdiccion):
             "Sicnea",
             "Sicnea",
             cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -42,20 +69,22 @@ class Sicnea(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def AFIP_login(
-            self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
     ):
         return await super().AFIP_login(URL_AFIP_LOGIN)
 
     async def consultar_notificaciones(self):
         await self.AFIP_login()
-        await self.page.fill("input#buscadorInput",
-                             "SICNEA - Gestion de comunicacion y notificacion electronica aduanera")
+        await self.page.fill(
+            "input#buscadorInput",
+            "SICNEA - Gestion de comunicacion y notificacion electronica aduanera",
+        )
         # Click en la opción de DFE desplegada
         await self.page.click("a.dropdown-item")
         popup_info = await self.page.wait_for_event("popup")
@@ -65,11 +94,20 @@ class Sicnea(Jurisdiccion):
         # Obtener todas las páginas abiertas en el contexto del navegador
         self.new_page_2 = self.context.pages[2]
         # Espera a que el script y el DOM se carguen completamente
-        await self.new_page_2.wait_for_load_state('domcontentloaded')
+        await self.new_page_2.wait_for_load_state("domcontentloaded")
+        conexion_selector = await self.new_page_2.query_selector(
+            "xpath=//td[contains(text(), 'CONEXION')]"
+        )
+        if conexion_selector:
+            await self.new_page_2.select_option(
+                "xpath=//select[@id='cmbEmpresa']", value=self.cuit_cliente_input
+            )
+            await self.new_page_2.click("xpath=//input[@value='Ingresar']")
         await self.new_page_2.hover(
-            "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]")
+            "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]"
+        )
         # Cambiar al frame iframeAreaMenuLateral
-        frame = self.new_page_2.frame(name='iframeAreaMenuLateral')
+        frame = self.new_page_2.frame(name="iframeAreaMenuLateral")
         if frame is not None:
             # Realizar hover sobre el elemento del menú
             # await frame.hover("xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]")
@@ -78,15 +116,19 @@ class Sicnea(Jurisdiccion):
             # Hacer clic en el enlace "Ver Notificacion/Comunicacion"
             # await frame.click("a:has-text('Ver Notificacion/Comunicacion')")
             await frame.click("a:has-text(' Consulta')")
-            await self.new_page_2.wait_for_load_state('networkidle')
-            self.frame = self.new_page_2.frame(name='iframeAreaCargaDatos')
+            await self.new_page_2.wait_for_load_state("networkidle")
+            self.frame = self.new_page_2.frame(name="iframeAreaCargaDatos")
             await self.frame.wait_for_selector("select#ddlEstado")
             await self.frame.select_option("select#ddlEstado", value="ENVI")
-            await self.frame.fill("input[name='txtFechaNotificacionDesde']", self.fecha_desde)
-            await self.frame.fill("input[name='txtFechaNotificacionHasta']", self.fecha_hasta)
+            await self.frame.fill(
+                "input[name='txtFechaNotificacionDesde']", self.fecha_desde
+            )
+            await self.frame.fill(
+                "input[name='txtFechaNotificacionHasta']", self.fecha_hasta
+            )
             await self.frame.click("input[name='btnBuscar']")
-            await self.new_page_2.wait_for_load_state('networkidle')
-            await self.frame.wait_for_load_state('networkidle')
+            await self.new_page_2.wait_for_load_state("networkidle")
+            await self.frame.wait_for_load_state("networkidle")
             # await frame.wait_for_selector("input#btnBuscar")
             # await frame.wait_for_selector("xpath=//div[@id='pnlProcesando' and @style='width:100%;display:none;']")
             # await frame.wait_for_selector("div#pnlProcesando", state='hidden')
@@ -98,13 +140,17 @@ class Sicnea(Jurisdiccion):
         # Bucle que se ejecuta hasta que se encuentre alguno de los textos
         intento_encontrado = 0
         while not encontrado:
-            texto_notificaciones = await self.frame.is_visible("text='No hay datos relacionados a la busqueda'")
+            texto_notificaciones = await self.frame.is_visible(
+                "text='No hay datos relacionados a la busqueda'"
+            )
             texto_motivo = await self.frame.is_visible("text='Motivo'")
             if texto_notificaciones or texto_motivo:
                 encontrado = True
                 # Si se encuentra alguno de los textos, se imprime cuál fue encontrado
                 if texto_notificaciones:
-                    print("Notificacion SICNEA: No hay datos relacionados a la busqueda")
+                    print(
+                        "Notificacion SICNEA: No hay datos relacionados a la busqueda"
+                    )
                     self.hay_notificacion = False
                 else:
                     print("Notificacion SICNEA: Hay datos relacionados a la busqueda")
@@ -135,25 +181,33 @@ class Sicnea(Jurisdiccion):
                 # await self.new_page_2.screenshot(
                 #     path=f"{nombre_archivo_enviadas}_{cantidad_paginas_enviadas}.png",
                 #     full_page=True)
-                await super().tomar_screenshot(self.new_page_2,
-                                               nombre_extra=f"_enviadas_{cantidad_paginas_enviadas}")
+                await super().tomar_screenshot(
+                    self.new_page_2,
+                    nombre_extra=f"_enviadas_{cantidad_paginas_enviadas}",
+                )
                 cantidad_paginas_enviadas += 1
 
             await self.frame.wait_for_selector("select#ddlEstado")
             # Check if the select element is disabled
-            is_disabled = await self.frame.evaluate("document.querySelector('select#ddlEstado').disabled")
+            is_disabled = await self.frame.evaluate(
+                "document.querySelector('select#ddlEstado').disabled"
+            )
             if is_disabled:
                 fecha_desde_filtro = f"{self.fecha_desde[:2]}/{self.fecha_desde[2:4]}/{self.fecha_desde[4:]}"
                 fecha_hasta_filtro = f"{self.fecha_hasta[:2]}/{self.fecha_hasta[2:4]}/{self.fecha_hasta[4:]}"
                 await self.frame.click("input#btnLimpiar")
-                await self.frame.wait_for_load_state('networkidle')
+                await self.frame.wait_for_load_state("networkidle")
                 await self.frame.wait_for_selector("select#ddlEstado")
                 await self.frame.select_option("select#ddlEstado", value="NOTI")
-                await self.frame.fill("input[name='txtFechaNotificacionDesde']", fecha_desde_filtro)
-                await self.frame.fill("input[name='txtFechaNotificacionHasta']", fecha_hasta_filtro)
+                await self.frame.fill(
+                    "input[name='txtFechaNotificacionDesde']", fecha_desde_filtro
+                )
+                await self.frame.fill(
+                    "input[name='txtFechaNotificacionHasta']", fecha_hasta_filtro
+                )
                 await self.frame.click("input[name='btnBuscar']")
-                await self.new_page_2.wait_for_load_state('networkidle')
-                await self.frame.wait_for_load_state('networkidle')
+                await self.new_page_2.wait_for_load_state("networkidle")
+                await self.frame.wait_for_load_state("networkidle")
             else:
                 # nombre_archivo_notificadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_notificadas"
                 await self.frame.select_option("select#ddlEstado", value="NOTI")
@@ -164,7 +218,9 @@ class Sicnea(Jurisdiccion):
             # Bucle que se ejecuta hasta que se encuentre alguno de los textos
             intento_encontrado = 0
             while not notificado_cargado:
-                texto_notificaciones = await self.frame.is_visible("text='No hay datos relacionados a la busqueda'")
+                texto_notificaciones = await self.frame.is_visible(
+                    "text='No hay datos relacionados a la busqueda'"
+                )
                 texto_motivo = await self.frame.is_visible("text='Motivo'")
                 if texto_notificaciones or texto_motivo:
                     notificado_cargado = True
@@ -180,8 +236,10 @@ class Sicnea(Jurisdiccion):
                 # await self.new_page_2.screenshot(
                 #     path=f"{nombre_archivo_notificadas}_{cantidad_paginas_notificadas}.png",
                 #     full_page=True)
-                await super().tomar_screenshot(self.new_page_2,
-                                               nombre_extra=f"_notificadas_{cantidad_paginas_notificadas}")
+                await super().tomar_screenshot(
+                    self.new_page_2,
+                    nombre_extra=f"_notificadas_{cantidad_paginas_notificadas}",
+                )
                 cantidad_paginas_notificadas += 1
 
                 # a  # lnkSiguiente
@@ -202,7 +260,6 @@ class Sicnea(Jurisdiccion):
 if __name__ == "__main__":
     import asyncio
 
-
     async def main():
         async with async_playwright() as playwright:
             fecha_desde = os.getenv("FECHA_DESDE")
@@ -212,7 +269,7 @@ if __name__ == "__main__":
             cuit_Sicnea = os.getenv("TEST_SICNEA_CUIT")
             clave_fiscal_Sicnea = os.getenv("TEST_SICNEA_CLAVE_FISCAL")
             cuit_cliente_input = os.getenv("TEST_SICNEA_CUIT_CLIENTE_INPUT")
-            
+
             sicnea = await Sicnea.create(
                 playwright,
                 client,
@@ -221,9 +278,8 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
-                headless=False
+                headless=False,
             )
             await sicnea.procesar_jurisdiccion()
-
 
     asyncio.run(main())

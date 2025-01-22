@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
+
 class Logger:
     """Centralized logger for the project"""
 

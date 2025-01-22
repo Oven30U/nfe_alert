@@ -5,9 +5,9 @@ from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class Tucuman(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
+    def __init__(self, nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
                  razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
+        super().__init__(nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
                          razon_social_cliente_input, texto_notificacion, headless)
         self.cuit_cliente_input = str(cuit_cliente_input)
 
@@ -15,7 +15,7 @@ class Tucuman(Jurisdiccion):
     async def create(
             cls,
             playwright: Playwright,
-            cliente,
+            cliente, client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -29,7 +29,7 @@ class Tucuman(Jurisdiccion):
             playwright,
             "Tucuman",
             "924 TUCUMAN",
-            cliente,
+            cliente, client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,

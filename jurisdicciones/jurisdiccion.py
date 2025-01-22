@@ -24,9 +24,7 @@ load_dotenv()
 class LoggedException(Exception):
     """Excepción base que registra errores."""
 
-    def __init__(
-        self, message="Error de Login", cliente="Cliente no especificado"
-    ):
+    def __init__(self, message="Error de Login", cliente="Cliente no especificado"):
         self.cliente = cliente
         self.logger = Logger.get_logger()
         self.logger.error(f"Cliente: {self.cliente}, Error: {message}")
@@ -100,6 +98,7 @@ class Jurisdiccion(ABC):
         nombre,
         codigo,
         cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -112,6 +111,7 @@ class Jurisdiccion(ABC):
         self.nombre = nombre
         self.codigo = codigo
         self.cliente = cliente
+        self.client_folder = client_folder
         self._cuit = str(cuit)
         self._clave_fiscal = str(clave_fiscal)
         self.fecha_desde = fecha_desde
@@ -135,6 +135,7 @@ class Jurisdiccion(ABC):
         nombre,
         codigo,
         cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -148,6 +149,7 @@ class Jurisdiccion(ABC):
             nombre,
             codigo,
             cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -157,6 +159,7 @@ class Jurisdiccion(ABC):
             texto_notificacion,
             headless,
         )
+        self.client_folder = client_folder
         self.browser = await playwright.chromium.launch(headless=headless)
         self.context = await self.browser.new_context()
         self.page = await self.context.new_page()
@@ -280,7 +283,7 @@ class Jurisdiccion(ABC):
         if page is None:
             page = self.page
         PATH_ESTRUCTURA_ROBOT = os.getenv("PATH_ESTRUCTURA_ROBOT")
-        base_nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}"
+        base_nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.client_folder}/Output/{self.nombre}_{self.client_folder}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}"
         if nombre_extra:
             base_nombre_archivo += f"_{nombre_extra}"
         extension = ".png"
@@ -333,7 +336,7 @@ class Jurisdiccion(ABC):
                 await page.wait_for_load_state("domcontentloaded")
                 await page.wait_for_load_state("load")
                 PATH_ESTRUCTURA_ROBOT = os.getenv("PATH_ESTRUCTURA_ROBOT")
-                nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
+                nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.client_folder}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
                 await page.screenshot(path=nombre_archivo, full_page=True)
                 self.hay_screenshot = True
             except Exception as e:
@@ -447,7 +450,7 @@ class Jurisdiccion(ABC):
         msg = MIMEMultipart()
         msg["From"] = remitente
         msg["To"] = ";".join(receptor)
-        msg["Subject"] = f"NFE Alert del cliente {self.cliente}"
+        msg["Subject"] = f"NFE Alert del cliente {self.client_folder}"
         msg.attach(
             MIMEText(
                 f"""En la ejecución de NFE Alert del Cliente:
