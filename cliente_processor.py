@@ -5,9 +5,10 @@ import shutil
 from datetime import datetime
 
 import pandas as pd
-import pyzipper
+import pyminizip
 
 import jurisdicciones
+from conectar_db import conectar_db, get_pass_zip
 from config import (
     CORREO_NOTIFICACION_ERROR,
     CORREO_TEST,
@@ -19,7 +20,6 @@ from config import (
 from logger import Logger
 from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
-from conectar_db import conectar_db, get_pass_zip
 
 logger = Logger.get_logger()
 
@@ -171,17 +171,21 @@ class ClienteProcessor:
         pass_zip = get_pass_zip(
             self.cliente, f"{self.correo_output};{self.socio_responsable}"
         )
-        with pyzipper.AESZipFile(
+        # Comprime todos los .png en un solo zip
+        pyminizip.compress_multiple(
+            png_files,
+            [],
             zip_path,
-            "w",
-            compression=pyzipper.ZIP_DEFLATED,
-            encryption=pyzipper.WZ_AES,
-        ) as zipf:
-            zipf.setpassword(pass_zip.encode("utf-8"))
-            for file in png_files:
-                zipf.write(file, os.path.basename(file))
+            pass_zip,
+            5,  # Nivel de compresión: 1-9 (1 = fastest, 9 = best)
+        )
 
-        return zip_path, zip_name
+        if not os.path.exists(zip_path):
+            self.socio_responsable = CORREO_NOTIFICACION_ERROR
+            self.correo_output = []
+
+        self.zip_path = zip_path
+        self.zip_name = zip_name
 
     def enviar_email(self, df_final):
         try:

@@ -62,7 +62,7 @@ async def main():
                 logger.info("Resultados para %s:\n%s", cliente, df_final)
 
                 processor.generar_mapas(df_final)
-                processor.zip_path, processor.zip_name = processor.crear_zip()
+                processor.crear_zip()
 
                 estado = (
                     "Correcto"
@@ -101,7 +101,7 @@ def obtener_datos_clientes():
     # ]
     # df_clientes['CC: Equipo Deloitte'] = 'lmarinaro@deloitte.com'
     # df_clientes['Correo Output'] = 'lmarinaro@deloitte.com'
-    # df_clientes = df_clientes[df_clientes["Jurisdiccion"].isin(["Cordoba", "EntreRios", "SanLuis"])]
+    # df_clientes = df_clientes[df_clientes["Jurisdiccion"].isin(["Nacional"])]
     #! Descomentar para volver a procesar en producción
 
     return df_clientes
