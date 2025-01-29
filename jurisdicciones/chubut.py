@@ -11,7 +11,8 @@ class Chubut(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -24,7 +25,8 @@ class Chubut(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -40,7 +42,8 @@ class Chubut(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -54,7 +57,8 @@ class Chubut(Jurisdiccion):
             playwright,
             "Chubut",
             "907 CHUBUT",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -110,7 +114,7 @@ class Chubut(Jurisdiccion):
         """Tomar dos screenshot's en la jurisdicción de Chubut."""
         secciones = [
             ("comunicaciones", "a#ui-id-1"),
-            ("fiscalización_electrónica", "a#ui-id-2"),
+            ("fiscalizacion_electronica", "a#ui-id-2"),
         ]
         self.hay_screenshot = await super().tomar_varias_screenshots(
             secciones, self.page
