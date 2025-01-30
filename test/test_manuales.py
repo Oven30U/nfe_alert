@@ -197,6 +197,7 @@ async def agip_test():
         fecha_hasta = os.getenv("FECHA_HASTA")
 
         client = os.getenv("TEST_AGIP_CLIENT")
+        client_folder = os.getenv("TEST_SICNEA_CLIENT_FOLDER")
         cuit_agip = os.getenv("TEST_AGIP_CUIT")
         clave_fiscal_agip = os.getenv("TEST_AGIP_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_AGIP_CUIT_CLIENTE_INPUT")
@@ -204,6 +205,7 @@ async def agip_test():
         agip = await Agip.create(
             playwright,
             client,
+            client_folder,
             cuit_agip,
             clave_fiscal_agip,
             fecha_desde,
@@ -359,8 +361,8 @@ if __name__ == "__main__":
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
     # asyncio.run(chaco_test())
-    asyncio.run(sicnea_test())
-    # asyncio.run(agip_test())
+    # asyncio.run(sicnea_test())
+    asyncio.run(agip_test())
     # asyncio.run(rio_negro_test())
     # asyncio.run(nacional_test())
     # asyncio.run(entre_rios_test())
