@@ -62,10 +62,11 @@ async def santiago_test():
         )
         cuit_cliente_input = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT_CLIENTE_INPUT")
         client = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLIENT")
+        client_folder = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLIENT_FOLDER")
 
         santiago_del_estero = await SantiagoDelEstero.create(
             playwright,
-            client,
+            client,client_folder,
             cuit_SantiagoDelEstero,
             clave_fiscal_SantiagoDelEstero,
             fecha_desde,
@@ -356,13 +357,13 @@ async def la_pampa_test():
 
 if __name__ == "__main__":
     # asyncio.run(catamarca_test())
-    # asyncio.run(santiago_test())
+    asyncio.run(santiago_test())
     # asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
     # asyncio.run(chaco_test())
     # asyncio.run(sicnea_test())
-    asyncio.run(agip_test())
+    # asyncio.run(agip_test())
     # asyncio.run(rio_negro_test())
     # asyncio.run(nacional_test())
     # asyncio.run(entre_rios_test())

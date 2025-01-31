@@ -5,6 +5,10 @@ from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion
 
+from logger import Logger
+
+logger = Logger.get_logger()
+
 
 class Sicnea(Jurisdiccion):
     def __init__(
@@ -102,7 +106,13 @@ class Sicnea(Jurisdiccion):
             await self.new_page_2.select_option(
                 "xpath=//select[@id='cmbEmpresa']", value=self.cuit_cliente_input
             )
-            await self.new_page_2.click("xpath=//input[@value='Ingresar']")
+
+        ingresar_button = await self.new_page_2.query_selector(
+            "xpath=//input[@value='Ingresar']"
+        )
+        if ingresar_button:
+            await ingresar_button.click()
+            
         await self.new_page_2.hover(
             "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]"
         )

@@ -11,7 +11,8 @@ class SantiagoDelEstero(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -24,7 +25,8 @@ class SantiagoDelEstero(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -40,7 +42,8 @@ class SantiagoDelEstero(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -54,7 +57,8 @@ class SantiagoDelEstero(Jurisdiccion):
             playwright,
             "SantiagoDelEstero",
             "922 SANTIAGO DEL ESTERO",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -70,10 +74,10 @@ class SantiagoDelEstero(Jurisdiccion):
     async def consultar_notificaciones(self):
         await self.page.goto(
             "https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml",
-            timeout = 900000
+            timeout=900000,
         )
-        
-        # Desde la página de login princial: 
+
+        # Desde la página de login princial:
         # await self.page.goto(
         #     "https://dgronline.dgrsantiago.gob.ar/dgronline/hlogin.aspx"
         # )
@@ -89,14 +93,13 @@ class SantiagoDelEstero(Jurisdiccion):
         #     "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[2]"
         # ).click()
         # await self.page.locator("#vBOTDOMICILIOELECTRONICO").click()
-        
 
         # self.page.set_default_timeout(60000)
         # Create a new browser context with bypass_csp=True
         # context = await self.browser.new_context(bypass_csp=True)
         # self.page = await context.new_page()
         # await self.page.goto("https://dgronline.dgrsantiago.gob.ar/dgronline/hlogin.aspx")
-        
+
         await self.page.locator("//input[@id='loginForm:username']").fill(
             f"{self._cuit}"
         )
