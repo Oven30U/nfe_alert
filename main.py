@@ -7,7 +7,7 @@ from playwright.async_api import async_playwright
 
 from cliente_processor import ClienteProcessor
 from conectar_db import conectar_db
-from config import jurisdiccion_clases
+from config import jurisdiccion_clases, EJECUTAR_CLIENTES_LISTA
 from database import get_session, get_sqlite_session
 from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
@@ -91,18 +91,14 @@ def obtener_datos_clientes():
     )
     clientes_procesados_hoy = get_clientes_procesados_hoy()
 
-    if not df_clientes.empty and clientes_procesados_hoy:
+    if (
+        not df_clientes.empty
+        and clientes_procesados_hoy
+        and not EJECUTAR_CLIENTES_LISTA
+    ):
         df_clientes = df_clientes[
             ~df_clientes["client_folder"].isin(clientes_procesados_hoy)
         ]
-    #! Descomentar para volver a procesar en producción
-    # df_clientes = df_clientes[
-    #     df_clientes["client_folder"] == "ADIDAS ARGENTINA S.A - PROVINCIALES"
-    # ]
-    # df_clientes['CC: Equipo Deloitte'] = 'lmarinaro@deloitte.com'
-    # df_clientes['Correo Output'] = 'lmarinaro@deloitte.com'
-    # df_clientes = df_clientes[df_clientes["Jurisdiccion"].isin(["Nacional"])]
-    #! Descomentar para volver a procesar en producción
 
     return df_clientes
 

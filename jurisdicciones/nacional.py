@@ -137,7 +137,7 @@ class Nacional(Jurisdiccion):
             "notificaciones": "xpath=//a[contains(text(), ' Notificaciones ')]",
             "requerimientos": "xpath=//a[contains(text(), ' Requerimientos ')]",
             "otras_notificaciones": "xpath=//a[contains(text(), ' Otras notificaciones ')]",
-            # "fce": "xpath=//a[contains(text(), ' Factura de Crédito Electrónica ')]",
+            "fce": "xpath=//a[contains(text(), ' Factura de Crédito Electrónica ')]",
             "induccion": "xpath=//a[contains(text(), ' Inducción ')]",
             "otros_mensajes": "xpath=//a[contains(text(), ' Otros mensajes')]",
         }

@@ -46,11 +46,12 @@ EJECUTAR_CLIENTES_LISTA = False
 clientes_si_verificar_config = [
     # "FACEBOOK ARGENTINA S.R.L",
     # "EDGE ARGENTINA S.R.L",
-    "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
+    # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
     # "MAGNETI MARELLI REPUESTOS S.A",
     # "NATURA COSMETICOS S.A",
     # "ABBOTT LABORATORIES ARG. S.A",
-    "SIMPLOT ARGENTINA S.R.L",
+    # "SIMPLOT ARGENTINA S.R.L",
+    "EUROP ASSISTANCE ARGENTINA S.A",
 ]
 SIN_DEBUG_EJECUTAR_LISTA = (
     False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes
