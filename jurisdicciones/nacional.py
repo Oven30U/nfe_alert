@@ -142,6 +142,11 @@ class Nacional(Jurisdiccion):
             "induccion": "xpath=//a[contains(text(), ' Inducción ')]",
             "otros_mensajes": "xpath=//a[contains(text(), ' Otros mensajes')]",
         }
+        
+        clientes_excluir_fce = os.getenv("CLIENTES_EXLUIR_NACIONAL_FCE")
+        if self.cliente in clientes_excluir_fce:
+            del selectores["fce"]
+            
         contador_filtro_hay_notificacion = 0
         todos_screenshots_exitosos = True
         selectores_validos = 0

@@ -249,6 +249,7 @@ async def nacional_test():
         fecha_hasta = os.getenv("FECHA_HASTA")
 
         client = os.getenv("TEST_NACIONAL_CLIENT")
+        client_folder = os.getenv("TEST_NACIONAL_CLIENT_FOLDER")
         cuit_nacional = os.getenv("TEST_NACIONAL_CUIT")
         clave_fiscal_nacional = os.getenv("TEST_NACIONAL_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_NACIONAL_CUIT_CLIENTE_INPUT")
@@ -256,6 +257,7 @@ async def nacional_test():
         nacional = await Nacional.create(
             playwright,
             client,
+            client_folder,
             cuit_nacional,
             clave_fiscal_nacional,
             fecha_desde,
@@ -385,9 +387,9 @@ if __name__ == "__main__":
     # asyncio.run(sicnea_test())
     # asyncio.run(agip_test())
     # asyncio.run(rio_negro_test())
-    # asyncio.run(nacional_test())
+    asyncio.run(nacional_test())
     # asyncio.run(entre_rios_test())
     # asyncio.run(san_luis_test())
     # asyncio.run(tucuman_test())
     # asyncio.run(la_pampa_test())
-    send_email_smtp_test()
+    # send_email_smtp_test()
