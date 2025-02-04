@@ -112,7 +112,7 @@ class Sicnea(Jurisdiccion):
         )
         if ingresar_button:
             await ingresar_button.click()
-            
+
         await self.new_page_2.hover(
             "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]"
         )

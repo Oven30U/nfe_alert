@@ -136,8 +136,9 @@ class Nacional(Jurisdiccion):
         selectores = {
             "notificaciones": "xpath=//a[contains(text(), ' Notificaciones ')]",
             "requerimientos": "xpath=//a[contains(text(), ' Requerimientos ')]",
-            "otras_notificaciones": "xpath=//a[contains(text(), ' Otras notificaciones ')]",
             "fce": "xpath=//a[contains(text(), ' Factura de Crédito Electrónica ')]",
+            "otras_notificaciones": "xpath=//a[contains(text(), ' Otras notificaciones ')]",
+            "fiscalizaciones": "xpath=//a[contains(text(), ' Fiscalizaciones')]",
             "induccion": "xpath=//a[contains(text(), ' Inducción ')]",
             "otros_mensajes": "xpath=//a[contains(text(), ' Otros mensajes')]",
         }
@@ -154,6 +155,8 @@ class Nacional(Jurisdiccion):
 
         for clave, selector in selectores.items():
             try:
+                if await self.new_page.locator(selector).count() == 0:
+                    continue
                 await self.new_page.click(selector)
                 await self.new_page.wait_for_load_state("networkidle")
                 selectores_validos += 1
