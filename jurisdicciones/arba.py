@@ -108,19 +108,19 @@ class Arba(Jurisdiccion):
         if no_results:
             return False
 
-        date_elements = await self.page.query_selector_all("//table[@id='listaNotificacionesTCTodas']//tbody/tr/td[3]")
+        fechas_puesta_disposicion = await self.page.query_selector_all("//table[@id='listaNotificacionesTCTodas']//tbody/tr/td[2]")
         
-        if not date_elements:
+        if not fechas_puesta_disposicion:
             return False
             
         fecha_desde = datetime.strptime(self.fecha_desde, '%d%m%Y')
         fecha_hasta = datetime.strptime(self.fecha_hasta, '%d%m%Y')
         
-        for date_element in date_elements:
-            date_text = await date_element.text_content()
+        for fecha_disposicion in fechas_puesta_disposicion:
+            fecha_disposicion_text = await fecha_disposicion.text_content()
             try:
-                notification_date = datetime.strptime(date_text.strip(), '%d-%m-%Y')
-                if fecha_desde <= notification_date <= fecha_hasta:
+                fecha_disposicion_date = datetime.strptime(fecha_disposicion_text.strip(), '%d-%m-%Y')
+                if fecha_desde <= fecha_disposicion_date <= fecha_hasta:
                     return True
             except ValueError:
                 continue
@@ -144,10 +144,12 @@ async def main():
         cuit_Arba = os.getenv("TEST_ARBA_CUIT")
         clave_fiscal_Arba = os.getenv("TEST_ARBA_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_ARBA_CUIT_CLIENTE_INPUT")
+        client_folder = os.getenv("TEST_ARBA_CLIENT_FOLDER")
 
         arba = await Arba.create(
             playwright,
             client,
+            client_folder,
             cuit_Arba,
             clave_fiscal_Arba,
             fecha_desde,

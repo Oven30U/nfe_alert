@@ -66,7 +66,8 @@ async def santiago_test():
 
         santiago_del_estero = await SantiagoDelEstero.create(
             playwright,
-            client,client_folder,
+            client,
+            client_folder,
             cuit_SantiagoDelEstero,
             clave_fiscal_SantiagoDelEstero,
             fecha_desde,
@@ -106,6 +107,7 @@ async def arba_test():
         fecha_hasta = os.getenv("FECHA_HASTA")
 
         client = os.getenv("TEST_ARBA_CLIENT")
+        client_folder = os.getenv("TEST_ARBA_CLIENT_FOLDER")
         cuit_Arba = os.getenv("TEST_ARBA_CUIT")
         clave_fiscal_Arba = os.getenv("TEST_ARBA_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_ARBA_CLIENTE_INPUT")
@@ -113,6 +115,7 @@ async def arba_test():
         arba = await Arba.create(
             playwright,
             client,
+            client_folder,
             cuit_Arba,
             clave_fiscal_Arba,
             fecha_desde,
@@ -355,9 +358,26 @@ async def la_pampa_test():
         await la_pampa.procesar_jurisdiccion()
 
 
+
+
+def send_email_smtp_test():
+    """
+    Test manual para enviar el correo con contraseña del zip
+    """
+    from correo_cli import send_email_smtp
+    from conectar_db import read_and_modify_html
+    send_email_smtp(
+    sender_email="robot-tax-ar@deloitte.com",
+    receiver_emails=["lmarinaro@deloitte.com"],
+    subject=f"Actualización de clave de seguridad para NFE Alert: Revisión de Domicilios Fiscales Electrónicos - Cliente test",
+    html_file_path=None,
+    zip_file_paths=None,
+    html_content=read_and_modify_html("Cliente test", "12345678", 90, "lmarinaro"))
+
+
 if __name__ == "__main__":
     # asyncio.run(catamarca_test())
-    asyncio.run(santiago_test())
+    # asyncio.run(santiago_test())
     # asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
@@ -370,3 +390,4 @@ if __name__ == "__main__":
     # asyncio.run(san_luis_test())
     # asyncio.run(tucuman_test())
     # asyncio.run(la_pampa_test())
+    send_email_smtp_test()
