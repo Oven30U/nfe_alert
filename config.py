@@ -51,7 +51,9 @@ clientes_si_verificar_config = [
     # "NATURA COSMETICOS S.A",
     # "ABBOTT LABORATORIES ARG. S.A",
     # "SIMPLOT ARGENTINA S.R.L",
-    "EUROP ASSISTANCE ARGENTINA S.A",
+    # "EUROP ASSISTANCE ARGENTINA S.A",
+    "JOHNSON & JOHNSON MEDICAL SOCIEDAD ANONIMA",
+    "JANSSEN CILAG FARMACEUTICA SOCIEDAD ANONIMA",
 ]
 SIN_DEBUG_EJECUTAR_LISTA = (
     False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes
@@ -60,6 +62,12 @@ SIN_DEBUG_EJECUTAR_LISTA = (
 # ENVIAR_CORREO_TEST = True
 ENVIAR_CORREO_TEST = False
 CORREO_TEST = "lmarinaro@deloitte.com"
+
+CLIENTES_EXLUIR_NACIONAL_FCE = [
+    "J&J Argentina S.A.",
+    "JANSSEN CILAG FARMACEUTICA SOCIEDAD ANONIMA",
+    "JOHNSON & JOHNSON MEDICAL SOCIEDAD ANONIMA",
+]
 
 # configurar nombres para el df_final de input.py,
 # la key es el nombre del campo [Jurisdiccion] en el archivo input

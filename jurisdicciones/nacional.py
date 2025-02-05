@@ -5,6 +5,8 @@ from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion
 
+from config import CLIENTES_EXLUIR_NACIONAL_FCE
+
 
 class Nacional(Jurisdiccion):
     def __init__(
@@ -143,8 +145,7 @@ class Nacional(Jurisdiccion):
             "otros_mensajes": "xpath=//a[contains(text(), ' Otros mensajes')]",
         }
         
-        clientes_excluir_fce = os.getenv("CLIENTES_EXLUIR_NACIONAL_FCE")
-        if self.cliente in clientes_excluir_fce:
+        if self.cliente in CLIENTES_EXLUIR_NACIONAL_FCE:
             del selectores["fce"]
             
         contador_filtro_hay_notificacion = 0

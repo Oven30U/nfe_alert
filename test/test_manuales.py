@@ -369,7 +369,7 @@ def send_email_smtp_test():
     from correo_cli import send_email_smtp
     from conectar_db import read_and_modify_html
     send_email_smtp(
-    sender_email="robot-tax-ar@deloitte.com",
+    sender_email="taxtecarg@deloitte.com",
     receiver_emails=["lmarinaro@deloitte.com"],
     subject=f"Actualización de clave de seguridad para NFE Alert: Revisión de Domicilios Fiscales Electrónicos - Cliente test",
     html_file_path=None,
