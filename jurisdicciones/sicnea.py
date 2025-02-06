@@ -106,13 +106,19 @@ class Sicnea(Jurisdiccion):
             await self.new_page_2.select_option(
                 "xpath=//select[@id='cmbEmpresa']", value=self.cuit_cliente_input
             )
-
+        
+        await self.new_page_2.wait_for_load_state("domcontentloaded")
         ingresar_button = await self.new_page_2.query_selector(
             "xpath=//input[@value='Ingresar']"
         )
         if ingresar_button:
             await ingresar_button.click()
 
+        await self.new_page_2.wait_for_load_state("domcontentloaded")
+        await self.new_page_2.wait_for_selector(
+            "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]",
+            timeout=60000,
+        )
         await self.new_page_2.hover(
             "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]"
         )
@@ -127,6 +133,7 @@ class Sicnea(Jurisdiccion):
             # await frame.click("a:has-text('Ver Notificacion/Comunicacion')")
             await frame.click("a:has-text(' Consulta')")
             await self.new_page_2.wait_for_load_state("networkidle")
+            await self.new_page_2.wait_for_load_state("domcontentloaded")
             self.frame = self.new_page_2.frame(name="iframeAreaCargaDatos")
             await self.frame.wait_for_selector("select#ddlEstado")
             await self.frame.select_option("select#ddlEstado", value="ENVI")
@@ -178,9 +185,7 @@ class Sicnea(Jurisdiccion):
         try:
             self.fecha_desde = self.fecha_desde.replace("/", "")
             self.fecha_hasta = self.fecha_hasta.replace("/", "")
-            # nombre_archivo_enviadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_enviadas.png"
             await self.frame.wait_for_selector("input#btnBuscar")
-            # await self.new_page_2.screenshot(path=nombre_archivo_enviadas, full_page=True)
             await super().tomar_screenshot(self.new_page_2, nombre_extra="_enviadas")
 
             # Si aparece el botón siguiente, entonces navega y toma screenshots, si no aparece, entonces no navega
@@ -188,9 +193,7 @@ class Sicnea(Jurisdiccion):
             while await self.frame.query_selector("a#lnkSiguiente"):
                 await self.frame.click("a#lnkSiguiente")
                 await self.frame.wait_for_selector("input#btnBuscar")
-                # await self.new_page_2.screenshot(
-                #     path=f"{nombre_archivo_enviadas}_{cantidad_paginas_enviadas}.png",
-                #     full_page=True)
+
                 await super().tomar_screenshot(
                     self.new_page_2,
                     nombre_extra=f"_enviadas_{cantidad_paginas_enviadas}",
@@ -198,7 +201,7 @@ class Sicnea(Jurisdiccion):
                 cantidad_paginas_enviadas += 1
 
             await self.frame.wait_for_selector("select#ddlEstado")
-            # Check if the select element is disabled
+
             is_disabled = await self.frame.evaluate(
                 "document.querySelector('select#ddlEstado').disabled"
             )
@@ -219,13 +222,12 @@ class Sicnea(Jurisdiccion):
                 await self.new_page_2.wait_for_load_state("networkidle")
                 await self.frame.wait_for_load_state("networkidle")
             else:
-                # nombre_archivo_notificadas = f"Estructura-robot/{self.cliente}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_notificadas"
                 await self.frame.select_option("select#ddlEstado", value="NOTI")
                 await self.frame.click("input[name='btnBuscar']")
 
-            # Inicializar una variable para controlar el bucle
+
             notificado_cargado = False
-            # Bucle que se ejecuta hasta que se encuentre alguno de los textos
+
             intento_encontrado = 0
             while not notificado_cargado:
                 texto_notificaciones = await self.frame.is_visible(
@@ -236,24 +238,17 @@ class Sicnea(Jurisdiccion):
                     notificado_cargado = True
             await self.frame.wait_for_selector("input#btnBuscar")
 
-            # await self.new_page_2.screenshot(path=f"{nombre_archivo_notificadas}_0.png",
-            #                                  full_page=True)
             await super().tomar_screenshot(self.new_page_2, nombre_extra="_notificadas")
             cantidad_paginas_notificadas = 1
-            while await self.frame.query_selector("a#lnkSiguiente"):
+            while await self.frame.query_selector("a#lnkSiguiente") is not None:
                 await self.frame.click("a#lnkSiguiente")
                 await self.frame.wait_for_selector("input#btnBuscar")
-                # await self.new_page_2.screenshot(
-                #     path=f"{nombre_archivo_notificadas}_{cantidad_paginas_notificadas}.png",
-                #     full_page=True)
                 await super().tomar_screenshot(
                     self.new_page_2,
                     nombre_extra=f"_notificadas_{cantidad_paginas_notificadas}",
                 )
                 cantidad_paginas_notificadas += 1
 
-                # a  # lnkSiguiente
-                # await self.new_page_2.screenshot(path=nombre_archivo_notificadas, full_page=True)
             self.hay_screenshot = True
 
         except Exception as e:
@@ -274,17 +269,18 @@ if __name__ == "__main__":
         async with async_playwright() as playwright:
             fecha_desde = os.getenv("FECHA_DESDE")
             fecha_hasta = os.getenv("FECHA_HASTA")
-
             client = os.getenv("TEST_SICNEA_CLIENT")
-            cuit_Sicnea = os.getenv("TEST_SICNEA_CUIT")
-            clave_fiscal_Sicnea = os.getenv("TEST_SICNEA_CLAVE_FISCAL")
+            client_folder = os.getenv("TEST_SICNEA_CLIENT_FOLDER")
+            cuit_sicnea = os.getenv("TEST_SICNEA_CUIT")
+            clave_fiscal_sicnea = os.getenv("TEST_SICNEA_CLAVE_FISCAL")
             cuit_cliente_input = os.getenv("TEST_SICNEA_CUIT_CLIENTE_INPUT")
 
             sicnea = await Sicnea.create(
                 playwright,
                 client,
-                cuit_Sicnea,
-                clave_fiscal_Sicnea,
+                client_folder,
+                cuit_sicnea,
+                clave_fiscal_sicnea,
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,

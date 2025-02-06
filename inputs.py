@@ -200,7 +200,7 @@ def obtener_clientes(
     if not df_clientes.empty:
         # Filtrar las filas donde el cliente no se haya ejecutado hoy
         df_clientes = df_clientes[
-            df_clientes["Cliente"].isin(clientes_pendientes_verificar)
+            df_clientes["client_folder"].isin(clientes_pendientes_verificar)
         ]
 
         df_clientes.rename(

@@ -145,7 +145,7 @@ class Nacional(Jurisdiccion):
             "otros_mensajes": "xpath=//a[contains(text(), ' Otros mensajes')]",
         }
         
-        if self.cliente in CLIENTES_EXLUIR_NACIONAL_FCE:
+        if self.client_folder in CLIENTES_EXLUIR_NACIONAL_FCE:
             del selectores["fce"]
             
         contador_filtro_hay_notificacion = 0

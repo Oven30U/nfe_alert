@@ -7,7 +7,11 @@ from playwright.async_api import async_playwright
 
 from cliente_processor import ClienteProcessor
 from conectar_db import conectar_db
-from config import jurisdiccion_clases, EJECUTAR_CLIENTES_LISTA
+from config import (
+    jurisdiccion_clases,
+    EJECUTAR_CLIENTES_LISTA,
+    CLIENTES_CON_DOCUMENTACION,
+)
 from database import get_session, get_sqlite_session
 from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
@@ -93,11 +97,11 @@ def obtener_datos_clientes():
 
     if (
         not df_clientes.empty
-        and clientes_procesados_hoy
         and not EJECUTAR_CLIENTES_LISTA
     ):
         df_clientes = df_clientes[
             ~df_clientes["client_folder"].isin(clientes_procesados_hoy)
+            & df_clientes["client_folder"].isin(CLIENTES_CON_DOCUMENTACION) # ToDo: Activar a partir del viernes 7-2-25
         ]
 
     return df_clientes

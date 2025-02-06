@@ -360,21 +360,21 @@ async def la_pampa_test():
         await la_pampa.procesar_jurisdiccion()
 
 
-
-
 def send_email_smtp_test():
     """
     Test manual para enviar el correo con contraseña del zip
     """
     from correo_cli import send_email_smtp
     from conectar_db import read_and_modify_html
+
     send_email_smtp(
-    sender_email="taxtecarg@deloitte.com",
-    receiver_emails=["lmarinaro@deloitte.com"],
-    subject=f"Actualización de clave de seguridad para NFE Alert: Revisión de Domicilios Fiscales Electrónicos - Cliente test",
-    html_file_path=None,
-    zip_file_paths=None,
-    html_content=read_and_modify_html("Cliente test", "12345678", 90, "lmarinaro"))
+        sender_email="taxtecarg@deloitte.com",
+        receiver_emails=["lmarinaro@deloitte.com"],
+        subject=f"Actualización de clave de seguridad para NFE Alert: Revisión de Domicilios Fiscales Electrónicos - Cliente test",
+        html_file_path=None,
+        zip_file_paths=None,
+        html_content=read_and_modify_html("Cliente test", "12345678", 90, "lmarinaro"),
+    )
 
 
 if __name__ == "__main__":
@@ -384,10 +384,10 @@ if __name__ == "__main__":
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
     # asyncio.run(chaco_test())
-    # asyncio.run(sicnea_test())
+    asyncio.run(sicnea_test())
     # asyncio.run(agip_test())
     # asyncio.run(rio_negro_test())
-    asyncio.run(nacional_test())
+    # asyncio.run(nacional_test())
     # asyncio.run(entre_rios_test())
     # asyncio.run(san_luis_test())
     # asyncio.run(tucuman_test())
