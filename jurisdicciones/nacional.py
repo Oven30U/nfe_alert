@@ -6,7 +6,7 @@ from playwright.async_api import Playwright, async_playwright
 from jurisdicciones.jurisdiccion import Jurisdiccion
 
 from config import CLIENTES_EXLUIR_NACIONAL_FCE
-
+import unicodedata
 
 class Nacional(Jurisdiccion):
     def __init__(
@@ -116,9 +116,11 @@ class Nacional(Jurisdiccion):
             "xpath=(//label[contains(text(), 'Hasta')]/following::input[1])[2]",
             f"{self.fecha_hasta}",
         )  # \t\n
-        await self.new_page.locator('//button[contains(text(), "Aplicar")]').nth(
-            1
-        ).click()
+        await (
+            self.new_page.locator('//button[contains(text(), "Aplicar")]')
+            .nth(1)
+            .click()
+        )
         # await self.new_page.keyboard.press("Tab")
         # await self.new_page.keyboard.press("Enter")
 
@@ -134,20 +136,12 @@ class Nacional(Jurisdiccion):
         # await completar_fechas(self.new_page, self.fecha_desde, self.fecha_hasta)
 
     async def buscar_notificacion(self):
-        # TODO separar los informes por selector o definir correctamente el tema con FCE
+        # Seleccionar todos los enlaces dentro de collapse-mensajes y collapse-notificaciones
         selectores = {
-            "notificaciones": "xpath=//a[contains(text(), ' Notificaciones ')]",
-            "requerimientos": "xpath=//a[contains(text(), ' Requerimientos ')]",
-            "fce": "xpath=//a[contains(text(), ' Factura de Crédito Electrónica ')]",
-            "otras_notificaciones": "xpath=//a[contains(text(), ' Otras notificaciones ')]",
-            "fiscalizaciones": "xpath=//a[contains(text(), ' Fiscalizaciones')]",
-            "induccion": "xpath=//a[contains(text(), ' Inducción ')]",
-            "otros_mensajes": "xpath=//a[contains(text(), ' Otros mensajes')]",
+            "notificaciones": "xpath=//div[@id='collapse-notificaciones']//a",
+            "mensajes": "xpath=//div[@id='collapse-mensajes']//a",
         }
-        
-        if self.client_folder in CLIENTES_EXLUIR_NACIONAL_FCE:
-            del selectores["fce"]
-            
+
         contador_filtro_hay_notificacion = 0
         todos_screenshots_exitosos = True
         selectores_validos = 0
@@ -161,24 +155,34 @@ class Nacional(Jurisdiccion):
 
         for clave, selector in selectores.items():
             try:
-                if await self.new_page.locator(selector).count() == 0:
-                    continue
-                await self.new_page.click(selector)
-                await self.new_page.wait_for_load_state("networkidle")
-                selectores_validos += 1
+                enlaces = await self.new_page.locator(selector).all()
+                for enlace in enlaces:
+                    texto_enlace = await enlace.inner_text()
+                    if (
+                        "Factura de Crédito Electrónica" in texto_enlace
+                        and self.client_folder in CLIENTES_EXLUIR_NACIONAL_FCE
+                    ):
+                        continue
+
+                    await enlace.click()
+                    await self.new_page.wait_for_load_state("networkidle")
+                    selectores_validos += 1
+
+                    no_hay_notificaciones = await super().buscar_notificacion(
+                        self.new_page, "No hay comunicaciones para mostrar"
+                    )
+
+                    if not no_hay_notificaciones:
+                        contador_filtro_hay_notificacion += 1
+                    texto_filtrado = clean_texto_enlace(
+                        texto_enlace
+                    )                    
+                    nombre_captura = f"{clave}_{texto_filtrado.lower()}"
+                    screen_estado = await self.tomar_screenshot_filtrado(nombre_captura)
+                    if not screen_estado:
+                        todos_screenshots_exitosos = False
             except Exception:
                 continue
-
-            no_hay_notificaciones = await super().buscar_notificacion(
-                self.new_page, "No hay comunicaciones para mostrar"
-            )
-
-            if not no_hay_notificaciones:
-                contador_filtro_hay_notificacion += 1
-
-            screen_estado = await self.tomar_screenshot_filtrado(clave)
-            if not screen_estado:
-                todos_screenshots_exitosos = False
 
         self.hay_screenshots_filtrados = todos_screenshots_exitosos
         return True if contador_filtro_hay_notificacion > 0 else False
@@ -247,7 +251,14 @@ class Nacional(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
+    
 
+def clean_texto_enlace(input_str: str) -> str:
+    text = input_str.split("\n")[0].strip().lower()
+    nfkd_form = unicodedata.normalize("NFKD", text)
+    result = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    result = result.replace("factura de credito electronica", "fce")
+    return result
 
 async def main():
     async with async_playwright() as playwright:
