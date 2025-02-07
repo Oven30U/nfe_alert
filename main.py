@@ -77,6 +77,17 @@ async def main():
                 logger.error("Error en el procesamiento del cliente %s, %s", cliente, e)
                 estado = "Erróneo"
             finally:
+                if (
+                    df_final["Notificacion"]
+                    .str.contains(r"error", case=False, na=False)
+                    .sum()
+                    > 0
+                    or df_final["Screenshot"]
+                    .str.contains(r"No se realizó Screenshot", case=False, na=False)
+                    .sum()
+                    > 0
+                ):
+                    logger.info("Hubo un error o falta de screenshot")
                 correo_exitoso = processor.enviar_email(df_final)
                 if not correo_exitoso:
                     estado = "Correo no enviado"
@@ -95,13 +106,10 @@ def obtener_datos_clientes():
     )
     clientes_procesados_hoy = get_clientes_procesados_hoy()
 
-    if (
-        not df_clientes.empty
-        and not EJECUTAR_CLIENTES_LISTA
-    ):
+    if not df_clientes.empty and not EJECUTAR_CLIENTES_LISTA:
         df_clientes = df_clientes[
             ~df_clientes["client_folder"].isin(clientes_procesados_hoy)
-            & df_clientes["client_folder"].isin(CLIENTES_CON_DOCUMENTACION) # ToDo: Activar a partir del viernes 7-2-25
+            # & df_clientes["client_folder"].isin(CLIENTES_CON_DOCUMENTACION) # ToDo: Activar a partir del viernes 7-2-25
         ]
 
     return df_clientes
