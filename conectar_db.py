@@ -13,7 +13,13 @@ from dotenv import load_dotenv
 from config import PATH_HTML_SET_PASS, DIAS_VIGENCIA_PASS_ZIP, CORREO_NOTIFICACION_ERROR
 from database import get_session, get_sqlite_session
 from correo_cli import send_email_smtp
-from models import MonitoreoBots, MonitoreoBotsBackup, UsuarioAutorizado, Cliente, UsuarioCliente
+from models import (
+    MonitoreoBots,
+    MonitoreoBotsBackup,
+    UsuarioAutorizado,
+    Cliente,
+    UsuarioCliente,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -24,8 +30,12 @@ SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 
 def transfer_records_to_sql_server(session: Session, sqlite_records):
     for record in sqlite_records:
-        iniciado = datetime.strptime(record[4], "%Y-%m-%d %H:%M:%S.%f") if record[4] else None
-        finalizado = datetime.strptime(record[5], "%Y-%m-%d %H:%M:%S.%f") if record[5] else None
+        iniciado = (
+            datetime.strptime(record[4], "%Y-%m-%d %H:%M:%S.%f") if record[4] else None
+        )
+        finalizado = (
+            datetime.strptime(record[5], "%Y-%m-%d %H:%M:%S.%f") if record[5] else None
+        )
         new_record = MonitoreoBots(
             username=record[1],
             proceso=record[2],
@@ -57,18 +67,26 @@ def delete_records_from_sqlite(sqlite_session: Session):
     sqlite_session.commit()
 
 
-def insert_record(session: Session, username: str, proceso: str, estado_value: str, inicio_value: datetime, fin_value: datetime, cliente: str):
+def insert_record(
+    session: Session,
+    username: str,
+    proceso: str,
+    estado_value: str,
+    inicio_value: datetime,
+    fin_value: datetime,
+    cliente: str,
+):
     # Truncate microseconds to match SQL Server's DATETIME precision (milliseconds)
     if inicio_value:
         inicio_value = inicio_value.replace(microsecond=0)
     if fin_value:
         fin_value = fin_value.replace(microsecond=0)
-    
+
     # Ensure string lengths do not exceed database limits
     username = username[:50]
     estado_value = estado_value[:50]
     cliente = cliente[:50]
-    
+
     # Create a new MonitoreoBots record
     record = MonitoreoBots(
         username=username,
@@ -78,7 +96,7 @@ def insert_record(session: Session, username: str, proceso: str, estado_value: s
         finalizado=fin_value,
         cliente=cliente,
     )
-    
+
     # Add the record to the session
     session.add(record)
 
@@ -90,19 +108,19 @@ def insert_record_sqlite(
     estado_value: str,
     inicio_value: datetime,
     fin_value: datetime,
-    cliente: str
+    cliente: str,
 ):
     # Truncate microseconds si es necesario
     if inicio_value:
         inicio_value = inicio_value.replace(microsecond=0)
     if fin_value:
         fin_value = fin_value.replace(microsecond=0)
-    
+
     # Asegurarse de que las longitudes de las cadenas no excedan los límites de la base de datos
     username = username[:50]
     estado_value = estado_value[:50]
     cliente = cliente[:50]
-    
+
     # Crear un nuevo registro en MonitoreoBotsBackup
     record = MonitoreoBotsBackup(
         username=username,
@@ -112,9 +130,10 @@ def insert_record_sqlite(
         finalizado=fin_value,
         cliente=cliente,
     )
-    
+
     # Agregar el registro a la sesión
     sqlite_session.add(record)
+
 
 def insert_records_sqlite(
     sqlite_session: Session,
@@ -123,7 +142,7 @@ def insert_records_sqlite(
     estado_value: str,
     inicio_value: datetime,
     fin_value: datetime,
-    cliente: str
+    cliente: str,
 ):
     # Dividir los usernames si hay múltiples separados por ";"
     usernames = username.split(";")
@@ -137,7 +156,7 @@ def insert_records_sqlite(
                 estado_value,
                 inicio_value,
                 fin_value,
-                cliente
+                cliente,
             )
     try:
         # Confirmar la transacción
@@ -151,12 +170,29 @@ def insert_records_sqlite(
         # Cerrar la sesión
         sqlite_session.close()
 
-def insert_records(session: Session, username: str, proceso: str, estado_value: str, inicio_value: datetime, fin_value: datetime, cliente: str):
+
+def insert_records(
+    session: Session,
+    username: str,
+    proceso: str,
+    estado_value: str,
+    inicio_value: datetime,
+    fin_value: datetime,
+    cliente: str,
+):
     usernames = username.split(";")
     for user in usernames:
         user_name = user.split("@")[0].strip()
         if user_name:
-            insert_record(session, user_name, proceso, estado_value, inicio_value, fin_value, cliente)
+            insert_record(
+                session,
+                user_name,
+                proceso,
+                estado_value,
+                inicio_value,
+                fin_value,
+                cliente,
+            )
     try:
         session.commit()
     except DBAPIError as e:
@@ -172,33 +208,27 @@ def conectar_db(
     cliente: str,
     username: str = os.getlogin(),
     inicio_value: datetime = datetime.now(),
-    estado_value: str = "Correcto"
+    estado_value: str = "Correcto",
 ):
     session = None
     sqlite_session = None
     fin_value = datetime.now()
-    
+
     try:
         session = get_session()
     except Exception as e:
         print(f"Error al conectar con la base de datos SQL Server: {e}")
-    
+
     try:
         sqlite_session = get_sqlite_session()
     except Exception as e:
         print(f"Error al conectar con la base de datos SQLite: {e}")
-    
+
     if session:
         insert_records(
-            session,
-            username,
-            proceso,
-            estado_value,
-            inicio_value,
-            fin_value,
-            cliente
+            session, username, proceso, estado_value, inicio_value, fin_value, cliente
         )
-    
+
     if sqlite_session:
         insert_records_sqlite(
             sqlite_session,
@@ -207,18 +237,23 @@ def conectar_db(
             estado_value,
             inicio_value,
             fin_value,
-            cliente
+            cliente,
         )
 
 
 def get_ultimo_finalizado(cliente):
     try:
         session = get_session()
-        result = session.query(MonitoreoBots.finalizado).filter(
-            MonitoreoBots.proceso == 'Revision de Domicilios Fiscales Electronicos',
-            MonitoreoBots.cliente == cliente,
-            MonitoreoBots.estado == 'Correcto'
-        ).order_by(MonitoreoBots.id.desc()).first()
+        result = (
+            session.query(MonitoreoBots.finalizado)
+            .filter(
+                MonitoreoBots.proceso == "Revision de Domicilios Fiscales Electronicos",
+                MonitoreoBots.cliente == cliente,
+                MonitoreoBots.estado == "Correcto",
+            )
+            .order_by(MonitoreoBots.id.desc())
+            .first()
+        )
         return result[0] if result else None
     except Exception as e:
         print(f"Error al obtener el último 'finalizado': {e}")
@@ -228,7 +263,7 @@ def get_ultimo_finalizado(cliente):
 
 
 def get_clientes_ejecutados_hoy_with_retries(
-        clientes_si_verificar: List[str], retries=10, delay=30
+    clientes_si_verificar: List[str], retries=10, delay=30
 ) -> List[str]:
     for attempt in range(retries):
         try:
@@ -246,17 +281,24 @@ def get_clientes_ejecutados_hoy(clientes: List[str]) -> List[str]:
     try:
         session = get_session()
         today = datetime.now().date()
-        start_of_day = datetime.combine(today, datetime.min.time()).replace(microsecond=0)
+        start_of_day = datetime.combine(today, datetime.min.time()).replace(
+            microsecond=0
+        )
         end_of_day = datetime.combine(today, datetime.max.time()).replace(microsecond=0)
         proceso = os.getenv("PROYECTO")
 
-        results = session.query(MonitoreoBots.cliente).filter(
-            MonitoreoBots.finalizado >= start_of_day,
-            MonitoreoBots.finalizado <= end_of_day,
-            MonitoreoBots.proceso == proceso,
-            MonitoreoBots.cliente.in_(clientes),
-            MonitoreoBots.estado == 'Correcto'
-        ).group_by(MonitoreoBots.cliente).all()
+        results = (
+            session.query(MonitoreoBots.cliente)
+            .filter(
+                MonitoreoBots.finalizado >= start_of_day,
+                MonitoreoBots.finalizado <= end_of_day,
+                MonitoreoBots.proceso == proceso,
+                MonitoreoBots.cliente.in_(clientes),
+                MonitoreoBots.estado == "Correcto",
+            )
+            .group_by(MonitoreoBots.cliente)
+            .all()
+        )
 
         clientes_hoy = [row[0] for row in results]
         return [cliente for cliente in clientes if cliente not in clientes_hoy]
@@ -268,7 +310,7 @@ def get_clientes_ejecutados_hoy(clientes: List[str]) -> List[str]:
 
 
 def read_and_modify_html(
-        cliente: str, new_pass: str, dias: int, username: str = "usuario"
+    cliente: str, new_pass: str, dias: int, username: str = "usuario"
 ) -> str:
     html_template_path = PATH_HTML_SET_PASS
     with open(html_template_path, "r", encoding="utf-8") as file:
@@ -291,15 +333,19 @@ def verify_and_add_users(correo_output: List[str]):
 
         usernames = [email for email in correo_output]
 
-        existing_users = session.query(UsuarioAutorizado.username).filter(
-            UsuarioAutorizado.username.in_(usernames)
-        ).all()
+        existing_users = (
+            session.query(UsuarioAutorizado.username)
+            .filter(UsuarioAutorizado.username.in_(usernames))
+            .all()
+        )
         existing_users = {user[0] for user in existing_users}
 
         missing_users = [user for user in usernames if user not in existing_users]
         fecha_autorizacion = datetime.now()
         for user in missing_users:
-            new_user = UsuarioAutorizado(username=user, fecha_autorizacion=fecha_autorizacion)
+            new_user = UsuarioAutorizado(
+                username=user, fecha_autorizacion=fecha_autorizacion
+            )
             session.add(new_user)
         session.commit()
         return existing_users, missing_users
@@ -317,30 +363,35 @@ def get_usernames(correo_output):
 
 
 def get_autorizados(session: Session, usernames):
-    return session.query(UsuarioAutorizado).filter(
-        UsuarioAutorizado.username.in_(usernames)
-    ).all()
+    return (
+        session.query(UsuarioAutorizado)
+        .filter(UsuarioAutorizado.username.in_(usernames))
+        .all()
+    )
 
 
 def get_fecha_actualizacion_pass(session: Session, cliente_id):
-    result = session.query(Cliente.fecha_actualizacion_pass).filter(
-        Cliente.id == cliente_id
-    ).first()
+    result = (
+        session.query(Cliente.fecha_actualizacion_pass)
+        .filter(Cliente.id == cliente_id)
+        .first()
+    )
     return result[0] if result else None
 
 
 def calculate_dias(fecha_actualizacion_pass):
     if fecha_actualizacion_pass:
         diferencia_dias = (datetime.now() - fecha_actualizacion_pass).days
-        return DIAS_VIGENCIA_PASS_ZIP - diferencia_dias if diferencia_dias <= DIAS_VIGENCIA_PASS_ZIP else DIAS_VIGENCIA_PASS_ZIP
+        return (
+            DIAS_VIGENCIA_PASS_ZIP - diferencia_dias
+            if diferencia_dias <= DIAS_VIGENCIA_PASS_ZIP
+            else DIAS_VIGENCIA_PASS_ZIP
+        )
     return DIAS_VIGENCIA_PASS_ZIP
 
 
 def insert_usuario_cliente(session: Session, cliente_id, usuario_id):
-    relationship = UsuarioCliente(
-        id_cliente=cliente_id,
-        id_usuario=usuario_id
-    )
+    relationship = UsuarioCliente(id_cliente=cliente_id, id_usuario=usuario_id)
     session.add(relationship)
 
 
@@ -356,7 +407,7 @@ def send_notification_email(username, cliente, new_pass, dias):
 
 
 def verify_and_add_user_client_relationship(
-        cliente_id: int, correo_output: List[str], cliente: str, new_pass: str
+    cliente_id: int, correo_output: List[str], cliente: str, new_pass: str
 ) -> tuple:
     session = None
     try:
@@ -373,9 +424,11 @@ def verify_and_add_user_client_relationship(
         for username in usernames:
             usuario_id = usuarios_ids.get(username)
             if usuario_id:
-                exists = session.query(UsuarioCliente).filter_by(
-                    id_cliente=cliente_id, id_usuario=usuario_id
-                ).count()
+                exists = (
+                    session.query(UsuarioCliente)
+                    .filter_by(id_cliente=cliente_id, id_usuario=usuario_id)
+                    .count()
+                )
                 if exists == 0:
                     insert_usuario_cliente(session, cliente_id, usuario_id)
                     inserted_users.append(username)
@@ -391,10 +444,16 @@ def verify_and_add_user_client_relationship(
                             subject=f"Failed emails: {', '.join(failed_emails)}",
                             html_file_path=None,
                             zip_file_paths=None,
-                            html_content="Some emails failed to send. Please check the details."
+                            html_content="Some emails failed to send. Please check the details.",
                         )
         session.commit()
-        return usuarios_autorizados, dias, inserted_users, all_successful_emails, all_failed_emails
+        return (
+            usuarios_autorizados,
+            dias,
+            inserted_users,
+            all_successful_emails,
+            all_failed_emails,
+        )
     except Exception as e:
         print(f"Error al verificar y agregar relación usuario-cliente: {e}")
         return {}, 0, [], [], []
@@ -403,7 +462,9 @@ def verify_and_add_user_client_relationship(
             session.close()
 
 
-def verify_and_delete_user_client_relationship(cliente_id: int, correo_output: List[str]) -> List[str]:
+def verify_and_delete_user_client_relationship(
+    cliente_id: int, correo_output: List[str]
+) -> List[str]:
     session = None
     try:
         session = get_sqlite_session()
@@ -413,14 +474,18 @@ def verify_and_delete_user_client_relationship(cliente_id: int, correo_output: L
 
         usernames = [email for email in correo_output]
 
-        usuarios_autorizados = session.query(UsuarioAutorizado).filter(
-            UsuarioAutorizado.username.in_(usernames)
-        ).all()
+        usuarios_autorizados = (
+            session.query(UsuarioAutorizado)
+            .filter(UsuarioAutorizado.username.in_(usernames))
+            .all()
+        )
         usuarios_ids = {user.username: user.id for user in usuarios_autorizados}
 
-        relationships = session.query(UsuarioCliente).filter(
-            UsuarioCliente.id_cliente == cliente_id
-        ).all()
+        relationships = (
+            session.query(UsuarioCliente)
+            .filter(UsuarioCliente.id_cliente == cliente_id)
+            .all()
+        )
         usuarios_cliente_ids = {rel.id_usuario for rel in relationships}
         usuarios_actuales_ids = set(usuarios_ids.values())
 
@@ -431,9 +496,11 @@ def verify_and_delete_user_client_relationship(cliente_id: int, correo_output: L
             session.query(UsuarioCliente).filter_by(
                 id_cliente=cliente_id, id_usuario=usuario_id
             ).delete()
-            usuario_eliminado = session.query(UsuarioAutorizado.username).filter(
-                UsuarioAutorizado.id == usuario_id
-            ).first()
+            usuario_eliminado = (
+                session.query(UsuarioAutorizado.username)
+                .filter(UsuarioAutorizado.id == usuario_id)
+                .first()
+            )
             deleted_users.append(usuario_eliminado[0] if usuario_eliminado else None)
         session.commit()
         return deleted_users
@@ -465,7 +532,7 @@ def set_pass(cliente: str, correo_output: List[str]) -> str:
                 nombre=cliente,
                 pass_=new_pass,
                 fecha_actualizacion_pass=fecha_actualizacion,
-                fecha_vencimiento_pass=fecha_vencimiento
+                fecha_vencimiento_pass=fecha_vencimiento,
             )
             session.add(cliente_obj)
 
@@ -475,12 +542,18 @@ def set_pass(cliente: str, correo_output: List[str]) -> str:
 
         existing_users, missing_users = verify_and_add_users(correo_output)
 
-        usuarios_autorizados, dias, inserted_users, all_successful_emails, all_failed_emails = verify_and_add_user_client_relationship(
+        (
+            usuarios_autorizados,
+            dias,
+            inserted_users,
+            all_successful_emails,
+            all_failed_emails,
+        ) = verify_and_add_user_client_relationship(
             cliente_id, correo_output, cliente, new_pass
         )
 
-        deleted_usuario_cliente_relationship = verify_and_delete_user_client_relationship(
-            cliente_id, correo_output
+        deleted_usuario_cliente_relationship = (
+            verify_and_delete_user_client_relationship(cliente_id, correo_output)
         )
 
         return new_pass
@@ -494,9 +567,12 @@ def set_pass(cliente: str, correo_output: List[str]) -> str:
 def get_related_users_emails(cliente_id: int) -> List[str]:
     try:
         session = get_sqlite_session()
-        results = session.query(UsuarioAutorizado.username).join(
-            UsuarioCliente, UsuarioCliente.id_usuario == UsuarioAutorizado.id
-        ).filter(UsuarioCliente.id_cliente == cliente_id).all()
+        results = (
+            session.query(UsuarioAutorizado.username)
+            .join(UsuarioCliente, UsuarioCliente.id_usuario == UsuarioAutorizado.id)
+            .filter(UsuarioCliente.id_cliente == cliente_id)
+            .all()
+        )
         return [row[0] for row in results]
     except Exception as e:
         print(f"Error al obtener los correos de los usuarios relacionados: {e}")
@@ -506,35 +582,56 @@ def get_related_users_emails(cliente_id: int) -> List[str]:
 
 
 def get_pass_zip(
-        cliente: str, correo_output: Union[str, List[str]] = ["lmarinaro@deloitte.com"]
+    cliente: str, correo_output: Union[str, List[str]] = ["lmarinaro@deloitte.com"]
 ) -> str:
-    correo_output = [correo for correo in
-                     (correo_output if isinstance(correo_output, list) else correo_output.split(";")) if
-                     correo and correo.lower() != "nan"]
+    correo_output = [
+        correo
+        for correo in (
+            correo_output
+            if isinstance(correo_output, list)
+            else correo_output.split(";")
+        )
+        if correo and correo.lower() != "nan"
+    ]
 
     try:
         session = get_sqlite_session()
         cliente = cliente[:255]
 
-        cliente_obj = session.query(Cliente).filter_by(nombre=cliente).order_by(Cliente.id.desc()).first()
+        cliente_obj = (
+            session.query(Cliente)
+            .filter_by(nombre=cliente)
+            .order_by(Cliente.id.desc())
+            .first()
+        )
         if cliente_obj:
             pass_value = cliente_obj.pass_
             fecha_actualizacion_pass = cliente_obj.fecha_actualizacion_pass
             if fecha_actualizacion_pass:
                 dias_transcurridos = (datetime.now() - fecha_actualizacion_pass).days
-                dias_vigencia_actuales_pass = DIAS_VIGENCIA_PASS_ZIP - dias_transcurridos
+                dias_vigencia_actuales_pass = (
+                    DIAS_VIGENCIA_PASS_ZIP - dias_transcurridos
+                )
 
                 if dias_vigencia_actuales_pass > 0:
                     cliente_id = cliente_obj.id
 
                     existing_users, missing_users = verify_and_add_users(correo_output)
 
-                    usuarios_autorizados, dias, inserted_users, all_successful_emails, all_failed_emails = verify_and_add_user_client_relationship(
+                    (
+                        usuarios_autorizados,
+                        dias,
+                        inserted_users,
+                        all_successful_emails,
+                        all_failed_emails,
+                    ) = verify_and_add_user_client_relationship(
                         cliente_id, correo_output, cliente, pass_value
                     )
 
-                    deleted_usuario_cliente_relationship = verify_and_delete_user_client_relationship(
-                        cliente_id, correo_output
+                    deleted_usuario_cliente_relationship = (
+                        verify_and_delete_user_client_relationship(
+                            cliente_id, correo_output
+                        )
                     )
 
                     return pass_value
@@ -577,7 +674,9 @@ def resend_pass_email(cliente: str) -> bool:
     """
     try:
         session = get_sqlite_session()
-        cliente = cliente[:255]  # Asegurar que el nombre del cliente no exceda la longitud máxima
+        cliente = cliente[
+            :255
+        ]  # Asegurar que el nombre del cliente no exceda la longitud máxima
         cliente_obj = session.query(Cliente).filter_by(nombre=cliente).first()
         if not cliente_obj:
             print(f"No se encontró el cliente: {cliente}")
@@ -625,6 +724,7 @@ def resend_pass_email(cliente: str) -> bool:
     finally:
         session.close()
 
+
 if __name__ == "__main__":
     pass
     # verify_and_add_user_client_relationship(
@@ -640,7 +740,6 @@ if __name__ == "__main__":
     # get_pass_zip(cliente='SIMPLOT ARGENTINA S.R.L', correo_output=["lmarinaro@deloitte.com"])
     # get_pass_zip(cliente='SIMPLOT ARGENTINA S.R.L', correo_output=["rtolaba@deloitte.com"])
 
-
     # get_pass_zip(cliente='EDGE ARGENTINA S.R.L', correo_output=["lmarinaro@deloitte.com"])
     # test_usuarios_autorizados, test_dias, test_inserted_users, test_all_successful_emails, test_all_failed_emails = verify_and_add_user_client_relationship(cliente_id=2, correo_output=['lmarinaro@deloitte.com'], cliente='EDGE ARGENTINA S.R.L' , new_pass='dSCfFiOs1pcd')
 
@@ -653,7 +752,7 @@ if __name__ == "__main__":
     # )
 
     # verify_and_add_users(correo_output=["lmarinaro@deloitte.com", "rtolaba@deloitte.com"])
-    
+
     cliente = "Europ Assistance Argentina S.A"
     resultado = resend_pass_email(cliente)
     if resultado:
