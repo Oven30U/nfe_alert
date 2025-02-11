@@ -367,14 +367,32 @@ def send_email_smtp_test():
     from correo_cli import send_email_smtp
     from conectar_db import read_and_modify_html
 
-    send_email_smtp(
-        sender_email="taxtecarg@deloitte.com",
-        receiver_emails=["lmarinaro@deloitte.com"],
-        subject=f"Actualización de clave de seguridad para NFE Alert: Revisión de Domicilios Fiscales Electrónicos - Cliente test",
-        html_file_path=None,
-        zip_file_paths=None,
-        html_content=read_and_modify_html("Cliente test", "12345678", 90, "lmarinaro"),
+    # Lista de elementos para el cuarto atributo de read_and_modify_html
+    elementos = list(
+        set(
+            [
+                # "fracabrera@deloitte.com",
+                # "julia.gonzalo@adidas.com",
+                # "lsantellan@deloitte.com",
+                # "mfasolis@deloitte.com",
+                # "nlordi@deloitte.com",
+                # "ssteinhardt@deloitte.com",
+                # "vespindola@deloitte.com",
+            ]
+        )
     )
+
+    for elemento in elementos:
+        nombre_usuario = elemento.split('@')[0]
+
+        send_email_smtp(
+            sender_email="taxtecarg@deloitte.com",
+            receiver_emails=[elemento],
+            subject=f"Actualización de clave de seguridad para NFE Alert: Revisión de Domicilios Fiscales Electrónicos - adidas Argentina S.A.",
+            html_file_path=None,
+            zip_file_paths=None,
+            html_content=read_and_modify_html("adidas Argentina S.A", "Dttadidas2025.", 'indeterminados', nombre_usuario),
+        )
 
 
 if __name__ == "__main__":
@@ -387,7 +405,7 @@ if __name__ == "__main__":
     # asyncio.run(sicnea_test())
     # asyncio.run(agip_test())
     # asyncio.run(rio_negro_test())
-    asyncio.run(nacional_test())
+    # asyncio.run(nacional_test())
     # asyncio.run(entre_rios_test())
     # asyncio.run(san_luis_test())
     # asyncio.run(tucuman_test())
