@@ -78,12 +78,23 @@ class Cordoba(Jurisdiccion):
         while True:
             try:
                 await self.page.wait_for_load_state("load", timeout=90000)
+                await self.page.wait_for_load_state("domcontentloaded", timeout=90000)
                 await self.page.wait_for_selector(
                     a_svg_cuit,
                     state="attached",
                     timeout=12000,
                 )
+                await self.page.wait_for_selector(
+                    'text="Estamos cargando la información ..."',
+                    state="hidden",
+                    timeout=90000,
+                )
                 await self.page.click(a_svg_cuit)
+                await self.page.wait_for_selector(
+                    'text="Estamos cargando la información ..."',
+                    state="hidden",
+                    timeout=90000,
+                )
                 break
             except TimeoutError:
                 pagination_locator = "//ul[@class='pagination']//li[@class='page-item active ng-star-inserted']/following-sibling::li[1]"
@@ -103,24 +114,24 @@ class Cordoba(Jurisdiccion):
             await self.AFIP_login()
         except Exception as e:
             print(f"Cordoba El metodo de AFIP_login falló: {e}")
-        try:
-            await self.page.goto(
-                "https://www.rentascordoba.gob.ar/nuevorentas/mis-representados",
-                timeout=90000,
-            )
-            await self.page.wait_for_load_state("load", timeout=900000)
-        except Exception as e:
-            print(f"Cordoba Error al cargar la página mis-representados: {e}")
+        # try:
+        #     await self.page.goto(
+        #         "https://www.rentascordoba.gob.ar/nuevorentas/mis-representados",
+        #         timeout=90000,
+        #     )
+        #     await self.page.wait_for_load_state("load", timeout=900000)
+        # except Exception as e:
+        #     print(f"Cordoba Error al cargar la página mis-representados: {e}")
 
         # Intentar loguearse con el representado
-        await self.intentar_representado()
+        # await self.intentar_representado()
 
-        selector_si = await self.page.query_selector('text="Sí"')
-        if selector_si:
-            await self.page.click('text="Sí"', timeout=900000)
-            await self.page.wait_for_load_state("load", timeout=60000)
-        else:
-            print('Cordoba: El selector "Sí" no apareció, continuando la ejecución.')
+        # selector_si = await self.page.query_selector('text="Sí"')
+        # if selector_si:
+        #     await self.page.click('text="Sí"', timeout=900000)
+        #     await self.page.wait_for_load_state("load", timeout=60000)
+        # else:
+        #     print('Cordoba: El selector "Sí" no apareció, continuando la ejecución.')
 
         # try:
         #     await self.page.wait_for_selector('text="Sí"', state="attached", timeout=5000)
@@ -168,11 +179,21 @@ class Cordoba(Jurisdiccion):
         #     )
 
         # await self.page.wait_for_load_state("networkidle", timeout=60000)
-
+        await self.page.wait_for_load_state("domcontentloaded", timeout=90000)
+        await self.page.goto(
+            f"https://app.rentascordoba.gob.ar/rentas/servlet/aloginrepresentado?{self.cuit_cliente_input}",
+            wait_until="domcontentloaded",
+        )
         # //*[contains(text(), 'En representación de')]
         await self.page.wait_for_load_state("load", timeout=90000)
+        await self.page.wait_for_load_state("domcontentloaded", timeout=90000)
         await self.page.wait_for_selector(
-            'text="En representación de"', state="visible", timeout=90000
+            # 'regex:/(En representación de|Buscar representado)/',
+            # 'text="En representación de", text="Buscar representado"',
+            # text="Buscar representado",
+            'text="En representación de"',
+            state="visible",
+            timeout=90000,
         )
         # await self.page.wait_for_load_state("load", timeout=60000)
         await self.page.goto(

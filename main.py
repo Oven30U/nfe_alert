@@ -107,11 +107,13 @@ def obtener_datos_clientes():
     clientes_procesados_hoy = get_clientes_procesados_hoy()
 
     if not df_clientes.empty and not EJECUTAR_CLIENTES_LISTA:
-        df_clientes = df_clientes[
+        df_clientes = df_clientes.loc[
             ~df_clientes["client_folder"].isin(clientes_procesados_hoy)
-            & df_clientes["client_folder"].isin(CLIENTES_CON_DOCUMENTACION) # ToDo: Activar a partir del viernes 7-2-25
+            & df_clientes["client_folder"].isin(
+                CLIENTES_CON_DOCUMENTACION
+            )  # ToDo: Activar a partir del viernes 7-2-25
         ]
-
+    
     return df_clientes
 
 
