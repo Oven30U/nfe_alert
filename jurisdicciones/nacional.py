@@ -160,7 +160,7 @@ class Nacional(Jurisdiccion):
                     texto_enlace = await enlace.inner_text()
                     if (
                         "Factura de Crédito Electrónica" in texto_enlace
-                        and self.client_folder in CLIENTES_EXLUIR_NACIONAL_FCE
+                        and (self.cliente in CLIENTES_EXLUIR_NACIONAL_FCE or self.client_folder in CLIENTES_EXLUIR_NACIONAL_FCE)
                     ):
                         continue
 

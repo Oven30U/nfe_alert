@@ -84,6 +84,7 @@ async def cordoba_test():
         fecha_hasta = os.getenv("FECHA_HASTA")
 
         client = os.getenv("TEST_CORDOBA_CLIENT")
+        client_folder = os.getenv("TEST_CORDOBA_CLIENT_FOLDER")
         cuit_Cordoba = os.getenv("TEST_CORDOBA_CUIT")
         clave_fiscal_Cordoba = os.getenv("TEST_CORDOBA_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_CORDOBA_CUIT_CLIENTE_INPUT")
@@ -91,6 +92,7 @@ async def cordoba_test():
         cordoba = await Cordoba.create(
             playwright,
             client,
+            client_folder,
             cuit_Cordoba,
             clave_fiscal_Cordoba,
             fecha_desde,
@@ -398,7 +400,7 @@ def send_email_smtp_test():
 if __name__ == "__main__":
     # asyncio.run(catamarca_test())
     # asyncio.run(santiago_test())
-    # asyncio.run(cordoba_test())
+    asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
     # asyncio.run(chaco_test())
