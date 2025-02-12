@@ -50,16 +50,16 @@ clientes_si_verificar_config = [
     # "ADIDAS ARGENTINA S.A - PROVINCIALES",
     # "FACEBOOK ARGENTINA S.R.L",
     # "EDGE ARGENTINA S.R.L",
-    # "J&J ARGENTINA S.A",
-    # "JOHNSON & JOHNSON MEDICAL S.A",
-    # "JANSSEN CILAG FARMACEUTICA S.A",
+    "J&J ARGENTINA S.A",
+    "JOHNSON & JOHNSON MEDICAL S.A",
+    "JANSSEN CILAG FARMACEUTICA S.A",
     # "PFIZER S.R.L - ARCA",
     # "PFIZER S.R.L - PROVINCIALES",
-    "PFIZER S.R.L - SICNEA",
+    # "PFIZER S.R.L - SICNEA",
     # "CYANAMID DE ARGENTINA S A SUC BS AS",
     # "ULTRAGENYX ARGENTINA S.R.L",
     # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
-    "MAGNETI MARELLI REPUESTOS S.A",
+    # "MAGNETI MARELLI REPUESTOS S.A",
 ]
 SIN_DEBUG_EJECUTAR_LISTA = (
     False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes
@@ -88,14 +88,16 @@ CLIENTES_CON_DOCUMENTACION = [
     "PFIZER S.R.L - SICNEA",
     "SIMPLOT ARGENTINA S.R.L",
     "ULTRAGENYX ARGENTINA S.R.L",
+    "SPOTIFY ARGENTINA S.A"
 ]
 
 # Criterio de self.client_folder
 CLIENTES_EXLUIR_NACIONAL_FCE = [
-    "J&J Argentina S.A.",
-    "JANSSEN CILAG FARMACEUTICA SOCIEDAD ANONIMA",
-    "JOHNSON & JOHNSON MEDICAL SOCIEDAD ANONIMA",
+    "JOHNSON & JOHNSON MEDICAL S.A",
+    "J&J ARGENTINA S.A",
+    "JANSSEN CILAG FARMACEUTICA S.A",
 ]
+
 
 
 # configurar nombres para el df_final de input.py,

@@ -178,7 +178,7 @@ def obtener_clientes(
             df_clientes["Dia/s de ejecución"].str.contains(hoy, case=False, na=False)
         ]
 
-        clientes_si_verificar = df_clientes["Cliente"].unique().tolist()
+        clientes_si_verificar = df_clientes["client_folder"].unique().tolist()
         # clientes_no_verificar = []
 
         # Todo: Ver que hacer en caso de faya de conexión del server
