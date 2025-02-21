@@ -200,6 +200,7 @@ class Cordoba(Jurisdiccion):
             "https://www.rentascordoba.gob.ar/nuevorentas/domicilio-fiscal",
             wait_until="load",
         )
+        cont_fallos = 0 #!! Poner un contador de reintentos
         while True:
             tbody_locator = self.page.locator(
                 'xpath=//table[@class="table table-hover"]'
@@ -210,8 +211,9 @@ class Cordoba(Jurisdiccion):
                     3000
                 )  # wait for 3 seconds before reloading
                 await self.page.reload()
-            if await tbody_locator.is_visible():
+            if await tbody_locator.is_visible() or cont_fallos >= 10:
                 break
+            cont_fallos += 1
             # if not await text_renderizando_grilla.is_visible():
             #     break
             # try:

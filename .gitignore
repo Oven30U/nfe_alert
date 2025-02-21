@@ -19,3 +19,4 @@ git
 *.db
 database.db
 .env
+.venv/

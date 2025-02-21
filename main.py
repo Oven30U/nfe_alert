@@ -16,7 +16,8 @@ from database import get_session, get_sqlite_session
 from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
 from logger import Logger
-from models import MonitoreoBots, MonitoreoBotsBackup
+from models import MonitoreoBots, MonitoreoBotsBackup #??? No tengo esta db
+import pandas as pd
 
 logger = Logger.get_logger()
 
@@ -60,8 +61,18 @@ async def main():
                     no_encontradas,
                 )
 
-                df_final = await processor.ejecutar_jurisdicciones(instances)
+                #! Esto en el caso de que Agip esté caída
+                bloq = False
+                # if 'Agip' in instances:
+                #     print("Esta agip, borrandola...")
+                #     del instances['Agip']
+                #     bloq = True
+
+                df_final: pd.DataFrame = await processor.ejecutar_jurisdicciones(instances)
                 df_final = await processor.reintentar_errores(playwright, df_final)
+
+                if bloq:
+                    print("Agregar AGIP !!!!!")
 
                 logger.info("Resultados para %s:\n%s", cliente, df_final)
 
@@ -117,7 +128,7 @@ def obtener_datos_clientes():
     return df_clientes
 
 
-def get_clientes_procesados_hoy(db_type="sqlite"):
+def get_clientes_procesados_hoy(db_type="sqlserver"):
     today = date.today()
     clientes_procesados = []
 
@@ -131,22 +142,22 @@ def get_clientes_procesados_hoy(db_type="sqlite"):
                     >= datetime.combine(today, datetime.min.time()),
                     MonitoreoBots.iniciado
                     <= datetime.combine(today, datetime.max.time()),
-                )
-                .union(
-                    session.query(MonitoreoBotsBackup.cliente).filter(
-                        MonitoreoBotsBackup.estado == "Correcto",
-                        MonitoreoBotsBackup.iniciado
-                        >= datetime.combine(today, datetime.min.time()),
-                        MonitoreoBotsBackup.iniciado
-                        <= datetime.combine(today, datetime.max.time()),
-                    )
-                )
+                ) #ToDo - Comentado porque no tengo esa tabla, descomentar luego
+                # .union(
+                #     session.query(MonitoreoBotsBackup.cliente).filter(
+                #         MonitoreoBotsBackup.estado == "Correcto",
+                #         MonitoreoBotsBackup.iniciado
+                #         >= datetime.combine(today, datetime.min.time()),
+                #         MonitoreoBotsBackup.iniciado
+                #         <= datetime.combine(today, datetime.max.time()),
+                #     )
+                # )
                 .all()
             )
 
             clientes_procesados = [cliente[0] for cliente in clientes_correctos]
-    except Exception:
-        logger.error("Error al obtener clientes procesados hoy")
+    except Exception as e:
+        logger.error(f"Error al obtener clientes procesados hoy. Detalle: {e}")
 
     return clientes_procesados
 

@@ -38,7 +38,7 @@ def cargar_excels():
                 )  # Obtener la carpeta padre
 
                 # Leer el archivo de Excel utilizando pandas
-                xls = pd.ExcelFile(file_path)
+                xls = pd.ExcelFile(file_path, engine='openpyxl')
 
                 # Verificar si la hoja existe
                 if SHEET_ARCHIVO_CLIENTE in xls.sheet_names:

@@ -106,18 +106,24 @@ class Sicnea(Jurisdiccion):
             await self.new_page_2.select_option(
                 "xpath=//select[@id='cmbEmpresa']", value=self.cuit_cliente_input
             )
-        
+
         await self.new_page_2.wait_for_load_state("domcontentloaded")
-        ingresar_button = await self.new_page_2.query_selector(
-            "xpath=//input[@value='Ingresar']"
-        )
-        if ingresar_button:
-            await ingresar_button.click()
+        try:
+            ingresar_button = await self.new_page_2.query_selector(
+                "xpath=//input[@value='Ingresar']"
+            )
+            if ingresar_button:
+                await ingresar_button.click()
+        except Exception as e:
+            print(
+                "El botón 'Ingresar' en Sicnea no se encontró, esperando la carga de la documentación..."
+                f"Detalle del error: {e}"
+            )
 
         await self.new_page_2.wait_for_load_state("domcontentloaded")
         await self.new_page_2.wait_for_selector(
             "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]",
-            timeout=60000,
+            timeout=60000,  
         )
         await self.new_page_2.hover(
             "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]"
@@ -224,7 +230,6 @@ class Sicnea(Jurisdiccion):
             else:
                 await self.frame.select_option("select#ddlEstado", value="NOTI")
                 await self.frame.click("input[name='btnBuscar']")
-
 
             notificado_cargado = False
 

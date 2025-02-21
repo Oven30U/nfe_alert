@@ -76,7 +76,7 @@ CLIENTES_CON_DOCUMENTACION = [
     "ADIDAS ARGENTINA S.A - PROVINCIALES",
     "CYANAMID DE ARGENTINA S A SUC BS AS",
     "EDGE ARGENTINA S.R.L",
-    # "EUROP ASSISTANCE ARGENTINA S.A",
+    "EUROP ASSISTANCE ARGENTINA S.A",
     "FACEBOOK ARGENTINA S.R.L",
     "J&J ARGENTINA S.A",
     "JANSSEN CILAG FARMACEUTICA S.A",
@@ -143,18 +143,18 @@ link_system = "Estructura-robot/System/"
 # link_clientes = f"{link_system}System-Clientes.xlsx"
 
 # Constantes de archivos que corresponden a cada cliente
-PATH_ESTRUCTURA_ROBOT = "C:/Users/lmarinaro/OneDrive - Deloitte (O365D)/Documents/Proyectos/test_robot_framework/dfe/Estructura-robot"
+PATH_ESTRUCTURA_ROBOT = "C:/Users/amiriarte/OneDrive - Deloitte (O365D)/VSC/RepositorioLio/DFEPW/Estructura-robot"
 NOMBRE_ARCHIVO_CLIENTE = "Template_input"
 SHEET_ARCHIVO_CLIENTE = "Configuracion"
 log_file_path = f"{PATH_ESTRUCTURA_ROBOT}/System/logfile.log"
-PATH_HTML_SET_PASS = R"C:\Users\lmarinaro\OneDrive - Deloitte (O365D)\Documents\Proyectos\test_robot_framework\dfe\html\mail_plantilla_set_pass.html"
+PATH_HTML_SET_PASS = R"C:/Users/amiriarte/OneDrive - Deloitte (O365D)/VSC/RepositorioLio/DFEPW/html/mail_plantilla_set_pass.html"
 
 # DATABASE_URL = "mssql+pyodbc://TaxTech:T&LTechnologies@ARBAS0228/RPA/Tecnologia?driver=SQL+Server"
 DATABASE_URL = "mssql+pyodbc://TaxTech:T%26LTechnologies@ARBAS0228/RPA/Tecnologia?driver=SQL+Server"
 
 LIMITES_REINTENTO = 5
 DIAS_VIGENCIA_PASS_ZIP = 90
-CORREO_NOTIFICACION_ERROR = "lmarinaro@deloitte.com"
+CORREO_NOTIFICACION_ERROR = "amiriarte@deloitte.com"
 
 if __name__ == "__main__":
     import asyncio
