@@ -121,7 +121,7 @@ class Jurisdiccion(ABC):
         self.texto_notificacion = texto_notificacion
         self.browser = None
         self.context = None
-        self.page = None
+        self.page: Page = None
         self.hay_notificacion = False
         self.hay_screenshot = False
         self.hora_actual = datetime.now().strftime("%H%M%S")

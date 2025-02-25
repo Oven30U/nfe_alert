@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, Page, async_playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
@@ -12,6 +12,7 @@ class SanJuan(Jurisdiccion):
         super().__init__(nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
                          razon_social_cliente_input, texto_notificacion, headless)
         self.cuit_cliente_input = str(cuit_cliente_input)
+        self._cuit = int(str(self._cuit)[2:-1]) #? Saco el DNI unicamente del cuit
 
     @classmethod
     async def create(
@@ -45,38 +46,68 @@ class SanJuan(Jurisdiccion):
         return self
 
     async def consultar_notificaciones(self):
-        async def iniciar_sesion_san_juan(self):
-            await self.page.goto("https://rentas.dgrsj.gob.ar/", wait_until="load")
-            await self.page.locator("(//button[contains(text(),'Iniciar Sesión')])[2]").click()
-            await self.page.locator("(//span[contains(text(),'Iniciar con CUR')])[2]").click()
-            await self.page.wait_for_selector("#CuitCUR", state="visible")
-            await self.page.locator("#CuitCUR").fill(f"{self._cuit}")
-            await self.page.wait_for_selector("#PassCUR", state="visible")
-            await self.page.locator("#PassCUR").fill(f"{self._clave_fiscal}")
-            await self.page.wait_for_selector("#btnFormValidarCur", state="visible")
-            await self.page.wait_for_load_state("networkidle")
-            await self.page.locator("#btnFormValidarCur").click()
+        async def iniciar_sesion_san_juan(page: Page):
+            await page.goto("https://rentas.dgrsj.gob.ar/", wait_until="load")
+            # await page.locator("(//button[contains(text(),'Iniciar Sesión')])[2]").click()
+            # await page.locator("(//span[contains(text(),'Iniciar con CID')])[2]").click()
+            # await page.wait_for_selector("#CuitCUR", state="visible")
+            # await page.locator("#CuitCUR").fill(f"{self._cuit}")
+            # await page.wait_for_selector("#PassCUR", state="visible")
+            # await page.locator("#PassCUR").fill(f"{self._clave_fiscal}")
+            # await page.wait_for_selector("#btnFormValidarCur", state="visible")
+            # await page.wait_for_load_state("networkidle")
+            # await page.locator("#btnFormValidarCur").click()
+            await page.get_by_role("button", name="Iniciar Sesión").click()
+            await page.get_by_role("link", name="Iniciar con CIDI").click()
+            await page.locator("//input[@placeholder='D.N.I.']").wait_for(timeout=5000)
+            await page.get_by_placeholder("D.N.I.").click()
+            await page.get_by_placeholder("D.N.I.").fill(f"{self._cuit}")
+            await page.locator("//input[contains(@id,'clave')]").wait_for(timeout=5000)
+            await page.get_by_placeholder("Clave").click()
+            await page.get_by_placeholder("Clave").fill(f"{self._clave_fiscal}")
+            await page.get_by_role("combobox").select_option('F')
+            await page.wait_for_load_state("networkidle")
+            await page.get_by_role("button", name="Iniciar Sesión").click()
+            if (await page.wait_for_selector("//label[contains(.,'El usuario no se ha logueado correctamente.')]", timeout=5000)):
+                await page.get_by_role("combobox").select_option('M')
+                await page.wait_for_load_state("networkidle")
+                await page.get_by_role("button", name="Iniciar Sesión").click()
+            if (await page.wait_for_selector("//label[contains(.,'El usuario no se ha logueado correctamente.')]", timeout=5000)):
+                await page.get_by_role("combobox").select_option('X')
+                await page.wait_for_load_state("networkidle")
+                await page.get_by_role("button", name="Iniciar Sesión").click()
 
-        await iniciar_sesion_san_juan(self)
+        await iniciar_sesion_san_juan(self.page)
         retry_limit = 3
         retries = 0
-        while await self.page.is_visible("//span[contains(text(), 'Validar CUR')]") and retries < retry_limit:
+        # while await self.page.is_visible("//span[contains(text(), 'ValiRdar CU')]") and retries < retry_limit:
+        while (
+            await self.page.is_visible(
+                "//label[contains(.,'El usuario no se ha logueado correctamente.')]"
+            )
+            and retries < retry_limit
+        ):
             await iniciar_sesion_san_juan(self)
             retries += 1
 
         if (
-                await  self.page.is_visible("text=El N° de CUIT no es válido")
+                # await  self.page.is_visible("text=El N° de CUIT no es válido")
+                await self.page.is_visible("//label[contains(.,'El usuario no se ha logueado correctamente.')]")
         ):
             raise LoginError(
                 "Error de login en San Juan, al autorizar al usuario", self.cliente
             )
 
-        if (await  self.page.is_visible("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]")):
-            await self.page.locator("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]").click()
+        # if (await  self.page.is_visible("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]")):
+        #     await self.page.locator("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]").click()
 
+        # await self.page.wait_for_load_state("networkidle")
+        # await self.page.goto("https://rentas.dgrsj.gob.ar/Notificaciones/getListadoDeNotificaciones")
         await self.page.wait_for_load_state("networkidle")
-        await self.page.goto("https://rentas.dgrsj.gob.ar/Notificaciones/getListadoDeNotificaciones")
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.locator("(//button[contains(@class,'btn btn-primary bg-primary dropdown-toggle-split dropdown-toggle text-white')])[2]").click()
+        await self.page.get_by_role("link", name=", ADIDAS ARGENTINA S.A.  [").click() #!
+        if await self.page.wait_for_selector("//button[contains(@id,'btnMensajeAceptar')]", timeout=5000):
+            await self.page.get_by_text("Ver Notificaciones").click()
 
     async def buscar_notificacion(self):
         await self.page.locator("//table[@id='dtDetalleDeNotificaciones']").wait_for(state="visible")
@@ -122,6 +153,7 @@ if __name__ == "__main__":
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,
+                cuit_cliente_input=cuit_SanJuan,
             )
             await san_juan.procesar_jurisdiccion()
 

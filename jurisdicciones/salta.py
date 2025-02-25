@@ -66,6 +66,19 @@ class Salta(Jurisdiccion):
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
+    
+
+    # async def consultar_notificaciones(self):
+    #     if (True):
+    #         self.consultar_notificaciones_dgr()
+    #     else:
+    #         ...
+
+    async def AFIP_login(
+            self,
+            URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgrsalta_rentas",
+    ):
+        return await super().AFIP_login(URL_AFIP_LOGIN)
 
     async def consultar_notificaciones(self):
         # Hacer login con requests
@@ -79,14 +92,17 @@ class Salta(Jurisdiccion):
             "tokengRecaptcha": "",
         }
 
-        response = client.post(
-            "https://www.dgrsalta.gov.ar/rentassalta/form.login", data=login_information
-        )
-
-        if "Usuario o Password Incorrecto" in response.text:
-            raise LoginError(
-                "Error de login en Salta, al autorizar al usuario", self.cliente
+        if int(str(self._cuit)[0]) != 3:
+            await self.AFIP_login()
+        else:
+            response = client.post(
+                "https://www.dgrsalta.gov.ar/rentassalta/form.login", data=login_information
             )
+
+            if "Usuario o Password Incorrecto" in response.text:
+                raise LoginError(
+                    "Error de login en Salta, al autorizar al usuario", self.cliente
+                )
 
         # Obtener las cookies de la sesión
         cookies = client.cookies.get_dict()

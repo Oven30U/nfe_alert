@@ -150,6 +150,9 @@ class ClienteProcessor:
                     df_final.loc[df_final["Nombre"] == jurisdiction, "Error"]
                 ).all():
                     break
+                if (_ == LIMITES_REINTENTO-1):
+                    # Error por default luego de reintentar 5 veces
+                    df_final.loc[df_final["Nombre"] == jurisdiction, "Notificacion"] = "La página se encuentra caída"
         return df_final
 
     def generar_mapas(self, df_final):
