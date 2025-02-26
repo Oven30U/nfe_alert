@@ -1,10 +1,8 @@
 import logging
 import os
 from datetime import datetime
-
 import pandas as pd
 from win32com.client import Dispatch
-
 from conectar_db import (
     get_clientes_ejecutados_hoy_with_retries,
 )
@@ -21,8 +19,7 @@ from jurisdicciones.jurisdiccion import LoggedException
 
 class InputException(LoggedException):
     """Excepción lanzada por errores en la captura de los input."""
-
-    pass
+    ...
 
 
 def cargar_excels():
@@ -125,13 +122,13 @@ def cerrar_excel(nombres_archivos):
                     if nombre in libro.Name:
                         libro.Save()  # Guardar el libro antes de cerrarlo
                         libro.Close(SaveChanges=False)
-                except:
+                except Exception:
                     pass
         try:
             del excel, nombres_archivos
-        except:
+        except Exception:
             pass
-    except:
+    except Exception:
         pass
 
 

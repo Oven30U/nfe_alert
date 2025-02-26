@@ -68,11 +68,12 @@ class SanJuan(Jurisdiccion):
             await page.get_by_role("combobox").select_option('F')
             await page.wait_for_load_state("networkidle")
             await page.get_by_role("button", name="Iniciar Sesión").click()
-            if (await page.wait_for_selector("//label[contains(.,'El usuario no se ha logueado correctamente.')]", timeout=5000)):
+            
+            if (await page.is_visible("//label[contains(.,'El usuario no se ha logueado correctamente.')]", timeout=5000)):
                 await page.get_by_role("combobox").select_option('M')
                 await page.wait_for_load_state("networkidle")
                 await page.get_by_role("button", name="Iniciar Sesión").click()
-            if (await page.wait_for_selector("//label[contains(.,'El usuario no se ha logueado correctamente.')]", timeout=5000)):
+            if (await page.is_visible("//label[contains(.,'El usuario no se ha logueado correctamente.')]", timeout=5000)):
                 await page.get_by_role("combobox").select_option('X')
                 await page.wait_for_load_state("networkidle")
                 await page.get_by_role("button", name="Iniciar Sesión").click()

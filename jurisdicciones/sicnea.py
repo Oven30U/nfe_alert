@@ -117,7 +117,7 @@ class Sicnea(Jurisdiccion):
         except Exception as e:
             print(
                 "El botón 'Ingresar' en Sicnea no se encontró, esperando la carga de la documentación..."
-                f"Detalle del error: {e}"
+                f"Warning: {e}"
             )
 
         await self.new_page_2.wait_for_load_state("domcontentloaded")

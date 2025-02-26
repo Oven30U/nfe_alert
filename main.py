@@ -16,7 +16,7 @@ from database import get_session, get_sqlite_session
 from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
 from logger import Logger
-from models import MonitoreoBots, MonitoreoBotsBackup #??? No tengo esta db
+from models import MonitoreoBots, MonitoreoBotsBackup  # ??? No tengo esta db
 import pandas as pd
 
 logger = Logger.get_logger()
@@ -68,7 +68,9 @@ async def main():
                 #     del instances['Agip']
                 #     bloq = True
 
-                df_final: pd.DataFrame = await processor.ejecutar_jurisdicciones(instances)
+                df_final: pd.DataFrame = await processor.ejecutar_jurisdicciones(
+                    instances
+                )
                 df_final = await processor.reintentar_errores(playwright, df_final)
 
                 if bloq:
@@ -124,7 +126,7 @@ def obtener_datos_clientes():
                 CLIENTES_CON_DOCUMENTACION
             )  # ToDo: Activar a partir del viernes 7-2-25
         ]
-    
+
     return df_clientes
 
 
@@ -135,14 +137,13 @@ def get_clientes_procesados_hoy(db_type="sqlserver"):
     try:
         with managed_session(db_type) as session:
             clientes_correctos = (
-                session.query(MonitoreoBots.cliente)
-                .filter(
+                session.query(MonitoreoBots.cliente).filter(
                     MonitoreoBots.estado == "Correcto",
                     MonitoreoBots.iniciado
                     >= datetime.combine(today, datetime.min.time()),
                     MonitoreoBots.iniciado
                     <= datetime.combine(today, datetime.max.time()),
-                ) #ToDo - Comentado porque no tengo esa tabla, descomentar luego
+                )  # ToDo - Comentado porque no tengo esa tabla, descomentar luego
                 # .union(
                 #     session.query(MonitoreoBotsBackup.cliente).filter(
                 #         MonitoreoBotsBackup.estado == "Correcto",

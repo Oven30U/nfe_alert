@@ -72,8 +72,8 @@ CORREO_TEST = "lmarinaro@deloitte.com"
 # Criterio de self.client_folder
 CLIENTES_CON_DOCUMENTACION = [
     "ABBVIE S.A",
-    # "ADIDAS ARGENTINA S.A - ARCA", #! Adidas deshabilitado
-    "ADIDAS ARGENTINA S.A - PROVINCIALES", #! Adidas deshabilitado
+    "ADIDAS ARGENTINA S.A - ARCA",
+    "ADIDAS ARGENTINA S.A - PROVINCIALES",
     "CYANAMID DE ARGENTINA S A SUC BS AS",
     "EDGE ARGENTINA S.R.L",
     "EUROP ASSISTANCE ARGENTINA S.A",
