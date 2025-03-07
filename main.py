@@ -61,20 +61,10 @@ async def main():
                     no_encontradas,
                 )
 
-                #! Esto en el caso de que Agip esté caída
-                bloq = False
-                # if 'Agip' in instances:
-                #     print("Esta agip, borrandola...")
-                #     del instances['Agip']
-                #     bloq = True
-
                 df_final: pd.DataFrame = await processor.ejecutar_jurisdicciones(
                     instances
                 )
                 df_final = await processor.reintentar_errores(playwright, df_final)
-
-                if bloq:
-                    print("Agregar AGIP !!!!!")
 
                 logger.info("Resultados para %s:\n%s", cliente, df_final)
 
@@ -92,7 +82,7 @@ async def main():
             finally:
                 if (
                     df_final["Notificacion"]
-                    .str.contains(r"error", case=False, na=False)
+                    .str.contains(r"error|caída", case=False, na=False)
                     .sum()
                     > 0
                     or df_final["Screenshot"]
@@ -122,41 +112,47 @@ def obtener_datos_clientes():
     if not df_clientes.empty and not EJECUTAR_CLIENTES_LISTA:
         df_clientes = df_clientes.loc[
             ~df_clientes["client_folder"].isin(clientes_procesados_hoy)
-            & df_clientes["client_folder"].isin(
-                CLIENTES_CON_DOCUMENTACION
-            )  # ToDo: Activar a partir del viernes 7-2-25
+            & df_clientes["client_folder"].isin(CLIENTES_CON_DOCUMENTACION)
         ]
 
     return df_clientes
 
 
-def get_clientes_procesados_hoy(db_type="sqlserver"):
+def get_clientes_procesados_hoy():
     today = date.today()
     clientes_procesados = []
 
     try:
-        with managed_session(db_type) as session:
-            clientes_correctos = (
-                session.query(MonitoreoBots.cliente).filter(
+        # Consultar en SQL Server
+        with managed_session("sqlserver") as sqlserver_session:
+            clientes_sqlserver = (
+                sqlserver_session.query(MonitoreoBots.cliente)
+                .filter(
                     MonitoreoBots.estado == "Correcto",
                     MonitoreoBots.iniciado
                     >= datetime.combine(today, datetime.min.time()),
                     MonitoreoBots.iniciado
                     <= datetime.combine(today, datetime.max.time()),
-                )  # ToDo - Comentado porque no tengo esa tabla, descomentar luego
-                # .union(
-                #     session.query(MonitoreoBotsBackup.cliente).filter(
-                #         MonitoreoBotsBackup.estado == "Correcto",
-                #         MonitoreoBotsBackup.iniciado
-                #         >= datetime.combine(today, datetime.min.time()),
-                #         MonitoreoBotsBackup.iniciado
-                #         <= datetime.combine(today, datetime.max.time()),
-                #     )
-                # )
+                )
                 .all()
             )
+            clientes_procesados.extend([cliente[0] for cliente in clientes_sqlserver])
 
-            clientes_procesados = [cliente[0] for cliente in clientes_correctos]
+        # Consultar en SQLite
+        with managed_session("sqlite") as sqlite_session:
+            clientes_sqlite = (
+                sqlite_session.query(MonitoreoBotsBackup.cliente)
+                .filter(
+                    MonitoreoBotsBackup.estado == "Correcto",
+                    MonitoreoBotsBackup.iniciado
+                    >= datetime.combine(today, datetime.min.time()),
+                    MonitoreoBotsBackup.iniciado
+                    <= datetime.combine(today, datetime.max.time()),
+                )
+                .all()
+            )
+            clientes_procesados.extend([cliente[0] for cliente in clientes_sqlite])
+
     except Exception as e:
         logger.error(f"Error al obtener clientes procesados hoy. Detalle: {e}")
 
