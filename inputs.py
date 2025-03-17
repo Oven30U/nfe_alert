@@ -46,7 +46,7 @@ def cargar_excels():
 
                     skiprows_cliente = 1
                     nrows_cliente = 2
-                    usecols_cliente = "A:G"
+                    usecols_cliente = "A:H"
 
                     # Especificar los tipos de datos para las columnas deseadas
                     dtype_jurisdiccion = {
@@ -85,7 +85,6 @@ def cargar_excels():
                         df_tabla_jurisdiccion[col] = repeated_cliente_values[col]
 
                     df_tabla_jurisdiccion["client_folder"] = client_folder
-
                     dataframes.append(df_tabla_jurisdiccion)
 
     if dataframes:

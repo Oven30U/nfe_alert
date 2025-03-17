@@ -8,7 +8,7 @@ import pandas as pd
 import pyminizip
 
 import jurisdicciones
-from conectar_db import conectar_db, get_pass_zip
+from conectar_db import conectar_db
 from config import (
     CORREO_NOTIFICACION_ERROR,
     CORREO_TEST,
@@ -44,6 +44,13 @@ class ClienteProcessor:
         self.socio_responsable: str = self.obtener_socio()
         self.zip_path: str = None
         self.zip_name: str = None
+
+        # Extraer la contraseña del grupo
+        if "ZIP_Password" in group.columns:
+            self.zip_password = group["ZIP_Password"].iloc[0]
+        else:
+            # Valor por defecto si no existe en el Excel
+            self.zip_password = client_folder[:8].replace(" ", "") + "Tax"
 
     def preparar_directorios(self):
         base_folder = f"Estructura-robot/{self.client_folder}"
@@ -150,9 +157,11 @@ class ClienteProcessor:
                     df_final.loc[df_final["Nombre"] == jurisdiction, "Error"]
                 ).all():
                     break
-                if (_ == LIMITES_REINTENTO-1):
+                if _ == LIMITES_REINTENTO - 1:
                     # Error por default luego de reintentar 5 veces
-                    df_final.loc[df_final["Nombre"] == jurisdiction, "Notificacion"] = "La página se encuentra caída"
+                    df_final.loc[df_final["Nombre"] == jurisdiction, "Notificacion"] = (
+                        "La página se encuentra caída"
+                    )
         return df_final
 
     def generar_mapas(self, df_final):
@@ -171,9 +180,7 @@ class ClienteProcessor:
         zip_path = os.path.join(self.output_folder, zip_name)
         png_files = glob.glob(os.path.join(self.output_folder, "*.png"))
 
-        pass_zip = get_pass_zip(
-            self.cliente, f"{self.correo_output};{self.socio_responsable}"
-        )
+        pass_zip = self.zip_password
         # Comprime todos los .png en un solo zip
         pyminizip.compress_multiple(
             png_files,
