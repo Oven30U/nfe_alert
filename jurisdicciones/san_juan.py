@@ -96,7 +96,7 @@ class SanJuan(Jurisdiccion):
                 await self.page.is_visible("//label[contains(.,'El usuario no se ha logueado correctamente.')]")
         ):
             raise LoginError(
-                "Error de login en San Juan, al autorizar al usuario", self.cliente
+                self.cliente
             )
 
         # if (await  self.page.is_visible("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]")):

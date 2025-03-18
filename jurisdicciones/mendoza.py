@@ -2,35 +2,34 @@ import os
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Playwright, async_playwright
 
-from jurisdicciones.jurisdiccion import Jurisdiccion
+from jurisdicciones.jurisdiccion import (
+    Jurisdiccion,
+    LoginError,
+    ConsultarNotificacionesError,
+)
 
 
 class Mendoza(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
-            cliente, client_folder,
-            cuit,
-            clave_fiscal,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        client_folder,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
-        self = await super().create(
-            playwright,
-            "Mendoza",
-            "913 MENDOZA",
-            cliente, client_folder,
+        super().__init__(
+            nombre,
+            codigo,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -38,7 +37,39 @@ class Mendoza(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        client_folder,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        self = await super().create(
+            playwright,
+            "Mendoza",
+            "913 MENDOZA",
+            cliente,
+            client_folder,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -52,15 +83,27 @@ class Mendoza(Jurisdiccion):
                     timeout=120000,
                 )
                 break
-            except TimeoutError:
+            except Exception:
                 if attempt < max_retries - 1:
                     continue
                 else:
                     raise
+
         await self.page.wait_for_load_state("domcontentloaded")
         await self.page.fill("#cuit", f"{self._cuit}")
         await self.page.fill("#password", f"{self._clave_fiscal}")
         await self.page.locator("#ingresar").click()
+        await self.page.wait_for_load_state("domcontentloaded")
+        
+        try:
+            await self.page.wait_for_selector(
+                '//a[contains(text(), "Cerrar Sesión")]', timeout=30000
+            )
+        except TimeoutError as exc:
+            if await self.page.is_visible("text=Su contraseña ha expirado"):
+                raise LoginError(self.cliente) from exc
+            else:
+                raise LoginError(self.cliente) from exc
         async with self.page.expect_popup() as popup_info:
             await self.page.click("#divDFE")
         self.new_page = await popup_info.value
@@ -93,7 +136,7 @@ class Mendoza(Jurisdiccion):
             "css=[class*='z-listitem']"
         ).count()
         notificaciones_totales = (
-                notificaciones_con_vencimiento + intimaciones + comunicaciones
+            notificaciones_con_vencimiento + intimaciones + comunicaciones
         )
         if notificaciones_totales > 0:
             self.hay_notificacion = True
@@ -139,9 +182,9 @@ class Mendoza(Jurisdiccion):
             raise Exception(f"Error taking screenshot en seccion {seccion}: {e}") from e
 
         if (
-                self.hay_screenshot_notificaciones
-                and self.hay_screenshot_intimaciones
-                and self.hay_screenshot_comunicaciones
+            self.hay_screenshot_notificaciones
+            and self.hay_screenshot_intimaciones
+            and self.hay_screenshot_comunicaciones
         ):
             self.hay_screenshot = True
         return self.hay_screenshot
@@ -159,7 +202,7 @@ async def main():
         cuit_Mendoza = os.getenv("TEST_MENDOZA_CUIT")
         clave_fiscal_Mendoza = os.getenv("TEST_MENDOZA_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_MENDOZA_CUIT_CLIENTE_INPUT")
-        
+
         mendoza = await Mendoza.create(
             playwright,
             client,

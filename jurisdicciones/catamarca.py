@@ -11,7 +11,8 @@ class Catamarca(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -24,7 +25,8 @@ class Catamarca(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -40,7 +42,8 @@ class Catamarca(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -54,7 +57,8 @@ class Catamarca(Jurisdiccion):
             playwright,
             "Catamarca",
             "903 CATAMARCA",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -82,9 +86,7 @@ class Catamarca(Jurisdiccion):
         await self.page.locator("//input[@id='F1:btnIngresar']").click()
         await self.page.wait_for_load_state("networkidle")
         if await self.page.is_visible("text=Clave o usuario incorrecto"):
-            raise LoginError(
-                "Error de login en Catamarca, al autorizar al usuario", self.cliente
-            )
+            raise LoginError(self.cliente)
         await self.page.wait_for_load_state("networkidle")
         await self.page.wait_for_selector("//select[@id='vPERSONAID']")
         options = await self.page.locator("//select[@id='vPERSONAID']//option").all()

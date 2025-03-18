@@ -11,7 +11,8 @@ class Corrientes(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -24,7 +25,8 @@ class Corrientes(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -41,7 +43,8 @@ class Corrientes(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -55,7 +58,8 @@ class Corrientes(Jurisdiccion):
             playwright,
             "Corrientes",
             "905 CORRIENTES",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -79,9 +83,7 @@ class Corrientes(Jurisdiccion):
         await self.page.locator("//button[@id='ingresar']").click()
         await self.page.wait_for_load_state("networkidle")
         if await self.page.is_visible("text=Los datos ingresados no son correctos."):
-            raise LoginError(
-                "Error de login en Corrientes, al autorizar al usuario", self.cliente
-            )
+            raise LoginError(self.cliente)
         await self.page.wait_for_load_state("networkidle")
         await self.page.wait_for_selector("//h3[contains(text(),'Domicilio')]")
         await self.page.goto("https://miportal.dgrcorrientes.gov.ar/bandejadfe#")

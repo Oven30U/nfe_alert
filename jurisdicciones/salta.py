@@ -11,7 +11,8 @@ class Salta(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -24,7 +25,8 @@ class Salta(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -40,7 +42,8 @@ class Salta(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -54,7 +57,8 @@ class Salta(Jurisdiccion):
             playwright,
             "Salta",
             "917 SALTA",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -66,7 +70,6 @@ class Salta(Jurisdiccion):
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
-    
 
     # async def consultar_notificaciones(self):
     #     if (True):
@@ -75,8 +78,8 @@ class Salta(Jurisdiccion):
     #         ...
 
     async def AFIP_login(
-            self,
-            URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgrsalta_rentas",
+        self,
+        URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgrsalta_rentas",
     ):
         return await super().AFIP_login(URL_AFIP_LOGIN)
 
@@ -96,13 +99,12 @@ class Salta(Jurisdiccion):
             await self.AFIP_login()
         else:
             response = client.post(
-                "https://www.dgrsalta.gov.ar/rentassalta/form.login", data=login_information
+                "https://www.dgrsalta.gov.ar/rentassalta/form.login",
+                data=login_information,
             )
 
             if "Usuario o Password Incorrecto" in response.text:
-                raise LoginError(
-                    "Error de login en Salta, al autorizar al usuario", self.cliente
-                )
+                raise LoginError(self.cliente)
 
         # Obtener las cookies de la sesión
         cookies = client.cookies.get_dict()
@@ -126,9 +128,7 @@ class Salta(Jurisdiccion):
 
         # Verificar si el login fue exitoso buscando un elemento específico
         if not await self.page.query_selector("#enviaLogout"):
-            raise LoginError(
-                "Error de login en Salta, autenticación fallida", self.cliente
-            )
+            raise LoginError(self.cliente)
 
         # Continuar con las acciones en la página
         await self.page.wait_for_selector(

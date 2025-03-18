@@ -79,7 +79,7 @@ class Misiones(Jurisdiccion):
             "text='El nombre de usuario o la contraseña introducidos no son correctos'"
         ).count()
         if mensaje_login_incorrecto > 0:
-            raise LoginError("Login error con mensajde de accion prohibida")
+            raise LoginError(self.cliente)
 
     async def buscar_notificacion(self, retry_count=0):
         cantidad_notificaciones = (

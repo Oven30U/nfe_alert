@@ -84,7 +84,7 @@ class Chubut(Jurisdiccion):
             'xpath=//div[text()="Usuario/clave incorrectos"]'
         )
         if await incorrect_login.count() > 0:
-            raise LoginError("Login CUIT incorrecto", self.cliente)
+            raise LoginError(self.cliente)
 
     async def buscar_notificacion(self):
         fechas_envio_comunicaciones = await self.page.locator(

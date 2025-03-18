@@ -80,7 +80,7 @@ class SanLuis(Jurisdiccion):
         await self.page.wait_for_load_state("networkidle")
         if await self.page.is_visible("text=Credenciales de conexión no válidas"):
             raise LoginError(
-                "Error de login en SanLuis, al autorizar al usuario", self.cliente
+                self.cliente
             )
         await self.page.wait_for_load_state("networkidle")
         await self.page.locator(

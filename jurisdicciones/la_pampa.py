@@ -10,7 +10,8 @@ class LaPampa(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -23,7 +24,8 @@ class LaPampa(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -39,7 +41,8 @@ class LaPampa(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -53,7 +56,8 @@ class LaPampa(Jurisdiccion):
             playwright,
             "LaPampa",
             "911 LA PAMPA",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -77,9 +81,7 @@ class LaPampa(Jurisdiccion):
         await self.page.wait_for_load_state("domcontentloaded")
 
         if await iframe.is_visible("text=PASSWORD INCORRECTO"):
-            raise LoginError(
-                "Error de login en La Pampa, al autorizar al usuario", self.cliente
-            )
+            raise LoginError(self.cliente)
 
         cuit_clic = self._cuit_cliente_input[:2] + "-" + self._cuit_cliente_input[2:]
         await iframe.click(
@@ -93,13 +95,17 @@ class LaPampa(Jurisdiccion):
     async def buscar_notificacion(self):
         iframe = self.page.frame(name="iframe1")
 
-        fecha_desde_formated = (datetime.strptime(self.fecha_desde, "%d%m%Y") 
-                            if isinstance(self.fecha_desde, str) 
-                            else self.fecha_desde)
-        
-        fecha_hasta_formated = (datetime.strptime(self.fecha_hasta, "%d%m%Y")
-                            if isinstance(self.fecha_hasta, str)
-                            else self.fecha_hasta)
+        fecha_desde_formated = (
+            datetime.strptime(self.fecha_desde, "%d%m%Y")
+            if isinstance(self.fecha_desde, str)
+            else self.fecha_desde
+        )
+
+        fecha_hasta_formated = (
+            datetime.strptime(self.fecha_hasta, "%d%m%Y")
+            if isinstance(self.fecha_hasta, str)
+            else self.fecha_hasta
+        )
 
         rows = await iframe.query_selector_all("//table//tr")
 
@@ -118,7 +124,9 @@ class LaPampa(Jurisdiccion):
                     notification_date = datetime.strptime(date_text.strip(), "%d/%m/%Y")
 
                     if (
-                        fecha_desde_formated <= notification_date <= fecha_hasta_formated
+                        fecha_desde_formated
+                        <= notification_date
+                        <= fecha_hasta_formated
                         and "LEIDO" not in status_text
                     ):
                         return True

@@ -83,7 +83,7 @@ class LaRioja(Jurisdiccion):
             "text=El CUIT ingresado No Existe o No se encuentra Activo"
         ):
             raise LoginError(
-                "Error de login en La Rioja, al autorizar al usuario", self.cliente
+                self.cliente
             )
 
     async def buscar_notificacion(self):

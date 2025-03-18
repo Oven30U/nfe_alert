@@ -3,7 +3,7 @@ from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
 
-from jurisdicciones.jurisdiccion import Jurisdiccion
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginErrorAfip, ConsultarNotificacionesError
 
 from config import CLIENTES_EXLUIR_NACIONAL_FCE
 import unicodedata
@@ -79,62 +79,67 @@ class Nacional(Jurisdiccion):
         return await super().AFIP_login(URL_AFIP_LOGIN)
 
     async def consultar_notificaciones(self):
-        await self.AFIP_login()
-        await self.page.fill("input#buscadorInput", "Domicilio Fiscal Electrónico")
-        # Click en la opción de DFE desplegada
-        await self.page.click("a.dropdown-item")
-        popup_info = await self.page.wait_for_event("popup")
-        self.new_page = popup_info
-        await self.new_page.wait_for_load_state("networkidle")
-        # await self.new_page.wait_for_selector('text="Recordar más tarde"')
-        await self.new_page.click('text="Recordar más tarde"')
-        await self.new_page.click('text=" Comunicaciones de mis representados "')
-        # await self.new_page.click("#d-select-81")
-        await self.new_page.click(
-            "(//div[@class='input-group'])[5]//div[@class='form-control dropdown-toggle']"
-        )
-        await self.new_page.click(f'xpath=//button[@id="{self.cuit_cliente_input}"]')
-        await self.page.wait_for_load_state("networkidle")
         try:
-            await self.new_page.wait_for_selector('text="Cerrar"', timeout=9000)
-            await self.new_page.click('text="Cerrar"')
-        except Exception:
-            pass
-        # await self.new_page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
-        self.fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y").strftime(
-            "%d/%m/%Y"
-        )
-        await self.new_page.fill(
-            "xpath=(//label[contains(text(), 'Desde')]/following::input[1])[2]",
-            f"{self.fecha_desde}",
-        )
-        # await self.new_page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}") #\t\n
-        self.fecha_hasta = datetime.strptime(self.fecha_hasta, "%d%m%Y").strftime(
-            "%d/%m/%Y"
-        )
-        await self.new_page.fill(
-            "xpath=(//label[contains(text(), 'Hasta')]/following::input[1])[2]",
-            f"{self.fecha_hasta}",
-        )  # \t\n
-        await (
-            self.new_page.locator('//button[contains(text(), "Aplicar")]')
-            .nth(1)
-            .click()
-        )
-        # await self.new_page.keyboard.press("Tab")
-        # await self.new_page.keyboard.press("Enter")
+            await self.AFIP_login()
+            await self.page.fill("input#buscadorInput", "Domicilio Fiscal Electrónico")
+            # Click en la opción de DFE desplegada
+            await self.page.click("a.dropdown-item")
+            popup_info = await self.page.wait_for_event("popup")
+            self.new_page = popup_info
+            await self.new_page.wait_for_load_state("networkidle")
+            # await self.new_page.wait_for_selector('text="Recordar más tarde"')
+            await self.new_page.click('text="Recordar más tarde"')
+            await self.new_page.click('text=" Comunicaciones de mis representados "')
+            # await self.new_page.click("#d-select-81")
+            await self.new_page.click(
+                "(//div[@class='input-group'])[5]//div[@class='form-control dropdown-toggle']"
+            )
+            await self.new_page.click(f'xpath=//button[@id="{self.cuit_cliente_input}"]')
+            await self.page.wait_for_load_state("networkidle")
+            try:
+                await self.new_page.wait_for_selector('text="Cerrar"', timeout=9000)
+                await self.new_page.click('text="Cerrar"')
+            except Exception:
+                pass
+            # await self.new_page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
+            self.fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y").strftime(
+                "%d/%m/%Y"
+            )
+            await self.new_page.fill(
+                "xpath=(//label[contains(text(), 'Desde')]/following::input[1])[2]",
+                f"{self.fecha_desde}",
+            )
+            # await self.new_page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}") #\t\n
+            self.fecha_hasta = datetime.strptime(self.fecha_hasta, "%d%m%Y").strftime(
+                "%d/%m/%Y"
+            )
+            await self.new_page.fill(
+                "xpath=(//label[contains(text(), 'Hasta')]/following::input[1])[2]",
+                f"{self.fecha_hasta}",
+            )  # \t\n
+            await (
+                self.new_page.locator('//button[contains(text(), "Aplicar")]')
+                .nth(1)
+                .click()
+            )
+            # await self.new_page.keyboard.press("Tab")
+            # await self.new_page.keyboard.press("Enter")
 
-        # async def completar_fechas(page, fecha_desde, fecha_hasta):
-        # await self.page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
-        # await self.page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}")
-        # await self.page.wait_for_load_state("networkidle")
-        # await self.page.keyboard.press("Tab")
-        # await self.page.keyboard.press("Enter")
-        # await self.page.wait_for_load_state("networkidle")
-        await self.new_page.select_option("select[name='filtroEstado']", "No Leída")
+            # async def completar_fechas(page, fecha_desde, fecha_hasta):
+            # await self.page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
+            # await self.page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}")
+            # await self.page.wait_for_load_state("networkidle")
+            # await self.page.keyboard.press("Tab")
+            # await self.page.keyboard.press("Enter")
+            # await self.page.wait_for_load_state("networkidle")
+            await self.new_page.select_option("select[name='filtroEstado']", "No Leída")
 
-        # await completar_fechas(self.new_page, self.fecha_desde, self.fecha_hasta)
-
+            # await completar_fechas(self.new_page, self.fecha_desde, self.fecha_hasta)
+        except LoginErrorAfip as e:
+            raise
+        except Exception as e:
+            raise ConsultarNotificacionesError(self.cliente, f"Error en consulta: {str(e)}") from e
+        
     async def buscar_notificacion(self):
         # Seleccionar todos los enlaces dentro de collapse-mensajes y collapse-notificaciones
         selectores = {
@@ -247,6 +252,14 @@ class Nacional(Jurisdiccion):
             )
 
     async def tomar_screenshot(self):
+        # Si no se pudieron tomar capturas filtradas o hay_screenshots_filtrados no está definido
+        if not hasattr(self, 'hay_screenshots_filtrados') or not self.hay_screenshots_filtrados:
+            # Tomar al menos una captura de pantalla general usando el método de la clase base
+            basic_screenshot = await super().tomar_screenshot()
+            # Devolver True si al menos una captura fue exitosa
+            return basic_screenshot
+        
+        # Si ya se tomaron capturas filtradas exitosamente, simplemente devuelve ese valor
         return self.hay_screenshots_filtrados
 
     async def procesar_jurisdiccion(self):

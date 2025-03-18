@@ -91,26 +91,102 @@ class ClienteProcessor:
             return None
 
     async def procesar_jurisdicciones(self, playwright):
-        instances = {}
+        """
+        Procesa todas las jurisdicciones del cliente con un orden específico.
+
+        Returns:
+            Tuple con (instancias, encontradas, no_encontradas)
+        """
+        jurisdicciones_dependientes = os.getenv(
+            "JURISDICCIONES_DEPENDIENTES_NACIONAL", ""
+        ).split(",")
+        instances = []
         encontradas = []
         no_encontradas = []
+        saltadas_por_dependencia = []  # ← Nueva lista para jurisdicciones saltadas
+        login_error_nacional = None  # ← Guardar el tipo de error específico
+
+        # 1. Clasificar las jurisdicciones en 3 grupos: Nacional, dependientes, y otras
+        nacional_instance = None
+        jurisdicciones_dependientes_instances = []
+        otras_jurisdicciones_instances = []
 
         for _, row in self.group.iterrows():
-            jurisdiction = row["Jurisdiccion"]
-            if not hasattr(jurisdicciones, jurisdiction):
+            try:
+                jurisdiction = row["Jurisdiccion"]
+                # Intentar crear la instancia
+                instance = await self.crear_instancia_jurisdiccion(
+                    playwright, row, jurisdiction
+                )
+
+                # Clasificar según el tipo
+                if jurisdiction == "Nacional":
+                    nacional_instance = instance
+                    encontradas.append(jurisdiction)
+                elif jurisdiction in jurisdicciones_dependientes:
+                    jurisdicciones_dependientes_instances.append(instance)
+                    encontradas.append(jurisdiction)
+                else:
+                    otras_jurisdicciones_instances.append(instance)
+                    encontradas.append(jurisdiction)
+
+            except Exception as e:
+                logger.error(f"Error creando instancia {jurisdiction}: {e}")
                 no_encontradas.append(jurisdiction)
-                continue
-            encontradas.append(jurisdiction)
-            instance = await self.crear_instancia_jurisdiccion(
-                playwright, row, jurisdiction, retry=False
-            )
-            instances[jurisdiction] = instance
-        return instances, encontradas, no_encontradas
+
+        # 2. Procesar Nacional primero si existe
+        error_nacional = False
+        if nacional_instance:
+            try:
+                result = await nacional_instance.procesar_jurisdiccion()
+                instances.append(nacional_instance)
+
+                # Verificar si hubo error de login
+                error_type = result[3]  # El tipo de error está en la posición 3
+                if error_type == "LoginError" or error_type == "LoginErrorAfip":
+                    logger.warning(
+                        "Error de login en Nacional. Filtrando jurisdicciones dependientes."
+                    )
+                    error_nacional = True
+                    login_error_nacional = (
+                        error_type  # ← Guardar el tipo exacto de error
+                    )
+
+            except Exception as e:
+                logger.error(f"Error procesando Nacional: {e}")
+                error_nacional = True
+
+        # 3. Si hubo error en Nacional, registrar las jurisdicciones dependientes como saltadas
+        if error_nacional:
+            for instance in jurisdicciones_dependientes_instances:
+                encontradas.remove(instance.nombre)
+                saltadas_por_dependencia.append(
+                    (instance, login_error_nacional)
+                )  # ← Guardar la instancia y el tipo
+                no_encontradas.append(instance.nombre)
+                logger.info(
+                    f"Saltando {instance.nombre} debido a error de login en Nacional"
+                )
+        else:
+            instances.extend(jurisdicciones_dependientes_instances)
+
+        # 4. Añadir el resto de jurisdicciones
+        instances.extend(otras_jurisdicciones_instances)
+
+        return (
+            instances,
+            encontradas,
+            no_encontradas,
+            saltadas_por_dependencia,
+            login_error_nacional,
+        )
 
     async def crear_instancia_jurisdiccion(
         self, playwright, row, jurisdiction, retry=False
     ):
         JurisdictionClass = getattr(jurisdicciones, jurisdiction)
+        dev_mode = os.getenv("DEV_MODE", "False").lower() == "true"
+        retry = dev_mode
         create_args = {
             "playwright": playwright,
             "cliente": row["Cliente"],
@@ -120,32 +196,98 @@ class ClienteProcessor:
             "fecha_desde": row["fecha_desde"],
             "fecha_hasta": row["fecha_hasta"],
             "cuit_cliente_input": int(row["cuit_cliente"]),
-            "headless": not retry,  #! TODO colocar True para producción
+            "headless": not retry,
         }
         return await JurisdictionClass.create(**create_args)
 
-    async def ejecutar_jurisdicciones(self, instances):
-        tareas = [instance.procesar_jurisdiccion() for instance in instances.values()]
-        resultados = await asyncio.gather(*tareas)
-        resultados = [list(res) for res in resultados]
-        return pd.DataFrame(
+    async def ejecutar_jurisdicciones(
+        self, instances, saltadas_por_dependencia=None, login_error_nacional=None
+    ):
+        """Ejecuta todas las instancias en paralelo y devuelve los resultados en un DataFrame."""
+        # Instancias de Nacional ya fueron procesadas, solo procesar el resto
+        nacional_results = []
+        instancias_a_procesar = []
+
+        for instance in instances:
+            if instance.nombre == "Nacional":
+                nacional_results.append(
+                    (
+                        instance.nombre,
+                        instance.hay_notificacion,
+                        instance.hay_screenshot,
+                        login_error_nacional,  # Usar el error real de login si existe
+                    )
+                )
+            else:
+                instancias_a_procesar.append(instance)
+
+        cantidad_reintentos = os.getenv("LIMITES_REINTENTO", 5)
+        semaforo = asyncio.Semaphore(5)  # Máximo 5 jurisdicciones concurrentes
+
+        async def procesar_con_limite(instance):
+            async with semaforo:
+                try:
+                    return await instance.procesar_jurisdiccion()
+                except Exception as e:
+                    logger.error(f"Error ejecutando {instance.nombre}: {e}")
+                    return (
+                        instance.nombre,
+                        "Error al procesar jurisdicción",
+                        "No se realizó Screenshot",
+                        str(type(e).__name__),
+                    )
+
+        # Ejecutar las jurisdicciones en paralelo
+        resultados = nacional_results
+
+        if instancias_a_procesar:
+            resultados_paralelos = await asyncio.gather(
+                *[procesar_con_limite(instance) for instance in instancias_a_procesar]
+            )
+            resultados.extend(list(resultados_paralelos))
+
+        # Añadir jurisdicciones saltadas por dependencia
+        if saltadas_por_dependencia:
+            for instance, error_type in saltadas_por_dependencia:
+                resultados.append(
+                    (
+                        instance.nombre,
+                        "Credenciales ARCA inválidas",
+                        "No procesada",
+                        error_type,
+                    )
+                )
+                # Cerrar recursos de la instancia saltada
+                try:
+                    await instance.cerrar_recursos()
+                    logger.info(f"Recursos de {instance.nombre} cerrados correctamente")
+                except Exception as e:
+                    logger.warning(
+                        f"Error al cerrar recursos de {instance.nombre}: {e}"
+                    )
+
+        df = pd.DataFrame(
             resultados, columns=["Nombre", "Notificacion", "Screenshot", "Error"]
         )
+        return df
 
     async def reintentar_errores(self, playwright, df_final):
         errores = df_final[
             (df_final["Error"].notna())
-            | (df_final["Screenshot"] == "No se realizó Screenshot")
+            | (df_final["Screenshot"] != "Se realizó Screenshot")
         ]
         for _, error_row in errores.iterrows():
             jurisdiction = error_row["Nombre"]
-            # ToDo no reintentar LoginError + identificar los de ARCA
-            # error = error_row["Error"]
+            error_type = error_row["Error"]  # Error ahora contiene el tipo de error
 
-            # if isinstance(error, jurisdicciones.LoginError):
-            #     print(f"Skipping retry for {jurisdiction} due to LoginError")
-            #     continue
+            # Evitar reintento para ciertos tipos de error
+            if error_type == "LoginError":
+                logger.info(
+                    f"Saltando reintento de {jurisdiction} porque es un LoginError"
+                )
+                continue
 
+            self.renombrar_screenshots_error(jurisdiction)
             row = self.group[self.group["Jurisdiccion"] == jurisdiction].iloc[0]
             for _ in range(LIMITES_REINTENTO):
                 instance = await self.crear_instancia_jurisdiccion(
@@ -153,9 +295,22 @@ class ClienteProcessor:
                 )
                 resultado = await instance.procesar_jurisdiccion()
                 df_final.loc[df_final["Nombre"] == jurisdiction] = list(resultado)
+
+                # Verificar si se resolvió el error
                 if pd.isna(
                     df_final.loc[df_final["Nombre"] == jurisdiction, "Error"]
                 ).all():
+                    self.eliminar_screenshots_errores(jurisdiction)
+                    break
+
+                # Verificar ciertos tipos de error que no deberían reintentarse
+                nuevo_error_type = resultado[
+                    3
+                ]  # El tipo de error después del reintento
+                if nuevo_error_type in ["LoginError", "LoginErrorAfip"]:
+                    logger.info(
+                        f"Deteniendo reintentos de {jurisdiction} por error de credenciales"
+                    )
                     break
                 if _ == LIMITES_REINTENTO - 1:
                     # Error por default luego de reintentar 5 veces
@@ -163,6 +318,64 @@ class ClienteProcessor:
                         "La página se encuentra caída"
                     )
         return df_final
+
+    def renombrar_screenshots_error(self, jurisdiction):
+        """
+        Renombra screenshots existentes agregando sufijo '_error'
+
+        Args:
+            jurisdiction (str): Solo renombra screenshots de esta jurisdicción
+        """
+        try:
+            archivos_a_renombrar = glob.glob(
+                os.path.join(self.output_folder, f"*{jurisdiction}*.png")
+            )
+            logger.info(
+                f"Renombrando {len(archivos_a_renombrar)} screenshots de {jurisdiction}"
+            )
+
+            for file_path in archivos_a_renombrar:
+                try:
+                    base_name = os.path.basename(file_path)
+                    if (
+                        "_error" not in base_name
+                    ):  # Evitar renombrar archivos ya renombrados
+                        new_name = base_name.replace(".png", "_error.png")
+                        new_path = os.path.join(self.output_folder, new_name)
+                        os.rename(file_path, new_path)
+                        logger.info(f"Archivo renombrado: {base_name} -> {new_name}")
+                except Exception as e:
+                    logger.warning(
+                        f"No se pudo renombrar el archivo {os.path.basename(file_path)}: {e}"
+                    )
+        except Exception as e:
+            logger.error(f"Error al renombrar screenshots: {e}")
+
+    def eliminar_screenshots_errores(self, jurisdiction):
+        """
+        Elimina screenshots de error filtrando por jurisdicción
+
+        Args:
+            jurisdiction (str): Solo elimina screenshots de esta jurisdicción
+        """
+        try:
+            archivos_a_eliminar = glob.glob(
+                os.path.join(self.output_folder, f"*{jurisdiction}*_error.png")
+            )
+            logger.info(
+                f"Eliminando {len(archivos_a_eliminar)} screenshots de {jurisdiction}"
+            )
+
+            for file_path in archivos_a_eliminar:
+                try:
+                    os.remove(file_path)
+                    logger.info(f"Archivo eliminado: {os.path.basename(file_path)}")
+                except Exception as e:
+                    logger.warning(
+                        f"No se pudo eliminar el archivo {os.path.basename(file_path)}: {e}"
+                    )
+        except Exception as e:
+            logger.error(f"Error al eliminar screenshots: {e}")
 
     def generar_mapas(self, df_final):
         crear_mapa(
@@ -255,6 +468,14 @@ class ClienteProcessor:
             return "No definido"
 
     def registrar_ejecucion(self, proceso, inicio, estado):
+        # Verificar si estamos en modo desarrollo
+        if os.getenv("DEV_MODE", "False").lower() == "true":
+            logger.info(
+                f"Modo desarrollo: Omitiendo registro de ejecución para {self.cliente}"
+            )
+            return
+
+        # En modo producción, registrar normalmente
         conectar_db(
             proceso=proceso,
             cliente=self.client_folder,

@@ -11,7 +11,8 @@ class Formosa(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -24,7 +25,8 @@ class Formosa(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -40,7 +42,8 @@ class Formosa(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -54,7 +57,8 @@ class Formosa(Jurisdiccion):
             playwright,
             "Formosa",
             "909 FORMOSA",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -74,10 +78,10 @@ class Formosa(Jurisdiccion):
         await self.page.locator("//input[@name='pass']").fill(f"{self._clave_fiscal}")
         await self.page.locator("//input[@value='Ingresar']").click()
         await self.page.wait_for_load_state("networkidle")
-        if await self.page.is_visible("text=No se encontraron datos."):
-            raise LoginError(
-                "Error de login en Formosa, al autorizar al usuario", self.cliente
-            )
+        if await self.page.is_visible(
+            "text=No se encontraron datos."
+        ) or await self.page.is_visible("text=no es válido"):
+            raise LoginError(self.cliente)
         await self.page.wait_for_load_state("networkidle")
         await self.page.wait_for_selector("//span[contains(text(),'BUZÓN FISCAL')]")
         # await self.page.goto("https://www.atpformosa.gob.ar/consultas/buzon_fiscal_electronico.php")

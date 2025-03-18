@@ -25,6 +25,7 @@ from jurisdicciones import (
     SanLuis,
     Tucuman,
     LaPampa,
+    Mendoza,
 )
 
 
@@ -362,6 +363,31 @@ async def la_pampa_test():
         await la_pampa.procesar_jurisdiccion()
 
 
+async def mendoza_test():
+    async with async_playwright() as playwright:
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_MENDOZA_CLIENT")
+        client_folder = os.getenv("TEST_MENDOZA_CLIENT_FOLDER")
+        cuit_mendoza = os.getenv("TEST_MENDOZA_CUIT")
+        clave_fiscal_mendoza = os.getenv("TEST_MENDOZA_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_MENDOZA_CUIT_CLIENTE_INPUT")
+
+        mendoza = await Mendoza.create(
+            playwright,
+            client,
+            client_folder,
+            cuit_mendoza,
+            clave_fiscal_mendoza,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False,
+        )
+        await mendoza.procesar_jurisdiccion()
+
+
 def send_email_smtp_test():
     """
     Test manual para enviar el correo con contraseña del zip
@@ -385,7 +411,7 @@ def send_email_smtp_test():
     )
 
     for elemento in elementos:
-        nombre_usuario = elemento.split('@')[0]
+        nombre_usuario = elemento.split("@")[0]
 
         send_email_smtp(
             sender_email="taxtecarg@deloitte.com",
@@ -393,14 +419,19 @@ def send_email_smtp_test():
             subject=f"Actualización de clave de seguridad para NFE Alert: Revisión de Domicilios Fiscales Electrónicos - adidas Argentina S.A.",
             html_file_path=None,
             zip_file_paths=None,
-            html_content=read_and_modify_html("adidas Argentina S.A", "Dttadidas2025.", 'indeterminados', nombre_usuario),
+            html_content=read_and_modify_html(
+                "adidas Argentina S.A",
+                "Dttadidas2025.",
+                "indeterminados",
+                nombre_usuario,
+            ),
         )
 
 
 if __name__ == "__main__":
     # asyncio.run(catamarca_test())
     # asyncio.run(santiago_test())
-    asyncio.run(cordoba_test())
+    # asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
     # asyncio.run(chaco_test())
@@ -413,3 +444,4 @@ if __name__ == "__main__":
     # asyncio.run(tucuman_test())
     # asyncio.run(la_pampa_test())
     # send_email_smtp_test()
+    asyncio.run(mendoza_test())

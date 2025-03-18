@@ -24,36 +24,62 @@ load_dotenv()
 class LoggedException(Exception):
     """Excepción base que registra errores."""
 
-    def __init__(self, message="Error de Login", cliente="Cliente no especificado"):
+    def __init__(self, cliente, message):
         self.cliente = cliente
+        self.message = message
         self.logger = Logger.get_logger()
         self.logger.error(f"Cliente: {self.cliente}, Error: {message}")
         self.logger.exception(message)
-        super().__init__(message)
+        super().__init__(message)  # Inicializar la clase base con el mensaje
+
+    def __str__(self):
+        # Devolver solo el mensaje cuando se convierte a string
+        return self.message
 
 
 class LoginError(LoggedException):
     """Excepción lanzada por errores en el inicio de sesión."""
 
-    pass
+    DEFAULT_MESSAGE = "Credenciales inválidas"
+
+    def __init__(self, cliente, message=None):
+        super().__init__(cliente, message or self.DEFAULT_MESSAGE)
+
+
+class LoginErrorAfip(LoginError):
+    """Excepción específica para errores de login en AFIP."""
+
+    DEFAULT_MESSAGE = "Credenciales ARCA inválidas"
+
+    def __init__(self, cliente, message=None):
+        super().__init__(cliente, message or self.DEFAULT_MESSAGE)
 
 
 class ConsultarNotificacionesError(LoggedException):
     """Excepción lanzada por errores al consultar notificaciones."""
 
-    pass
+    DEFAULT_MESSAGE = "La página se encuentra caída"
+
+    def __init__(self, cliente, message=None):
+        super().__init__(cliente, message or self.DEFAULT_MESSAGE)
 
 
 class BuscarNotificacionError(LoggedException):
     """Excepción lanzada por errores al buscar notificaciones."""
 
-    pass
+    DEFAULT_MESSAGE = "La página se encuentra caída"
+
+    def __init__(self, cliente, message=None):
+        super().__init__(cliente, message or self.DEFAULT_MESSAGE)
 
 
 class TomarScreenshotError(LoggedException):
     """Excepción lanzada por errores al tomar screenshots."""
 
-    pass
+    DEFAULT_MESSAGE = "No hay screenshot"
+
+    def __init__(self, cliente, message=None):
+        super().__init__(cliente, message or self.DEFAULT_MESSAGE)
 
 
 class Jurisdiccion(ABC):
@@ -163,6 +189,7 @@ class Jurisdiccion(ABC):
         self.browser = await playwright.chromium.launch(headless=headless)
         self.context = await self.browser.new_context()
         self.page = await self.context.new_page()
+        self.logger = Logger.get_logger()
         # if not headless:
         #     # Minimizar la ventana del navegador usando la API de DevTools
         #     client = await self.page.context.new_cdp_session(self.page)
@@ -189,7 +216,7 @@ class Jurisdiccion(ABC):
                 ":has-text('Número de CUIL/CUIT incorrecto')"
             )
             if incorrect_login:
-                raise LoginError("CUIT/CUIL incorrecto", self.cliente)
+                raise LoginErrorAfip(self.cliente)
 
             await self.page.get_by_label("TU CLAVE").click()
             await self.page.get_by_label("TU CLAVE").fill(self._clave_fiscal)
@@ -198,12 +225,15 @@ class Jurisdiccion(ABC):
 
             # Check for login errors after attempting login
             error_selector = await self.page.query_selector(".mensajeError")
-            if error_selector:
-                raise LoginError("Error en credenciales AFIP", self.cliente)
+            usuario_incorrecto = await self.page.is_visible(
+                "text=Clave o usuario incorrecto"
+            )
+            if error_selector or usuario_incorrecto:
+                raise LoginErrorAfip(self.cliente)
 
         except Exception as e:
-            if not isinstance(e, LoginError):
-                raise LoginError(f"Error en login AFIP: {str(e)}", self.cliente)
+            if not isinstance(e, LoginErrorAfip):
+                raise LoginErrorAfip(self.cliente) from e
             raise
 
     @abstractmethod
@@ -378,67 +408,95 @@ class Jurisdiccion(ABC):
                 {"windowId": window_id, "bounds": {"windowState": "minimized"}},
             )
 
-    async def procesar_jurisdiccion(
-        self,
-    ) -> Tuple[str, str, str, Optional[Union[LoggedException, None]]]:
-        self.error = None
-
+    async def cerrar_recursos(self):
+        """Cierra todos los recursos de la instancia como navegador, contexto, etc."""
         try:
-            await self.consultar_notificaciones()
-        except LoginError as e:
-            self.error = e
-            # self.enviar_correo_errores(self.error)
-        except ConsultarNotificacionesError as e:
-            self.error = e
-            # self.enviar_correo_errores(self.error)
+            if hasattr(self, "page") and self.page is not None:
+                await self.page.close()
+            if hasattr(self, "context") and self.context is not None:
+                await self.context.close()
+            if hasattr(self, "browser") and self.browser is not None:
+                await self.browser.close()
         except Exception as e:
-            self.error = ConsultarNotificacionesError(
-                "Error al consultar notificaciones", self.cliente
-            )
-            print(e)
-            # self.enviar_correo_errores(self.error)
+            self.logger.warning(f"Error al cerrar recursos de {self.nombre}: {e}")
 
+    async def procesar_jurisdiccion(self) -> Tuple[str, str, str, Optional[str]]:
+        """Procesa la jurisdicción, ejecutando todos los pasos necesarios.
+
+        Returns:
+            Tuple con (nombre_jurisdiccion, estado_notificacion, estado_screenshot, tipo_error)
+        """
+        self.error = None
+        error_type = None
+
+        # PASO 1: Consultar notificaciones
+        error_type = await self._ejecutar_consulta_notificaciones()
+
+        # PASO 2: Buscar notificaciones (solo si no hubo error previo)
         if not self.error:
-            try:
-                notificacion = await self.buscar_notificacion()
-                self.hay_notificacion = (
-                    "Hay notificaciones" if notificacion else "No hay notificaciones"
-                )
-            except LoginError as e:
-                # Handle the exception, for example by logging it and returning it
-                logging.error(f"Error during consultar_notificaciones: {e}")
-                self.error = e
-                self.enviar_correo_errores(self.error)
-            except Exception as e:
-                self.error = BuscarNotificacionError(
-                    "Error al buscar notificación", self.cliente
-                )
-                print(e)
-                # self.enviar_correo_errores(self.error)
+            error_type = await self._ejecutar_busqueda_notificaciones() or error_type
 
-        if not self.error:
-            try:
-                screenshot = await self.tomar_screenshot()
-                self.hay_screenshot = (
-                    "Se realizó Screenshot"
-                    if screenshot
-                    else "No se realizó Screenshot"
-                )
-            except Exception as e:
-                self.error = TomarScreenshotError(
-                    "Error al tomar screenshot", self.cliente
-                )
-                print(e)
-                # self.enviar_correo_errores(self.error)
-
-        if self.error:
-            self.hay_notificacion = "Error al buscar notificación"
-            self.hay_screenshot = "Error al tomar screenshot"
+        # PASO 3: Tomar screenshot (siempre intentar)
+        screenshot_error_type = await self._ejecutar_tomar_screenshot()
+        # Solo usar el error de screenshot si no hay un error más crítico
+        if not error_type:
+            error_type = screenshot_error_type
 
         # Cerrar el navegador al final
         await self.cerrar_navegador()
 
-        return self.nombre, self.hay_notificacion, self.hay_screenshot, self.error
+        return self.nombre, self.hay_notificacion, self.hay_screenshot, error_type
+
+    async def _ejecutar_consulta_notificaciones(self) -> Optional[str]:
+        """Ejecuta la consulta de notificaciones y maneja los errores."""
+        try:
+            await self.consultar_notificaciones()
+            return None
+        except LoginError as e:
+            self.error = e
+            self.hay_notificacion = e.message
+            return "LoginError"
+        except LoginErrorAfip as e:
+            self.error = e
+            self.hay_notificacion = e.message
+            return "LoginErrorAfip"
+        except ConsultarNotificacionesError as e:
+            self.error = e
+            self.hay_notificacion = e.message
+            return "ConsultarNotificacionesError"
+        except Exception as e:
+            self.error = ConsultarNotificacionesError(self.cliente)
+            self.hay_notificacion = self.error.message
+            return "ConsultarNotificacionesError"
+
+    async def _ejecutar_busqueda_notificaciones(self) -> Optional[str]:
+        """Ejecuta la búsqueda de notificaciones y maneja los errores."""
+        try:
+            notificacion = await self.buscar_notificacion()
+            self.hay_notificacion = (
+                "Hay notificaciones" if notificacion else "No hay notificaciones"
+            )
+            return None
+        except Exception as e:
+            self.error = BuscarNotificacionError(self.cliente)
+            self.hay_notificacion = self.error.message
+            return "BuscarNotificacionError"
+
+    async def _ejecutar_tomar_screenshot(self) -> Optional[str]:
+        """Ejecuta la toma de capturas de pantalla y maneja los errores."""
+        try:
+            screenshot = await self.tomar_screenshot()
+            self.hay_screenshot = (
+                "Se realizó Screenshot" if screenshot else "No se realizó Screenshot"
+            )
+            return None
+        except Exception as e:
+            if not self.error:  # Solo establecer error si no hay uno previo
+                self.error = TomarScreenshotError(self.cliente)
+            self.hay_screenshot = (
+                str(self.error) if self.error else "Error al tomar screenshot"
+            )
+            return "TomarScreenshotError"
 
     def enviar_correo_errores(self, error):
         servidor_smtp = os.getenv("SERVIDOR_SMTP")

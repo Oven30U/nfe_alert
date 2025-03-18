@@ -11,7 +11,8 @@ class Jujuy(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -24,7 +25,8 @@ class Jujuy(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -40,7 +42,8 @@ class Jujuy(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -54,7 +57,8 @@ class Jujuy(Jurisdiccion):
             playwright,
             "Jujuy",
             "910 JUJUY",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -88,7 +92,7 @@ class Jujuy(Jurisdiccion):
             'xpath=//div[text()="Verifique el Usuario-Contraseña ingresados!"]'
         )
         if await incorrect_login.count() > 0:
-            raise LoginError("Login CUIT incorrecto", self.cliente)
+            raise LoginError(self.cliente)
 
         await self.page.locator('text="DOMICILIO FISCAL ELECTRONICO"').wait_for(
             state="visible", timeout=60000

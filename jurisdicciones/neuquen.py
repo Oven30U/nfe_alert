@@ -59,7 +59,7 @@ class Neuquen(Jurisdiccion):
                     "text='Acción prohibida, por favor ingrese nuevamente al sistema.'"
                 ).count()
         ) > 0:
-            raise LoginError("Login error con mensajde de accion prohibida")
+            raise LoginError(self.cliente)
 
     async def buscar_notificacion(self):
         await self.page.wait_for_load_state(

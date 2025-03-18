@@ -110,7 +110,6 @@ class SantiagoDelEstero(Jurisdiccion):
         await self.page.wait_for_load_state("load")
         if await self.page.is_visible("text=Usuario y Contraseña Incorrectos!"):
             raise LoginError(
-                "Error de login en SantiagoDelEstero, al autorizar al usuario",
                 self.cliente,
             )
         await self.page.wait_for_selector("//h3[contains(text(),'Bandeja de Entrada')]")

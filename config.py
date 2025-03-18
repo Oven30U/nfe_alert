@@ -88,7 +88,7 @@ CLIENTES_CON_DOCUMENTACION = [
     "PFIZER S.R.L - SICNEA",
     "SIMPLOT ARGENTINA S.R.L",
     "ULTRAGENYX ARGENTINA S.R.L",
-    "SPOTIFY ARGENTINA S.A"
+    "SPOTIFY ARGENTINA S.A",
 ]
 
 # Criterio de self.client_folder
@@ -97,7 +97,6 @@ CLIENTES_EXLUIR_NACIONAL_FCE = [
     "J&J ARGENTINA S.A",
     "JANSSEN CILAG FARMACEUTICA S.A",
 ]
-
 
 
 # configurar nombres para el df_final de input.py,
@@ -147,7 +146,9 @@ PATH_ESTRUCTURA_ROBOT = "C:/Users/lmarinaro/Documents/dfe/DFEPW/Estructura-robot
 NOMBRE_ARCHIVO_CLIENTE = "Template_input"
 SHEET_ARCHIVO_CLIENTE = "Configuracion"
 log_file_path = f"{PATH_ESTRUCTURA_ROBOT}/System/logfile.log"
-PATH_HTML_SET_PASS = R"C:/Users/lmarinaro/Documents/dfe/DFEPW/html/mail_plantilla_set_pass.html"
+PATH_HTML_SET_PASS = (
+    R"C:/Users/lmarinaro/Documents/dfe/DFEPW/html/mail_plantilla_set_pass.html"
+)
 
 # DATABASE_URL = "mssql+pyodbc://TaxTech:T&LTechnologies@ARBAS0228/RPA/Tecnologia?driver=SQL+Server"
 DATABASE_URL = "mssql+pyodbc://TaxTech:T%26LTechnologies@ARBAS0228/RPA/Tecnologia?driver=SQL+Server"

@@ -13,12 +13,17 @@ from config import (
     SHEET_ARCHIVO_CLIENTE,
     clientes_si_verificar_config,
     log_file_path,
+    CLIENTES_CON_DOCUMENTACION,
 )
 from jurisdicciones.jurisdiccion import LoggedException
+from logger import Logger
+
+logger = Logger.get_logger()
 
 
 class InputException(LoggedException):
     """Excepción lanzada por errores en la captura de los input."""
+
     ...
 
 
@@ -35,7 +40,7 @@ def cargar_excels():
                 )  # Obtener la carpeta padre
 
                 # Leer el archivo de Excel utilizando pandas
-                xls = pd.ExcelFile(file_path, engine='openpyxl')
+                xls = pd.ExcelFile(file_path, engine="openpyxl")
 
                 # Verificar si la hoja existe
                 if SHEET_ARCHIVO_CLIENTE in xls.sheet_names:
@@ -191,12 +196,27 @@ def obtener_clientes(
             with open(log_file_path, "a") as log_file:
                 log_file.write(f"Exception: {str(e)}\n")
     else:
-        clientes_pendientes_verificar = clientes_si_verificar_config
+        clientes_pendientes_verificar = clientes_si_verificar_config  # Si estamos en modo desarrollo, modificar los correos para los clientes de la lista predefinida
 
     if not df_clientes.empty:
-        # Filtrar las filas donde el cliente no se haya ejecutado hoy
-        df_clientes = df_clientes[
-            df_clientes["client_folder"].isin(clientes_pendientes_verificar)
+        dev_mode = os.getenv("DEV_MODE", "False").lower()
+        if dev_mode == "true":
+            logger.info(
+                "Modo desarrollo: Usando correo de prueba para los clientes predefinidos"
+            )
+            test_email = os.getenv(
+                "CORREO_RECEPTOR_TEST_MAIL", "lmarinaro@deloitte.com"
+            )
+            df_clientes["To: Equipo Cliente"] = test_email
+            df_clientes["CC: Equipo Deloitte"] = test_email
+        else:
+            # Filtrar las filas donde el cliente no se haya ejecutado hoy
+            df_clientes = df_clientes[
+                df_clientes["client_folder"].isin(clientes_pendientes_verificar)
+            ]
+
+        df_clientes = df_clientes.loc[
+            df_clientes["client_folder"].isin(CLIENTES_CON_DOCUMENTACION)
         ]
 
         df_clientes.rename(

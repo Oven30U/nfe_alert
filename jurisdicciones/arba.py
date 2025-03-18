@@ -3,7 +3,11 @@ from datetime import datetime
 import asyncio
 from playwright.async_api import Playwright, async_playwright
 
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+from jurisdicciones.jurisdiccion import (
+    Jurisdiccion,
+    LoginError,
+    ConsultarNotificacionesError,
+)
 
 
 class Arba(Jurisdiccion):
@@ -11,7 +15,8 @@ class Arba(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -24,7 +29,8 @@ class Arba(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -40,7 +46,8 @@ class Arba(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -54,7 +61,8 @@ class Arba(Jurisdiccion):
             playwright,
             "Arba",
             "902 BUENOS AIRES",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -74,22 +82,27 @@ class Arba(Jurisdiccion):
         await self.page.fill("#CUIT", f"{self._cuit}")
         await self.page.fill("#clave_Cuit", f"{self._clave_fiscal}")
         await self.page.locator("//button[@value='Ingresar']").click()
-        # await self.page.press("#clave_Cuit", "Enter")
-        if (
-            await self.page.is_visible(
-                "text=Ocurrio un error inesperado al autorizar al usuario"
-            )
-            or await self.page.is_visible(
-                "text=El usuario ingresado y/o la contraseña no son válidos."
-            )
-            or await self.page.is_visible("text=Servicio ocupado")
+
+        # Verificar diferentes tipos de errores con mensajes personalizados
+        if await self.page.is_visible(
+            "text=El usuario ingresado y/o la contraseña no son válidos."
         ):
             raise LoginError(
-                "Error de login en ARBA, al autorizar al usuario", self.cliente
+                self.cliente,
             )
+        elif await self.page.is_visible(
+            "text=Servicio ocupado"
+        ) or await self.page.is_visible(
+            "text=Ocurrio un error inesperado al autorizar al usuario"
+        ):
+            raise ConsultarNotificacionesError(
+                self.cliente,
+            )
+
         await self.page.wait_for_load_state("load")
         await self.page.click("xpath=//span[contains(text(), 'DFE')]")
         await self.page.wait_for_load_state("load")
+
         if await self.page.is_visible("text=Seleccione un rol", timeout=60000):
             await self.page.select_option(
                 "select[name='rol']", "ContribuyentesGral/Contribuyente"
@@ -97,34 +110,44 @@ class Arba(Jurisdiccion):
             # await self.page.click("xpath=//button[@type='submit']")
             await self.page.click("//button[contains(text(),'Continuar')]")
             await self.page.wait_for_load_state("load")
+
+        if await self.page.is_visible("text=error", timeout=60000):
+            raise ConsultarNotificacionesError(
+                self.cliente,
+            )
+
         await self.page.click("xpath=//td[@id='tdFiltroLeidaNO']/a")
         await self.page.click('a[href="#tabs-Todas"]')
 
     async def buscar_notificacion(self):
         no_results = await self.buscar_notificacion_xpath_visible(
             "//table[@id='listaNotificacionesTCTodas']//tbody/tr//*[contains(text(), 'No se encontraron resultados')]",
-            self.page
+            self.page,
         )
         if no_results:
             return False
 
-        fechas_puesta_disposicion = await self.page.query_selector_all("//table[@id='listaNotificacionesTCTodas']//tbody/tr/td[2]")
-        
+        fechas_puesta_disposicion = await self.page.query_selector_all(
+            "//table[@id='listaNotificacionesTCTodas']//tbody/tr/td[2]"
+        )
+
         if not fechas_puesta_disposicion:
             return False
-            
-        fecha_desde = datetime.strptime(self.fecha_desde, '%d%m%Y')
-        fecha_hasta = datetime.strptime(self.fecha_hasta, '%d%m%Y')
-        
+
+        fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
+        fecha_hasta = datetime.strptime(self.fecha_hasta, "%d%m%Y")
+
         for fecha_disposicion in fechas_puesta_disposicion:
             fecha_disposicion_text = await fecha_disposicion.text_content()
             try:
-                fecha_disposicion_date = datetime.strptime(fecha_disposicion_text.strip(), '%d-%m-%Y')
+                fecha_disposicion_date = datetime.strptime(
+                    fecha_disposicion_text.strip(), "%d-%m-%Y"
+                )
                 if fecha_desde <= fecha_disposicion_date <= fecha_hasta:
                     return True
             except ValueError:
                 continue
-                
+
         return False
 
     async def tomar_screenshot(self):

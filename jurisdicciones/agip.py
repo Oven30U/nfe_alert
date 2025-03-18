@@ -8,7 +8,6 @@ from jurisdicciones.jurisdiccion import (
 )
 
 
-
 class Agip(Jurisdiccion):
     def __init__(
         self,
@@ -81,8 +80,11 @@ class Agip(Jurisdiccion):
             await self.page.fill('xpath=//*[@id="clave"]', f"{self._clave_fiscal}")
             await self.page.click("xpath=//a[normalize-space()='Ingresar']")
             await self.page.wait_for_load_state("load")
+            
+            # Verificar errores de login - este error NO debe ser convertido a ConsultarNotificacionesError
             if await self.page.is_visible("text=Clave/Usuario incorrecto."):
-                raise LoginError("CUIT no registrado", self.cliente)
+                raise LoginError(self.cliente)
+                
             await self.page.select_option(
                 "select[name='cuit_representado']", f"{self._cuit_cliente_input}"
             )
@@ -91,16 +93,15 @@ class Agip(Jurisdiccion):
                 "Domicilio Fiscal Electrónico",
                 timeout=90000,
             )
-
+    
+            # Intento principal de navegación
             try:
-                # if await self.page.wait_for_selector(f"xpath=//*[@onclick='ir_servicio(54,{self._cuit_cliente_input})']", timeout=900000):
                 await self.page.click(
                     f"xpath=//*[@onclick='ir_servicio(54,{self._cuit_cliente_input})']",
                     timeout=5000,
                 )
-            except Exception as e:
-                # else:
-                # Si el selector del servicio no se encuentra, hacer click en el DFE de arriba
+            except Exception:
+                # Ruta alternativa
                 await self.page.click(
                     "xpath=//*[@onclick='ir_servicio(54, 0)']", timeout=900000
                 )
@@ -120,18 +121,20 @@ class Agip(Jurisdiccion):
                 await self.page.click(
                     f"xpath=//*[a[@data-id={self._cuit_cliente_input}]]", timeout=900000
                 )
-            finally:
-                boton_filtro = (
-                    "xpath=//button[@class='btnNoLeidas btn btn-default']"  # no_leidas
-                )
-                # boton_filtro = "xpath=//button[@class='btnSinNotificar btn btn-default']" # sin_notificar
-                await self.page.wait_for_selector(boton_filtro, timeout=900000)
-                await self.page.click(boton_filtro, timeout=900000)  # 15 min
+            
+            # Esta parte siempre debe ejecutarse si no hubo excepciones previas
+            boton_filtro = "xpath=//button[@class='btnNoLeidas btn btn-default']"  # no_leidas
+            await self.page.wait_for_selector(boton_filtro, timeout=900000)
+            await self.page.click(boton_filtro, timeout=900000)  # 15 min
+            
+        except LoginError as le:
+            # Re-lanzar errores de login directamente sin convertirlos
+            raise
         except Exception as e:
+            # Otros errores se convierten a ConsultarNotificacionesError
             raise ConsultarNotificacionesError(
-                f"Error al consultar notificaciones: {str(e)}", self.cliente
-            )
-
+                self.cliente, f"Error al consultar notificaciones: {str(e)}"
+            ) from e
     async def buscar_notificacion(self):
         return await super().buscar_notificacion(self.page, texto="s/Notificar")
         # hay_notificaciones_sin_leer = await super().buscar_notificacion(self.page, texto="---")

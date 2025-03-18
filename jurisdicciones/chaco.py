@@ -22,7 +22,8 @@ class Chaco(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -35,7 +36,8 @@ class Chaco(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -50,7 +52,8 @@ class Chaco(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -64,7 +67,8 @@ class Chaco(Jurisdiccion):
             playwright,
             "Chaco",
             "906 CHACO",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -104,9 +108,7 @@ class Chaco(Jurisdiccion):
         await self.page.locator("#vCONTRASENA").fill(f"{self._clave_fiscal}")
         await self.page.locator("//input[@name='BUTTON1']").click()
         if await self.page.is_visible("text=Contribuyente no habilitado"):
-            raise LoginError(
-                "Error de login en Chaco, al autorizar al usuario", self.cliente
-            )
+            raise LoginError(self.cliente)
         await self.page.wait_for_load_state("networkidle")
         await self.page.wait_for_load_state("load")
         await self.page.locator("//input[@name='BTNACEPTAR']").click()
