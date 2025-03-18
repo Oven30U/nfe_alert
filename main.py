@@ -15,7 +15,6 @@ from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
 from logger import Logger
 from models import MonitoreoBots, MonitoreoBotsBackup
-import pandas as pd
 
 logger = Logger.get_logger()
 
@@ -103,15 +102,13 @@ async def main():
                 if df_final is not None:
                     try:
                         if (
-                            (~df_final["Notificacion"].isin(["Hay notificaciones", "No hay notificaciones"]) | 
-                            df_final["Notificacion"].isna())
-                            .sum() > 0
-                            or df_final["Screenshot"]
-                            .str.contains(
-                                r"No se realizó Screenshot", case=False, na=False
+                            ~df_final["Notificacion"].isin(
+                                ["Hay notificaciones", "No hay notificaciones"]
                             )
-                            .sum() > 0
-                        ):
+                            | df_final["Notificacion"].isna()
+                        ).sum() > 0 or df_final["Screenshot"].str.contains(
+                            r"No se realizó Screenshot", case=False, na=False
+                        ).sum() > 0:
                             logger.info("Hubo un error o falta de screenshot")
 
                         correo_exitoso = processor.enviar_email(df_final)

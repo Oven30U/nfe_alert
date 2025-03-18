@@ -26,8 +26,8 @@ Para ejecutar el script desde `config.py` se toman los valores de:
 Desde main.py estos dos valores son siempre False, pero desde config.py se pueden cambiar a True para probar el envío de correos y los clientes deseados. No actualiza última vez en System-Clientes.
 """
 
-DEBUG = True
-# DEBUG = False
+# DEBUG = True
+DEBUG = False
 
 if DEBUG:
     headless_state = False if DEBUG else True
@@ -104,7 +104,7 @@ CLIENTES_EXLUIR_NACIONAL_FCE = [
 # el value es el nombre de la clase de python
 # También se deben importar en __init__.py
 jurisdiccion_clases = {
-    "Nacional": "Nacional",
+    "ARCA": "Nacional",
     "SICNEA": "Sicnea",
     "901 CABA": "Agip",
     "902 BUENOS AIRES": "Arba",

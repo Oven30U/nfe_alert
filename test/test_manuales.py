@@ -26,6 +26,7 @@ from jurisdicciones import (
     Tucuman,
     LaPampa,
     Mendoza,
+    Formosa,
 )
 
 
@@ -388,6 +389,31 @@ async def mendoza_test():
         await mendoza.procesar_jurisdiccion()
 
 
+async def formosa_test():
+    async with async_playwright() as playwright:
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        client = os.getenv("TEST_FORMOSA_CLIENT")
+        client_folder = os.getenv("TEST_FORMOSA_CLIENT_FOLDER")
+        cuit_formosa = os.getenv("TEST_FORMOSA_CUIT")
+        clave_fiscal_formosa = os.getenv("TEST_FORMOSA_CLAVE_FISCAL")
+        cuit_cliente_input = os.getenv("TEST_FORMOSA_CUIT_CLIENTE_INPUT")
+
+        formosa = await Formosa.create(
+            playwright,
+            client,
+            client_folder,
+            cuit_formosa,
+            clave_fiscal_formosa,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            headless=False,
+        )
+        await formosa.procesar_jurisdiccion()
+
+
 def send_email_smtp_test():
     """
     Test manual para enviar el correo con contraseña del zip
@@ -444,4 +470,5 @@ if __name__ == "__main__":
     # asyncio.run(tucuman_test())
     # asyncio.run(la_pampa_test())
     # send_email_smtp_test()
-    asyncio.run(mendoza_test())
+    # asyncio.run(mendoza_test())
+    asyncio.run(formosa_test())

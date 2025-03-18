@@ -73,22 +73,25 @@ class Formosa(Jurisdiccion):
 
     async def consultar_notificaciones(self):
         await self.page.goto("https://www.atpformosa.gob.ar/consultas/index.php")
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("load")
         await self.page.locator("//input[@name='cuit']").fill(f"{self._cuit}")
         await self.page.locator("//input[@name='pass']").fill(f"{self._clave_fiscal}")
         await self.page.locator("//input[@value='Ingresar']").click()
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("load")
+
+        await self.cerrar_popup_actualizacion()
+
         if await self.page.is_visible(
             "text=No se encontraron datos."
         ) or await self.page.is_visible("text=no es válido"):
             raise LoginError(self.cliente)
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("load")
         await self.page.wait_for_selector("//span[contains(text(),'BUZÓN FISCAL')]")
-        # await self.page.goto("https://www.atpformosa.gob.ar/consultas/buzon_fiscal_electronico.php")
         await self.page.goto(
             "https://www.atpformosa.gob.ar/consultas/buzon_fiscal_electronico.php?caseid=notificaciones_lista"
         )
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("load")
+        await self.cerrar_popup_actualizacion()
 
     async def buscar_notificacion(self):
         if await self.page.locator(
@@ -118,6 +121,18 @@ class Formosa(Jurisdiccion):
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
 
+    async def cerrar_popup_actualizacion(self):
+        """
+        Cierra el popup de 'Actualizacion de Datos del Contribuyente' si está presente.
+        """
+        if await self.page.is_visible("text=Actualizacion de Datos del Contribuyente"):
+            await self.page.evaluate("""() => {
+                const button = document.querySelector('.swal2-close');
+                if (button) {
+                    button.click();  // Simular clic mediante JavaScript
+                }
+            }""")
+            await self.page.wait_for_timeout(500)
 
 if __name__ == "__main__":
     import asyncio
