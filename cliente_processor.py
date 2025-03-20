@@ -14,8 +14,6 @@ from config import (
     CORREO_TEST,
     ENVIAR_CORREO_TEST,
     LIMITES_REINTENTO,
-    PATH_ESTRUCTURA_ROBOT,
-    jurisdiccion_clases,
 )
 from logger import Logger
 from mail import enviar_correo
@@ -45,12 +43,10 @@ class ClienteProcessor:
         self.zip_path: str = None
         self.zip_name: str = None
 
-        # Extraer la contraseña del grupo
         if "ZIP_Password" in group.columns:
             self.zip_password = group["ZIP_Password"].iloc[0]
         else:
-            # Valor por defecto si no existe en el Excel
-            self.zip_password = client_folder[:8].replace(" ", "") + "Tax"
+            self.zip_password = os.getenv("PASS_ZIP_DEFAULT", "")
 
     def preparar_directorios(self):
         base_folder = f"Estructura-robot/{self.client_folder}"
@@ -185,8 +181,15 @@ class ClienteProcessor:
         self, playwright, row, jurisdiction, retry=False
     ):
         JurisdictionClass = getattr(jurisdicciones, jurisdiction)
+
         dev_mode = os.getenv("DEV_MODE", "False").lower() == "true"
-        retry = dev_mode
+        is_retry = dev_mode if retry is None else retry
+        headless = not is_retry
+        if is_retry:
+            logger.info(
+                f"Creando instancia de {jurisdiction} en modo visible para reintento"
+            )
+
         create_args = {
             "playwright": playwright,
             "cliente": row["Cliente"],
@@ -196,7 +199,7 @@ class ClienteProcessor:
             "fecha_desde": row["fecha_desde"],
             "fecha_hasta": row["fecha_hasta"],
             "cuit_cliente_input": int(row["cuit_cliente"]),
-            "headless": not retry,
+            "headless": headless,
         }
         return await JurisdictionClass.create(**create_args)
 
@@ -294,6 +297,9 @@ class ClienteProcessor:
                     playwright, row, jurisdiction, retry=True
                 )
                 resultado = await instance.procesar_jurisdiccion()
+                logger.debug(
+                    f"Resultado del reintento para la jurisdicción '{jurisdiction}': {resultado}"
+                )
                 df_final.loc[df_final["Nombre"] == jurisdiction] = list(resultado)
 
                 # Verificar si se resolvió el error
@@ -458,6 +464,39 @@ class ClienteProcessor:
                 f"Error al enviar correo: receptor:{receptor} cliente: {self.cliente}"
             )
             return False
+
+    def sort_df_final(self, df_final: pd.DataFrame) -> pd.DataFrame:
+        """
+        Ordena el DataFrame utilizando los códigos del diccionario jurisdiccion_clases:
+        1. Primero Nacional y SICNEA
+        2. Luego el resto de jurisdicciones por su código numérico (ej. "901 CABA")
+        
+        Args:
+            df_final: DataFrame con los resultados a ordenar
+            
+        Returns:
+            DataFrame ordenado con índice reseteado
+        """
+        from config import jurisdiccion_clases
+        
+        # Crear diccionario inverso: de nombre de clase a código de jurisdicción
+        inv_jurisdiccion = {v: k for k, v in jurisdiccion_clases.items()}
+        
+        # Crear columna de orden con el código numérico de la jurisdicción
+        df_final["orden_codigo"] = df_final["Nombre"].map(inv_jurisdiccion)
+        
+        # Crear columna de prioridad (1: Nacional/SICNEA, 2: resto)
+        df_final["prioridad"] = 2
+        prioridad_1 = ["Nacional", "SICNEA", "Sicnea"]
+        df_final.loc[df_final["Nombre"].isin(prioridad_1), "prioridad"] = 1
+        
+        # Ordenar primero por prioridad, luego por código de jurisdicción
+        df_final = df_final.sort_values(by=["prioridad", "orden_codigo"])
+        
+        # Eliminar columnas auxiliares
+        df_final = df_final.drop(["orden_codigo", "prioridad"], axis=1).reset_index(drop=True)
+        
+        return df_final
 
     def obtener_username(self):
         if self.correo_output:

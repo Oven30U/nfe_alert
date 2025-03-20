@@ -149,7 +149,7 @@ def obtener_clientes(
     try:
         df_clientes = cargar_excels()
     except Exception as e:
-        InputException(f"No se pudo crear el df_clientes, {str(e)}")
+        raise InputException(f"No se pudo crear el df_clientes, {str(e)}")
 
     subset_cols = [
         col
@@ -209,11 +209,10 @@ def obtener_clientes(
             )
             df_clientes["To: Equipo Cliente"] = test_email
             df_clientes["CC: Equipo Deloitte"] = test_email
-        else:
-            # Filtrar las filas donde el cliente no se haya ejecutado hoy
-            df_clientes = df_clientes[
-                df_clientes["client_folder"].isin(clientes_pendientes_verificar)
-            ]
+
+        df_clientes = df_clientes[
+            df_clientes["client_folder"].isin(clientes_pendientes_verificar)
+        ]
 
         df_clientes = df_clientes.loc[
             df_clientes["client_folder"].isin(CLIENTES_CON_DOCUMENTACION)

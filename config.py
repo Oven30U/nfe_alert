@@ -104,7 +104,7 @@ CLIENTES_EXLUIR_NACIONAL_FCE = [
 # el value es el nombre de la clase de python
 # También se deben importar en __init__.py
 jurisdiccion_clases = {
-    "ARCA": "Nacional",
+    "Nacional": "Nacional",
     "SICNEA": "Sicnea",
     "901 CABA": "Agip",
     "902 BUENOS AIRES": "Arba",

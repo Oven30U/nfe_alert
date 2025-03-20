@@ -10,15 +10,20 @@ from config import mapa_jurisdiccion_clases
 # Define a constant for the legend location
 LEGEND_LOCATION = "lower right"
 
+
 def crear_mapa(df, output_file):
+    # Preservar el orden original creando una columna de orden
+    df = df.copy()  # Crear copia para no modificar el DataFrame original
+    df["orden_original"] = range(len(df))
 
     # Cargar el archivo de geodatos de las provincias de Argentina
     provincias = gpd.read_file("src/provincias_argentinas.geojson")
 
-    # Unir el GeoDataFrame con el DataFrame
-    # Cambia "nombre" por "Nombre" en df.set_index
-    df["Nombre"] = df["Nombre"].replace(mapa_jurisdiccion_clases)
-    merged = provincias.set_index("nombre").join(df.set_index("Nombre"))
+    # Convertir nombres a formato del mapa
+    df["Nombre_Mapa"] = df["Nombre"].replace(mapa_jurisdiccion_clases)
+
+    # Unir el GeoDataFrame con el DataFrame (usando Nombre_Mapa)
+    merged = provincias.set_index("nombre").join(df.set_index("Nombre_Mapa"))
 
     merged["Error"] = merged["Error"].replace({None: False}).infer_objects(copy=False)
 
@@ -69,6 +74,9 @@ def crear_mapa(df, output_file):
 
     # Ordenar el DataFrame por la columna 'color_order'
     merged = merged.sort_values(by="color_order")
+
+    # Cuando creamos los elementos de leyenda, respetar el orden original
+    merged = merged.sort_values(by="orden_original")
 
     # Crear elementos de leyenda para el DataFrame
     df_legend_elements = [
@@ -142,14 +150,11 @@ def crear_mapa(df, output_file):
 
 
 def crear_mapa_argentina(df, output_file):
-
     # Crear una copia del DataFrame antes de modificarlo
     df_nacional = df[df["Nombre"] == "Nacional"].copy()
 
     # Convertir las columnas a booleanos
-    df_nacional["Notificacion"] = (
-        df_nacional["Notificacion"] == "Hay notificaciones"
-    )
+    df_nacional["Notificacion"] = df_nacional["Notificacion"] == "Hay notificaciones"
     df_nacional["Screenshot"] = df_nacional["Screenshot"] == "Se realizó Screenshot"
 
     # Reemplazar NaN con False en la columna 'Error'

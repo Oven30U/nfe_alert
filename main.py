@@ -79,6 +79,7 @@ async def main():
 
                 # Bloque específico para mapas y ZIP
                 try:
+                    df_final = processor.sort_df_final(df_final)
                     processor.generar_mapas(df_final)
                     processor.crear_zip()
                 except Exception as e:
