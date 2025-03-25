@@ -91,12 +91,16 @@ ORDER BY cliente;
 --     GROUP BY YEAR(iniciado), MONTH(iniciado);
 
 
--- CREATE VIEW vw_inicio_clientes_nfe AS
+-- ALTER VIEW vw_inicio_clientes_nfe AS
 --     SELECT
 --         cliente,
---         MIN(CAST(iniciado AS DATE)) AS primera_ejecucion
+--         MIN(CAST(iniciado AS DATE)) AS primera_ejecucion,
+--         COUNT(*) AS correos_enviados,
+--         COUNT(DISTINCT CAST(iniciado AS DATE)) AS dias_ejecutados,
+--         MAX(CAST(iniciado AS DATE)) AS ultima_ejecucion,
+--         DATEDIFF(MONTH, MIN(CAST(iniciado AS DATE)), MAX(CAST(iniciado AS DATE))) + 1 AS meses_de_servicio
 --     FROM monitoreo_bots
 --     WHERE proceso = 'NFE Alert'
 --         AND cliente != 'TaxTech'
 --     GROUP BY cliente
-    
+-- ORDER BY primera_ejecucion, cliente;
