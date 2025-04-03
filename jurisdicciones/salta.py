@@ -84,67 +84,68 @@ class Salta(Jurisdiccion):
         return await super().AFIP_login(URL_AFIP_LOGIN)
 
     async def consultar_notificaciones(self):
-        # Hacer login con requests
-        client = requests.Session()
-
-        login_information = {
-            "usuario": self._cuit,
-            "password": self._clave_fiscal,
-            "pagina": "/login.jsp",
-            "disconect": "No",
-            "tokengRecaptcha": "",
-        }
-
         if int(str(self._cuit)[0]) != 3:
             await self.AFIP_login()
         else:
-            response = client.post(
-                "https://www.dgrsalta.gov.ar/rentassalta/form.login",
-                data=login_information,
+            await self.login()
+
+        # Mejorar la verificación de login exitoso con timeout adecuado
+        try:
+            # Esperar adecuadamente a que la página cargue
+            await self.page.wait_for_load_state("networkidle", timeout=30000)
+
+            # Esperar específicamente al selector de logout con un timeout razonable
+            await self.page.wait_for_selector(
+                "#enviaLogout", timeout=15000, state="visible"
             )
+            self.logger.debug("SALTA: Login exitoso, se encontró el selector de logout")
+        except Exception as e:
+            # Verificar si hay errores explícitos antes de concluir que falló el login
+            if await self.page.is_visible("div.error_text"):
+                error_text = await self.page.locator("div.error_text").text_content()
+                self.logger.error(f"SALTA: Error de login detectado: {error_text}")
+                raise LoginError(self.cliente, error_text)
 
-            if "Usuario o Password Incorrecto" in response.text:
-                raise LoginError(self.cliente)
+            # Verificar una última vez si el selector existe pero tardó en aparecer
+            if await self.page.query_selector("#enviaLogout"):
+                self.logger.warning(
+                    "SALTA: El selector de logout apareció después del timeout"
+                )
+            else:
+                self.logger.error(
+                    f"SALTA: No se pudo verificar el login exitoso: {str(e)}"
+                )
+                raise LoginError(
+                    self.cliente, f"No se pudo verificar el login: {str(e)}"
+                )
 
-        # Obtener las cookies de la sesión
-        cookies = client.cookies.get_dict()
+        # Continuar con las acciones en la página (resto del código sin cambios)
+        await self.page.wait_for_selector(
+            "//a[contains(text(), 'Domicilio Fiscal Electrónico')]"
+        )
+        await self.page.locator(
+            "//a[contains(text(), 'Domicilio Fiscal Electrónico')]"
+        ).click()
+        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_selector(
+            "//a[contains(text(), 'Ventanilla Única de Novedades')]"
+        )
+        await self.page.locator(
+            "//a[contains(text(), 'Ventanilla Única de Novedades')]"
+        ).click()
+        await self.page.wait_for_load_state("networkidle")
 
-        # Añadir las cookies a la sesión de Playwright
-        for name, value in cookies.items():
-            await self.context.add_cookies(
-                [
-                    {
-                        "name": name,
-                        "value": value,
-                        "domain": "www.dgrsalta.gov.ar",
-                        "path": "/",
-                    }
-                ]
-            )
-
-        # Navegar a la página después de iniciar sesión
+    async def login(self):
         await self.page.goto("https://www.dgrsalta.gov.ar/rentassalta/login.jsp")
-        await self.page.wait_for_load_state("networkidle")
-
-        # Verificar si el login fue exitoso buscando un elemento específico
-        if not await self.page.query_selector("#enviaLogout"):
+        await self.page.wait_for_load_state()
+        await self.page.wait_for_selector("input#usuario")
+        await self.page.fill("input#usuario", self._cuit)
+        await self.page.fill("input#password", self._clave_fiscal)
+        await self.page.click("a#enviaLogin")
+        await self.page.wait_for_load_state("domcontentloaded")
+        error_selector = "//div[@class='error_text' and contains(text(), 'Usuario o Password Incorrecto')]"
+        if await self.page.is_visible(error_selector):
             raise LoginError(self.cliente)
-
-        # Continuar con las acciones en la página
-        await self.page.wait_for_selector(
-            "//a[contains(text(), 'Domicilio Fiscal Electrónico')]"
-        )
-        await self.page.locator(
-            "//a[contains(text(), 'Domicilio Fiscal Electrónico')]"
-        ).click()
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_selector(
-            "//a[contains(text(), 'Ventanilla Única de Novedades')]"
-        )
-        await self.page.locator(
-            "//a[contains(text(), 'Ventanilla Única de Novedades')]"
-        ).click()
-        await self.page.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
         elements = await self.page.locator(
