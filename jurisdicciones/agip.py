@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import (
@@ -80,11 +82,11 @@ class Agip(Jurisdiccion):
             await self.page.fill('xpath=//*[@id="clave"]', f"{self._clave_fiscal}")
             await self.page.click("xpath=//a[normalize-space()='Ingresar']")
             await self.page.wait_for_load_state("load")
-            
+
             # Verificar errores de login - este error NO debe ser convertido a ConsultarNotificacionesError
             if await self.page.is_visible("text=Clave/Usuario incorrecto."):
                 raise LoginError(self.cliente)
-                
+
             await self.page.select_option(
                 "select[name='cuit_representado']", f"{self._cuit_cliente_input}"
             )
@@ -93,7 +95,7 @@ class Agip(Jurisdiccion):
                 "Domicilio Fiscal Electrónico",
                 timeout=90000,
             )
-    
+
             # Intento principal de navegación
             try:
                 await self.page.click(
@@ -121,12 +123,14 @@ class Agip(Jurisdiccion):
                 await self.page.click(
                     f"xpath=//*[a[@data-id={self._cuit_cliente_input}]]", timeout=900000
                 )
-            
+
             # Esta parte siempre debe ejecutarse si no hubo excepciones previas
-            boton_filtro = "xpath=//button[@class='btnNoLeidas btn btn-default']"  # no_leidas
+            boton_filtro = (
+                "xpath=//button[@class='btnNoLeidas btn btn-default']"  # no_leidas
+            )
             await self.page.wait_for_selector(boton_filtro, timeout=900000)
             await self.page.click(boton_filtro, timeout=900000)  # 15 min
-            
+
         except LoginError as le:
             # Re-lanzar errores de login directamente sin convertirlos
             raise
@@ -135,28 +139,69 @@ class Agip(Jurisdiccion):
             raise ConsultarNotificacionesError(
                 self.cliente, f"Error al consultar notificaciones: {str(e)}"
             ) from e
+
     async def buscar_notificacion(self):
-        return await super().buscar_notificacion(self.page, texto="s/Notificar")
-        # hay_notificaciones_sin_leer = await super().buscar_notificacion(self.page, texto="---")
-        # if hay_notificaciones_sin_leer:
-        #     # Esperar a que la tabla esté visible
-        #     await self.page.wait_for_selector('table#tablaMensajes', state='visible')
-        #     # Obtener todas las filas de la tabla
-        #     filas = await self.page.query_selector_all('table#tablaMensajes > tbody > tr')
-        #     # Iterar sobre cada fila
-        #     for fila in filas:
-        #         # Obtener el tercer td de la fila actual
-        #         tercer_td = await fila.query_selector('td:nth-child(3)')
-        #         # Obtener el texto del tercer td
-        #         fecha_notificado = await tercer_td.text_content()
-        #         # Realizar análisis o acción deseada con el fecha_notificado
-        #         if fecha_notificado == "---":
-        #             return True
-        #         fecha_desde = datetime.strptime(self.fecha_desde, '%d%m%Y')
-        #         fecha_notificado_date = datetime.strptime(fecha_notificado, '%Y-%m-%d')
-        #         if fecha_notificado_date > fecha_desde:
-        #             return True
-        #     return False
+        """
+        Busca notificaciones en la tabla de mensajes de AGIP.
+
+        Retorna True si:
+        1. Existe alguna fila que contenga 's/Notificar'
+        2. La fecha de esa fila es posterior o igual a self.fecha_desde
+        """
+        try:
+            # Esperar a que la tabla esté visible
+            await self.page.wait_for_selector(
+                "table#tablaMensajes", state="visible", timeout=30000
+            )
+
+            # Obtener todas las filas que contienen 's/Notificar'
+            filas_notificar = await self.page.query_selector_all(
+                "xpath=//table[@id='tablaMensajes']/tbody/tr[td[contains(text(),'s/Notificar')]]"
+            )
+
+            self.logger.debug(
+                f"AGIP: Se encontraron {len(filas_notificar)} filas con 's/Notificar'"
+            )
+
+            if len(filas_notificar) == 0:
+                self.logger.debug("AGIP: No hay notificaciones pendientes")
+                return False
+
+            # Convertir fecha_desde a objeto datetime
+            # self.fecha_desde está en formato 'ddmmyyyy'
+            fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
+
+            for fila in filas_notificar:
+                # Obtener la fecha de la columna 2
+                fecha_td = await fila.query_selector("td:nth-child(2)")
+                if fecha_td:
+                    fecha_texto = await fecha_td.text_content()
+                    fecha_texto = fecha_texto.strip()
+
+                    try:
+                        # Convertir a formato datetime (asumiendo formato 'yyyy-mm-dd')
+                        fecha_notificacion = datetime.strptime(fecha_texto, "%Y-%m-%d")
+
+                        self.logger.debug(
+                            f"AGIP: Comparando fecha {fecha_notificacion} con {fecha_desde}"
+                        )
+
+                        # Comparar fechas
+                        if fecha_notificacion >= fecha_desde:
+                            self.logger.debug(
+                                f"AGIP: Notificación encontrada con fecha {fecha_texto}"
+                            )
+                            return True
+                    except ValueError as e:
+                        self.logger.warning(
+                            f"AGIP: Error al procesar fecha '{fecha_texto}': {str(e)}"
+                        )
+
+            return False
+        except Exception as e:
+            self.logger.error(f"AGIP: Error en buscar_notificacion: {str(e)}")
+            # En caso de error, mejor reportar que sí hay notificaciones para que se revise manualmente
+            return True
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)
