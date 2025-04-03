@@ -1,3 +1,4 @@
+import asyncio
 import os
 from datetime import datetime
 
@@ -68,52 +69,61 @@ class SantiagoDelEstero(Jurisdiccion):
             texto_notificacion,
             headless=headless,
         )
+        self.playwright = playwright  # Store the playwright instance
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
     async def consultar_notificaciones(self):
         await self.page.goto(
-            "https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml",
-            timeout=900000,
+            "https://dgronline.dgrsantiago.gob.ar/dgronline/hlogin.aspx"
         )
-
-        # Desde la página de login princial:
-        # await self.page.goto(
-        #     "https://dgronline.dgrsantiago.gob.ar/dgronline/hlogin.aspx"
-        # )
-        # await self.page.locator("//input[@id='vUSUID']").fill(f"{self._cuit}")
-        # await self.page.locator("//input[@id='vUSUPWD']").fill(f"{self._clave_fiscal}")
-        # await self.page.locator("//input[@value='Confirmar']").click()
-        # await self.page.wait_for_load_state("load", timeout=90000)
-        # await self.page.locator(
-        #     "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[1]"
-        # ).click()
-        # await self.page.wait_for_load_state("load", timeout=90000)
-        # await self.page.locator(
-        #     "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[2]"
-        # ).click()
-        # await self.page.locator("#vBOTDOMICILIOELECTRONICO").click()
-
-        # self.page.set_default_timeout(60000)
-        # Create a new browser context with bypass_csp=True
-        # context = await self.browser.new_context(bypass_csp=True)
-        # self.page = await context.new_page()
-        # await self.page.goto("https://dgronline.dgrsantiago.gob.ar/dgronline/hlogin.aspx")
-
-        await self.page.locator("//input[@id='loginForm:username']").fill(
-            f"{self._cuit}"
+        await self.page.locator("//input[@id='vUSUID']").fill(f"{self._cuit}")
+        await self.page.locator("//input[@id='vUSUPWD']").fill(f"{self._clave_fiscal}")
+        await self.page.locator("//input[@value='Confirmar']").click()
+        await self.page.wait_for_load_state("load", timeout=60000)
+        await self.page.wait_for_selector(
+            "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[1]", timeout=60000
         )
-        await self.page.locator("//input[@name='loginForm:password']").fill(
-            f"{self._clave_fiscal}"
+        await self.page.locator(
+            "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[1]"
+        ).click()
+        await self.page.wait_for_load_state("load", timeout=60000)
+        await self.page.wait_for_selector(
+            "(//a[contains(text(),'Ingreso Sistema Domicilio Fiscal Electrónico')])",
+            timeout=60000,
         )
-        await self.page.locator("//button[@id='loginForm:loginButton']").click()
-        await self.page.wait_for_load_state("load")
-        if await self.page.is_visible("text=Usuario y Contraseña Incorrectos!"):
-            raise LoginError(
-                self.cliente,
+        await self.page.locator(
+            "(//a[contains(text(),'Ingreso Sistema Domicilio Fiscal Electrónico')])"
+        ).click()
+
+        # Hacer clic en el botón que abre la nueva pestaña (pop-up)
+        await self.page.locator("#vBOTDOMICILIOELECTRONICO").click()
+        self.logger.debug("Clic en botón realizado, esperando nuevo pop-up...")
+
+        try:
+            new_page = await asyncio.wait_for(
+                self.page.wait_for_event("popup"), timeout=30000
             )
-        await self.page.wait_for_selector("//h3[contains(text(),'Bandeja de Entrada')]")
-        await self.page.wait_for_load_state("load")
+            self.logger.debug("Popup detectado!")
+            await new_page.wait_for_load_state("networkidle")
+        except asyncio.TimeoutError:
+            self.logger.debug(
+                "No se detectó el pop-up, revisa la configuración del navegador."
+            )
+        else:
+            await new_page.wait_for_load_state("load")
+            await new_page.wait_for_load_state("networkidle")
+            self.page = new_page
+            await self.page.evaluate(
+                "document.querySelector('#proceed-button').click();"
+            )
+            await self.page.wait_for_selector(
+                "//h3[contains(text(), 'Bandeja de Entrada')]", timeout=60000
+            )
+            # await new_page.goto(
+            #     "https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml"
+            # )
+            # Actualizamos self.page para que el flujo continúe usando el nuevo pop-up
 
     async def buscar_notificacion(self):
         fechas_disposicion = await self.page.locator(
@@ -133,8 +143,6 @@ class SantiagoDelEstero(Jurisdiccion):
                 continue
 
         return False
-
-        # return not await self.page.locator("//span[contains(text(),'No se han encontrado datos para mostrar')]").is_visible()
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)
