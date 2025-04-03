@@ -3,10 +3,15 @@ from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
 
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginErrorAfip, ConsultarNotificacionesError
+from jurisdicciones.jurisdiccion import (
+    Jurisdiccion,
+    LoginErrorAfip,
+    ConsultarNotificacionesError,
+)
 
 from config import CLIENTES_EXLUIR_NACIONAL_FCE
 import unicodedata
+
 
 class Nacional(Jurisdiccion):
     def __init__(
@@ -94,14 +99,30 @@ class Nacional(Jurisdiccion):
             await self.new_page.click(
                 "(//div[@class='input-group'])[5]//div[@class='form-control dropdown-toggle']"
             )
-            await self.new_page.click(f'xpath=//button[@id="{self.cuit_cliente_input}"]')
+            await self.new_page.click(
+                f'xpath=//button[@id="{self.cuit_cliente_input}"]'
+            )
             await self.page.wait_for_load_state("networkidle")
+
+             # Intentar esperar el encabezado con un timeout más razonable
             try:
-                await self.new_page.wait_for_selector('text="Cerrar"', timeout=9000)
-                await self.new_page.click('text="Cerrar"')
-            except Exception:
-                pass
-            # await self.new_page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
+                # Usar wait_for_selector en lugar de is_visible para mayor precisión
+                await self.new_page.wait_for_selector(
+                    'h5:has-text("Notificaciones de oficio")', 
+                    timeout=60000,  # 10 segundos es suficiente
+                    state="visible"  # Asegurar que sea visible
+                )
+                self.logger.info("Encabezado 'Notificaciones de oficio' encontrado")
+                
+                # Intentar cerrar el modal si está presente
+                try:
+                    await self.new_page.click('text="Cerrar"', timeout=3000)
+                    self.logger.info("Botón 'Cerrar' encontrado y clickeado")
+                except Exception as e:
+                    self.logger.info("No se encontró botón 'Cerrar' o no fue necesario clickearlo")
+            except Exception as e:
+                self.logger.info("No se encontró encabezado 'Notificaciones de oficio', continuando normalmente")
+
             self.fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y").strftime(
                 "%d/%m/%Y"
             )
@@ -138,133 +159,206 @@ class Nacional(Jurisdiccion):
         except LoginErrorAfip as e:
             raise
         except Exception as e:
-            raise ConsultarNotificacionesError(self.cliente, f"Error en consulta: {str(e)}") from e
-        
+            # Log the actual error details for debugging
+            self.logger.error(f"Error en consulta de Nacional: {str(e)}")
+            # Raise with standard message only
+            raise ConsultarNotificacionesError(self.cliente)
+
     async def buscar_notificacion(self):
-        # Seleccionar todos los enlaces dentro de collapse-mensajes y collapse-notificaciones
-        selectores = {
-            "notificaciones": "xpath=//div[@id='collapse-notificaciones']//a",
-            "mensajes": "xpath=//div[@id='collapse-mensajes']//a",
-        }
+        # Use a single selector to get all notification links
+        all_links_selector = "xpath=//div[contains(@class, 'list-group')]//div[@id='notificaciones-bandeja-tab']/following-sibling::a"
 
         contador_filtro_hay_notificacion = 0
         todos_screenshots_exitosos = True
-        selectores_validos = 0
 
-        # Expandir los grupos de filtros Notificaciones y/o Mensajes
-        filtros_colapsados = await self.new_page.locator(
-            "xpath=//div[@aria-expanded='false']"
-        ).all()
-        for filtro in filtros_colapsados:
-            await filtro.click()
+        try:
+            # Get all links matching the selector
+            self.logger.info("Buscando enlaces de notificaciones")
+            enlaces = await self.new_page.locator(all_links_selector).all()
+            self.logger.info(f"Se encontraron {len(enlaces)} enlaces de notificaciones")
 
-        for clave, selector in selectores.items():
-            try:
-                enlaces = await self.new_page.locator(selector).all()
-                for enlace in enlaces:
+            # Expand any collapsed filters if necessary
+            filtros_colapsados = await self.new_page.locator(
+                "xpath=//div[@aria-expanded='false']"
+            ).all()
+            for filtro in filtros_colapsados:
+                await filtro.click()
+                await self.new_page.wait_for_load_state("networkidle")
+                await self.new_page.wait_for_load_state("load")
+                await self.new_page.wait_for_load_state("domcontentloaded")
+
+            # Process each link
+            for enlace in enlaces:
+                try:
                     texto_enlace = await enlace.inner_text()
-                    if (
-                        "Factura de Crédito Electrónica" in texto_enlace
-                        and (self.cliente in CLIENTES_EXLUIR_NACIONAL_FCE or self.client_folder in CLIENTES_EXLUIR_NACIONAL_FCE)
+
+                    # Skip FCE notifications for excluded clients
+                    if "Factura de Crédito Electrónica" in texto_enlace and (
+                        self.cliente in CLIENTES_EXLUIR_NACIONAL_FCE
+                        or self.client_folder in CLIENTES_EXLUIR_NACIONAL_FCE
                     ):
+                        self.logger.info(
+                            f"Saltando FCE para cliente excluido: {texto_enlace}"
+                        )
                         continue
 
+                    # Click on the link and wait for page to load
                     await enlace.click()
                     await self.new_page.wait_for_load_state("networkidle")
-                    selectores_validos += 1
+                    await self.new_page.wait_for_load_state("load")
+                    await self.new_page.wait_for_load_state("domcontentloaded")
 
+                    # Check if there are no notifications
                     no_hay_notificaciones = await super().buscar_notificacion(
                         self.new_page, "No hay comunicaciones para mostrar"
                     )
 
                     if not no_hay_notificaciones:
                         contador_filtro_hay_notificacion += 1
-                    texto_filtrado = clean_texto_enlace(
-                        texto_enlace
-                    )                    
-                    nombre_captura = f"{clave}_{texto_filtrado.lower()}"
+                        self.logger.info(
+                            f"Se encontraron notificaciones en {texto_enlace}"
+                        )
+                    else:
+                        self.logger.info(f"No hay notificaciones en {texto_enlace}")
+
+                    # Create a clean name for the screenshot
+                    texto_filtrado = clean_texto_enlace(texto_enlace)
+                    nombre_captura = f"{texto_filtrado.lower()}"
+
+                    # Take screenshots
+                    self.logger.info(f"Tomando captura para {nombre_captura}")
                     screen_estado = await self.tomar_screenshot_filtrado(nombre_captura)
+
                     if not screen_estado:
+                        self.logger.warning(f"Falló captura para {nombre_captura}")
                         todos_screenshots_exitosos = False
-            except Exception:
-                continue
+                except Exception as e:
+                    self.logger.error(
+                        f"Error procesando enlace '{texto_enlace if 'texto_enlace' in locals() else 'desconocido'}': {str(e)}"
+                    )
+                    todos_screenshots_exitosos = False
+                    continue
+        except Exception as e:
+            self.logger.error(f"Error general en buscar_notificacion: {str(e)}")
+            todos_screenshots_exitosos = False
 
         self.hay_screenshots_filtrados = todos_screenshots_exitosos
         return True if contador_filtro_hay_notificacion > 0 else False
 
     async def tomar_screenshot_filtrado(self, tipo_notificacion) -> bool:
-        self.fecha_desde = self.fecha_desde.replace("/", "")
-        self.fecha_hasta = self.fecha_hasta.replace("/", "")
-        while True:
-            # Primer Screenshot
-            await super().tomar_screenshot(
-                self.new_page, nombre_extra=tipo_notificacion
-            )
+        try:
+            self.logger.info(f"Iniciando captura filtrada para {tipo_notificacion}")
 
-            # Contar la cantidad de elementos <tr> dentro del selector especificado
-            selector_notificaciones = (
-                "//div[@class='tab-pane active card-body']//tbody[@role='rowgroup']/tr"
-            )
-            cantidad_notificaciones = await self.new_page.locator(
-                selector_notificaciones
-            ).count()
+            # Ensure dates are in correct format before screenshot
+            if "/" in self.fecha_desde:
+                self.fecha_desde = self.fecha_desde.replace("/", "")
+            if "/" in self.fecha_hasta:
+                self.fecha_hasta = self.fecha_hasta.replace("/", "")
 
-            # Sólo si hay 7 o más notificaciones continuo tomando screenshots
-            if cantidad_notificaciones >= 7:
-                # Scroll hasta la última notificación
-                selector_ultima_notificacion = (
-                    "(//div[@class='tab-pane active card-body']//tr)[last()]"
+            current_page = 1
+
+            while True:
+                try:
+                    # Count notifications
+                    selector_notificaciones = "//div[@class='tab-pane active card-body']//tbody[@role='rowgroup']/tr"
+                    cantidad_notificaciones = await self.new_page.locator(
+                        selector_notificaciones
+                    ).count()
+                    self.logger.info(
+                        f"Encontradas {cantidad_notificaciones} notificaciones en página {current_page}"
+                    )
+
+                    # If there are many notifications, scroll to the last one to ensure everything is loaded
+                    if cantidad_notificaciones >= 7:
+                        selector_ultima_notificacion = (
+                            "(//div[@class='tab-pane active card-body']//tr)[last()]"
+                        )
+                        await self.new_page.evaluate(
+                            """
+                            (selector) => {
+                                const element = document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                                if (element) element.scrollIntoView();
+                            }
+                            """,
+                            selector_ultima_notificacion,
+                        )
+                        # Wait for any lazy-loaded content to appear
+                        await self.new_page.wait_for_timeout(500)
+                except Exception as e:
+                    self.logger.warning(
+                        f"Error preparando página para captura: {str(e)}"
+                    )
+
+                # Take a single full-page screenshot
+                screenshot_success = await super().tomar_screenshot(
+                    self.new_page, nombre_extra=f"{tipo_notificacion}_p{current_page}"
                 )
-                await self.new_page.evaluate(
-                    """
-                    (selector) => {
-                        document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.scrollIntoView();
-                    }
-                """,
-                    selector_ultima_notificacion,
-                )
 
-                # Segundo Screenshot
-                await super().tomar_screenshot(
-                    self.new_page, nombre_extra=tipo_notificacion
-                )
+                if not screenshot_success:
+                    self.logger.warning(
+                        f"Falló captura de página {current_page} para {tipo_notificacion}"
+                    )
+                    return False
 
-            # Verificar si hay más páginas, si hay -> navegar a la próxima y repetir
-            selector_flecha_siguiente = "(//button[@role='menuitem'])[4]"
-            clases_flecha_siguiente = await self.new_page.get_attribute(
-                selector_flecha_siguiente, "class"
-            )
-            if "disabled" in clases_flecha_siguiente:
-                return True
-            await self.new_page.click(selector_flecha_siguiente)
+                # Check if there are more pages
+                try:
+                    selector_flecha_siguiente = "(//button[@role='menuitem'])[4]"
+                    exists = (
+                        await self.new_page.locator(selector_flecha_siguiente).count()
+                        > 0
+                    )
 
-            # Scroll hasta la primera notificación
-            selector_primera_notificacion = (
-                "(//div[@class='tab-pane active card-body']//tr)[1]"
-            )
-            await self.new_page.evaluate(
-                """
-                (selector) => {
-                    document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.scrollIntoView();
-                }
-            """,
-                selector_primera_notificacion,
-            )
+                    if not exists:
+                        self.logger.info(
+                            f"No se encontró botón de siguiente página para {tipo_notificacion}"
+                        )
+                        return True
+
+                    clases_flecha_siguiente = await self.new_page.get_attribute(
+                        selector_flecha_siguiente, "class"
+                    )
+
+                    if "disabled" in clases_flecha_siguiente:
+                        self.logger.info(f"No hay más páginas para {tipo_notificacion}")
+                        return True
+
+                    # Navigate to next page
+                    await self.new_page.click(selector_flecha_siguiente)
+                    await self.new_page.wait_for_load_state("networkidle")
+                    current_page += 1
+
+                    # Scroll to top of new page to ensure it's properly loaded
+                    await self.new_page.evaluate("window.scrollTo(0, 0)")
+                except Exception as e:
+                    self.logger.warning(f"Error navegando a siguiente página: {str(e)}")
+                    return True  # Return true since we got at least the first page screenshot
+        except Exception as e:
+            self.logger.error(f"Error general en tomar_screenshot_filtrado: {str(e)}")
+            return False
 
     async def tomar_screenshot(self):
+        # Ensure dates are in correct format before any screenshot
+        if "/" in self.fecha_desde:
+            self.fecha_desde = self.fecha_desde.replace("/", "")
+        if "/" in self.fecha_hasta:
+            self.fecha_hasta = self.fecha_hasta.replace("/", "")
+
         # Si no se pudieron tomar capturas filtradas o hay_screenshots_filtrados no está definido
-        if not hasattr(self, 'hay_screenshots_filtrados') or not self.hay_screenshots_filtrados:
+        if (
+            not hasattr(self, "hay_screenshots_filtrados")
+            or not self.hay_screenshots_filtrados
+        ):
             # Tomar al menos una captura de pantalla general usando el método de la clase base
             basic_screenshot = await super().tomar_screenshot()
             # Devolver True si al menos una captura fue exitosa
             return basic_screenshot
-        
+
         # Si ya se tomaron capturas filtradas exitosamente, simplemente devuelve ese valor
         return self.hay_screenshots_filtrados
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-    
+
 
 def clean_texto_enlace(input_str: str) -> str:
     text = input_str.split("\n")[0].strip().lower()
@@ -272,6 +366,7 @@ def clean_texto_enlace(input_str: str) -> str:
     result = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
     result = result.replace("factura de credito electronica", "fce")
     return result
+
 
 async def main():
     async with async_playwright() as playwright:
