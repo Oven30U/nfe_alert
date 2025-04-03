@@ -123,7 +123,7 @@ class Sicnea(Jurisdiccion):
         await self.new_page_2.wait_for_load_state("domcontentloaded")
         await self.new_page_2.wait_for_selector(
             "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]",
-            timeout=60000,  
+            timeout=60000,
         )
         await self.new_page_2.hover(
             "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]"
@@ -194,11 +194,32 @@ class Sicnea(Jurisdiccion):
             await self.frame.wait_for_selector("input#btnBuscar")
             await super().tomar_screenshot(self.new_page_2, nombre_extra="_enviadas")
 
-            # Si aparece el botón siguiente, entonces navega y toma screenshots, si no aparece, entonces no navega
+            # Inicialización correcta con valor booleano
+            hay_notificaciones_en_alguna_pagina = False
+            if hasattr(self, "hay_notificacion") and isinstance(
+                self.hay_notificacion, bool
+            ):
+                hay_notificaciones_en_alguna_pagina = self.hay_notificacion
+            else:
+                # Si no es un booleano pero contiene la palabra "Hay" asumimos que hay notificaciones
+                hay_notificaciones_en_alguna_pagina = (
+                    isinstance(self.hay_notificacion, str)
+                    and "Hay" in self.hay_notificacion
+                )
+
+            # Si aparece el botón siguiente, entonces navega y toma screenshots
             cantidad_paginas_enviadas = 1
             while await self.frame.query_selector("a#lnkSiguiente"):
                 await self.frame.click("a#lnkSiguiente")
                 await self.frame.wait_for_selector("input#btnBuscar")
+
+                # Verificar si hay notificaciones en esta página también
+                hay_notificacion_en_pagina = not await self.frame.is_visible(
+                    "text='No hay datos relacionados a la busqueda'"
+                )
+                hay_notificaciones_en_alguna_pagina = (
+                    hay_notificaciones_en_alguna_pagina or hay_notificacion_en_pagina
+                )
 
                 await super().tomar_screenshot(
                     self.new_page_2,
@@ -206,8 +227,8 @@ class Sicnea(Jurisdiccion):
                 )
                 cantidad_paginas_enviadas += 1
 
+            # Configurar el segundo tipo de notificaciones (NOTI)
             await self.frame.wait_for_selector("select#ddlEstado")
-
             is_disabled = await self.frame.evaluate(
                 "document.querySelector('select#ddlEstado').disabled"
             )
@@ -231,6 +252,24 @@ class Sicnea(Jurisdiccion):
                 await self.frame.select_option("select#ddlEstado", value="NOTI")
                 await self.frame.click("input[name='btnBuscar']")
 
+            try:
+                await self.frame.wait_for_selector(
+                    "select#ddlEstado", timeout=60000, state="visible"
+                )
+                await self.frame.wait_for_selector(
+                    "input#btnBuscar", timeout=60000, state="visible"
+                )
+                logger.info("Selector 'select#ddlEstado' encontrado correctamente")
+            except Exception as e:
+                logger.warning(f"Timeout esperando 'select#ddlEstado': {str(e)}")
+            # Verificar notificaciones en sección NOTI (primera página)
+            hay_notificacion_noti = not await self.frame.is_visible(
+                "text='No hay datos relacionados a la busqueda'"
+            )
+            hay_notificaciones_en_alguna_pagina = (
+                hay_notificaciones_en_alguna_pagina or hay_notificacion_noti
+            )
+
             notificado_cargado = False
 
             intento_encontrado = 0
@@ -241,6 +280,15 @@ class Sicnea(Jurisdiccion):
                 texto_motivo = await self.frame.is_visible("text='Motivo'")
                 if texto_notificaciones or texto_motivo:
                     notificado_cargado = True
+
+                    # Añadir esta verificación adicional después de cargar la página
+                    if texto_motivo:  # Si hay motivo, hay notificaciones
+                        hay_notificacion_en_pagina_noti = True
+                        hay_notificaciones_en_alguna_pagina = (
+                            hay_notificaciones_en_alguna_pagina
+                            or hay_notificacion_en_pagina_noti
+                        )
+
             await self.frame.wait_for_selector("input#btnBuscar")
 
             await super().tomar_screenshot(self.new_page_2, nombre_extra="_notificadas")
@@ -254,6 +302,13 @@ class Sicnea(Jurisdiccion):
                 )
                 cantidad_paginas_notificadas += 1
 
+            # Actualizar el estado final de notificaciones con el formato de string esperado
+            if hay_notificaciones_en_alguna_pagina:
+                self.hay_notificacion = "Hay notificaciones"
+                logger.info("Estado final: Hay notificaciones")
+            else:
+                self.hay_notificacion = "No hay notificaciones"
+                logger.info("Estado final: No hay notificaciones")
             self.hay_screenshot = True
 
         except Exception as e:
