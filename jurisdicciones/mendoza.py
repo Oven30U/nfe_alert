@@ -94,16 +94,29 @@ class Mendoza(Jurisdiccion):
         await self.page.fill("#password", f"{self._clave_fiscal}")
         await self.page.locator("#ingresar").click()
         await self.page.wait_for_load_state("domcontentloaded")
-        
+
         try:
             await self.page.wait_for_selector(
                 '//a[contains(text(), "Cerrar Sesión")]', timeout=30000
             )
         except TimeoutError as exc:
+            # Capturar screenshot del error de login antes de lanzar la excepción
+            error_screenshot_path = f"Estructura-robot/{self.client_folder}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_error_login.png"
+            try:
+                await self.page.screenshot(path=error_screenshot_path)
+                self.hay_screenshot = True  # Marcar que se tomó un screenshot
+            except Exception as screenshot_error:
+                self.logger.error(
+                    f"Error al tomar screenshot de error de login: {screenshot_error}"
+                )
+                self.hay_screenshot = False
+
+            # Verificar el tipo de error específico
             if await self.page.is_visible("text=Su contraseña ha expirado"):
-                raise LoginError(self.cliente) from exc
+                raise LoginError(self.cliente, "Contraseña expirada") from exc
             else:
-                raise LoginError(self.cliente) from exc
+                raise LoginError(self.cliente, "Credenciales inválidas") from exc
+
         async with self.page.expect_popup() as popup_info:
             await self.page.click("#divDFE")
         self.new_page = await popup_info.value
