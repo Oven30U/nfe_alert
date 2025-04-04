@@ -199,8 +199,10 @@ class Jurisdiccion(ABC):
         #         'windowId': window_id,
         #         'bounds': {'windowState': 'minimized'}
         #     })
-        if not headless:
-            await self.minimizar_ventana()
+
+        # if not headless:
+        # await self.minimizar_ventana()
+
         return self
 
     async def AFIP_login(

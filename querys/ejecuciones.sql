@@ -5,6 +5,14 @@ SELECT *
 FROM vw_inicio_clientes_nfe
 ORDER BY primera_ejecucion, cliente;
 
+-- Clientes procesados hoy
+SELECT
+    cliente, max(iniciado), proceso
+FROM monitoreo_bots
+WHERE proceso = 'NFE Alert'
+    AND CAST(iniciado AS DATE) = CAST(GETDATE() AS DATE)
+group by cliente, proceso
+
 -- Primera fecha de ejecución para cada cliente (fecha de incorporación)
 SELECT
     cliente,

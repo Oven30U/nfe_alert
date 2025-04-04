@@ -182,13 +182,11 @@ class ClienteProcessor:
     ):
         JurisdictionClass = getattr(jurisdicciones, jurisdiction)
 
-        dev_mode = os.getenv("DEV_MODE", "False").lower() == "true"
-        is_retry = dev_mode if retry is None else retry
+        instancia_visible = os.getenv("MODO_VISIBLE", "False").lower() == "true"
+        is_retry = retry if retry is True else instancia_visible
         headless = not is_retry
         if is_retry:
-            logger.info(
-                f"Creando instancia de {jurisdiction} en modo visible para reintento"
-            )
+            logger.info(f"Creando instancia de {jurisdiction} en modo visible")
 
         create_args = {
             "playwright": playwright,
@@ -470,32 +468,34 @@ class ClienteProcessor:
         Ordena el DataFrame utilizando los códigos del diccionario jurisdiccion_clases:
         1. Primero Nacional y SICNEA
         2. Luego el resto de jurisdicciones por su código numérico (ej. "901 CABA")
-        
+
         Args:
             df_final: DataFrame con los resultados a ordenar
-            
+
         Returns:
             DataFrame ordenado con índice reseteado
         """
         from config import jurisdiccion_clases
-        
+
         # Crear diccionario inverso: de nombre de clase a código de jurisdicción
         inv_jurisdiccion = {v: k for k, v in jurisdiccion_clases.items()}
-        
+
         # Crear columna de orden con el código numérico de la jurisdicción
         df_final["orden_codigo"] = df_final["Nombre"].map(inv_jurisdiccion)
-        
+
         # Crear columna de prioridad (1: Nacional/SICNEA, 2: resto)
         df_final["prioridad"] = 2
         prioridad_1 = ["Nacional", "SICNEA", "Sicnea"]
         df_final.loc[df_final["Nombre"].isin(prioridad_1), "prioridad"] = 1
-        
+
         # Ordenar primero por prioridad, luego por código de jurisdicción
         df_final = df_final.sort_values(by=["prioridad", "orden_codigo"])
-        
+
         # Eliminar columnas auxiliares
-        df_final = df_final.drop(["orden_codigo", "prioridad"], axis=1).reset_index(drop=True)
-        
+        df_final = df_final.drop(["orden_codigo", "prioridad"], axis=1).reset_index(
+            drop=True
+        )
+
         return df_final
 
     def obtener_username(self):

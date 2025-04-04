@@ -1,6 +1,8 @@
-import sys
-import os
 import asyncio
+import functools
+import os
+import sys
+
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 
@@ -11,23 +13,45 @@ load_dotenv()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from jurisdicciones import (
-    Catamarca,
-    SantiagoDelEstero,
-    Cordoba,
-    Arba,
-    Salta,
-    Chaco,
-    Sicnea,
     Agip,
-    RioNegro,
-    Nacional,
+    Arba,
+    Catamarca,
+    Chaco,
+    Cordoba,
     EntreRios,
-    SanLuis,
-    Tucuman,
+    Formosa,
     LaPampa,
     Mendoza,
-    Formosa,
+    Nacional,
+    RioNegro,
+    Salta,
+    SanLuis,
+    SantiagoDelEstero,
+    Sicnea,
+    Tucuman,
 )
+
+
+def run_multiple(iterations: int = 5):
+    """
+    Decorador que ejecuta la función decorada 'iterations' veces,
+    mostrando si hubo algún error en cada iteración.
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            for i in range(iterations):
+                print(f"Ejecutando iteración {i + 1}")
+                try:
+                    await func(*args, **kwargs)
+                    print(f"Iteración {i + 1} finalizada con éxito.")
+                except Exception as e:
+                    print(f"Error en la iteración {i + 1}: {e}")
+
+        return wrapper
+
+    return decorator
 
 
 async def catamarca_test():
@@ -53,6 +77,7 @@ async def catamarca_test():
         await catamarca.procesar_jurisdiccion()
 
 
+@run_multiple(iterations=5)
 async def santiago_test():
     async with async_playwright() as playwright:
         fecha_desde = os.getenv("FECHA_DESDE")
@@ -135,6 +160,7 @@ async def salta_test():
         fecha_desde = os.getenv("FECHA_DESDE")
         fecha_hasta = os.getenv("FECHA_HASTA")
         client = os.getenv("TEST_SALTA_CLIENT")
+        client_folder = os.getenv("TEST_SALTA_CLIENT_FOLDER")
         cuit_Salta = os.getenv("TEST_SALTA_CUIT")
         clave_fiscal_Salta = os.getenv("TEST_SALTA_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_SALTA_CUIT_CLIENTE_INPUT")
@@ -142,6 +168,7 @@ async def salta_test():
         salta = await Salta.create(
             playwright,
             client,
+            client_folder,
             cuit_Salta,
             clave_fiscal_Salta,
             fecha_desde,
@@ -230,6 +257,7 @@ async def rio_negro_test():
         fecha_hasta = os.getenv("FECHA_HASTA")
 
         client = os.getenv("TEST_RIO_NEGRO_CLIENT")
+        client_folder = os.getenv("TEST_RIO_NEGRO_CLIENT_FOLDER")
         cuit_rio_negro = os.getenv("TEST_RIO_NEGRO_CUIT")
         clave_fiscal_rio_negro = os.getenv("TEST_RIO_NEGRO_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_RIO_NEGRO_CUIT_CLIENTE_INPUT")
@@ -237,6 +265,7 @@ async def rio_negro_test():
         rio_negro = await RioNegro.create(
             playwright,
             client,
+            client_folder,
             cuit_rio_negro,
             clave_fiscal_rio_negro,
             fecha_desde,
@@ -324,6 +353,7 @@ async def tucuman_test():
         fecha_hasta = os.getenv("FECHA_HASTA")
 
         client = os.getenv("TEST_TUCUMAN_CLIENT")
+        client_folder = os.getenv("TEST_TUCUMAN_CLIENT_FOLDER")
         cuit_tucuman = os.getenv("TEST_TUCUMAN_CUIT")
         clave_fiscal_tucuman = os.getenv("TEST_TUCUMAN_CLAVE_FISCAL")
         cuit_cliente_input = os.getenv("TEST_TUCUMAN_CUIT_CLIENTE_INPUT")
@@ -331,6 +361,7 @@ async def tucuman_test():
         tucuman = await Tucuman.create(
             playwright,
             client,
+            client_folder,
             cuit_tucuman,
             clave_fiscal_tucuman,
             fecha_desde,
@@ -418,8 +449,8 @@ def send_email_smtp_test():
     """
     Test manual para enviar el correo con contraseña del zip
     """
-    from correo_cli import send_email_smtp
     from conectar_db import read_and_modify_html
+    from correo_cli import send_email_smtp
 
     # Lista de elementos para el cuarto atributo de read_and_modify_html
     elementos = list(
@@ -456,7 +487,7 @@ def send_email_smtp_test():
 
 if __name__ == "__main__":
     # asyncio.run(catamarca_test())
-    # asyncio.run(santiago_test())
+    asyncio.run(santiago_test())
     # asyncio.run(cordoba_test())
     # asyncio.run(arba_test())
     # asyncio.run(salta_test())
@@ -471,4 +502,4 @@ if __name__ == "__main__":
     # asyncio.run(la_pampa_test())
     # send_email_smtp_test()
     # asyncio.run(mendoza_test())
-    asyncio.run(formosa_test())
+    # asyncio.run(formosa_test())
