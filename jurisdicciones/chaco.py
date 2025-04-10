@@ -108,7 +108,9 @@ class Chaco(Jurisdiccion):
         await self.page.locator("#vCONTRASENA").fill(f"{self._clave_fiscal}")
         await self.page.locator("//input[@name='BUTTON1']").click()
         if await self.page.is_visible("text=Contribuyente no habilitado"):
-            raise LoginError(self.cliente)
+            raise LoginError(self.cliente, "Contribuyente no habilitado")
+        if await self.page.is_visible("text=Ingrese su nueva Clave Fiscal"):
+            raise LoginError(self.cliente, LoginError.CREDENCIALES_EXPIRADAS)
         await self.page.wait_for_load_state("networkidle")
         await self.page.wait_for_load_state("load")
         await self.page.locator("//input[@name='BTNACEPTAR']").click()

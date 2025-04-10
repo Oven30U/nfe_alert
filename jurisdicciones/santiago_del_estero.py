@@ -80,17 +80,17 @@ class SantiagoDelEstero(Jurisdiccion):
         await self.page.locator("//input[@id='vUSUID']").fill(f"{self._cuit}")
         await self.page.locator("//input[@id='vUSUPWD']").fill(f"{self._clave_fiscal}")
         await self.page.locator("//input[@value='Confirmar']").click()
-        await self.page.wait_for_load_state("load", timeout=60000)
+        await self.page.wait_for_load_state("load", timeout=10000)
         await self.page.wait_for_selector(
-            "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[1]", timeout=60000
+            "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[1]", timeout=10000
         )
         await self.page.locator(
             "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[1]"
         ).click()
-        await self.page.wait_for_load_state("load", timeout=60000)
+        await self.page.wait_for_load_state("load", timeout=10000)
         await self.page.wait_for_selector(
             "(//a[contains(text(),'Ingreso Sistema Domicilio Fiscal Electrónico')])",
-            timeout=60000,
+            timeout=10000,
         )
         await self.page.locator(
             "(//a[contains(text(),'Ingreso Sistema Domicilio Fiscal Electrónico')])"
@@ -102,7 +102,7 @@ class SantiagoDelEstero(Jurisdiccion):
 
         try:
             new_page = await asyncio.wait_for(
-                self.page.wait_for_event("popup"), timeout=30000
+                self.page.wait_for_event("popup"), timeout=5000
             )
             self.logger.debug("Popup detectado!")
             await new_page.wait_for_load_state("networkidle")
@@ -118,7 +118,7 @@ class SantiagoDelEstero(Jurisdiccion):
                 "document.querySelector('#proceed-button').click();"
             )
             await self.page.wait_for_selector(
-                "//h3[contains(text(), 'Bandeja de Entrada')]", timeout=60000
+                "//h3[contains(text(), 'Bandeja de Entrada')]", timeout=5000
             )
             # await new_page.goto(
             #     "https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml"

@@ -261,3 +261,28 @@ def crear_mapa_argentina(df, output_file):
     # plt.show()
     # Guardar el gráfico como una imagen
     plt.savefig(output_file, bbox_extra_artists=(legend, df_legend))
+
+
+if __name__ == "__main__":
+    import pandas as pd
+
+    df_test = pd.DataFrame(
+        {
+            "Nombre": ["Agip", "Arba", "Cordoba", "Mendoza"],
+            "Notificacion": [
+                "Hay notificaciones",
+                "No hay notificaciones",
+                "Hay notificaciones",
+                "No hay notificaciones",
+            ],
+            "Screenshot": [
+                "Se realizó Screenshot",
+                "Se realizó Screenshot",
+                "Se realizó Screenshot",
+                "Se realizó Screenshot",
+            ],
+            "Error": [None, None, None, None],
+        }
+    )
+
+    crear_mapa(df_test, "mapa_prueba_blanco.png")

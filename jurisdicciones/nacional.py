@@ -109,8 +109,8 @@ class Nacional(Jurisdiccion):
                 # Usar wait_for_selector en lugar de is_visible para mayor precisión
                 await self.new_page.wait_for_selector(
                     'h5:has-text("Notificaciones de oficio")', 
-                    timeout=60000,  # 10 segundos es suficiente
-                    state="visible"  # Asegurar que sea visible
+                    timeout=10000,
+                    state="visible"
                 )
                 self.logger.info("Encabezado 'Notificaciones de oficio' encontrado")
                 

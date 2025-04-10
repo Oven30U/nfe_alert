@@ -23,6 +23,7 @@ from jurisdicciones import (
     LaPampa,
     Mendoza,
     Nacional,
+    Neuquen,
     RioNegro,
     Salta,
     SanLuis,
@@ -54,395 +55,130 @@ def run_multiple(iterations: int = 5):
     return decorator
 
 
-async def catamarca_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
+async def generic_test(jurisdiccion, clase_jurisdiccion, headless=False, iterations=1):
+    """
+    Función genérica para ejecutar tests de jurisdicciones.
 
-        client = os.getenv("TEST_CATAMARCA_CLIENT")
-        cuit_Catamarca = os.getenv("TEST_CATAMARCA_CUIT")
-        clave_fiscal_Catamarca = os.getenv("TEST_CATAMARCA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_CATAMARCA_CUIT_CLIENTE_INPUT")
+    Args:
+        jurisdiccion: Nombre de la jurisdicción en mayúscula (igual que la variable de entorno)
+        clase_jurisdiccion: Clase correspondiente a la jurisdicción a probar
+        headless: Indica si el navegador debe correr en modo sin interfaz gráfica
+        iterations: Número de veces que se debe repetir el test
+    """
+    jurisdiccion_upper = jurisdiccion.upper()
 
-        catamarca = await Catamarca.create(
-            playwright,
-            client,
-            cuit_Catamarca,
-            clave_fiscal_Catamarca,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await catamarca.procesar_jurisdiccion()
+    for i in range(iterations):
+        if iterations > 1:
+            print(f"Ejecutando iteración {i + 1} de {iterations} para {jurisdiccion}")
 
+        try:
+            async with async_playwright() as playwright:
+                fecha_desde = os.getenv("FECHA_DESDE")
+                fecha_hasta = os.getenv("FECHA_HASTA")
 
-@run_multiple(iterations=5)
-async def santiago_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
+                # Obtener variables específicas de la jurisdicción
+                client = os.getenv(f"TEST_{jurisdiccion_upper}_CLIENT")
+                client_folder = os.getenv(
+                    f"TEST_{jurisdiccion_upper}_CLIENT_FOLDER", client
+                )
+                cuit = os.getenv(f"TEST_{jurisdiccion_upper}_CUIT")
+                clave_fiscal = os.getenv(f"TEST_{jurisdiccion_upper}_CLAVE_FISCAL")
+                cuit_cliente_input = os.getenv(
+                    f"TEST_{jurisdiccion_upper}_CUIT_CLIENTE_INPUT"
+                )
 
-        cuit_SantiagoDelEstero = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT")
-        clave_fiscal_SantiagoDelEstero = os.getenv(
-            "TEST_SANTIAGO_DEL_ESTERO_CLAVE_FISCAL"
-        )
-        cuit_cliente_input = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT_CLIENTE_INPUT")
-        client = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLIENT")
-        client_folder = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLIENT_FOLDER")
+                # Crear instancia de la jurisdicción
+                instance = await clase_jurisdiccion.create(
+                    playwright,
+                    client,
+                    client_folder,
+                    cuit,
+                    clave_fiscal,
+                    fecha_desde,
+                    fecha_hasta,
+                    cuit_cliente_input,
+                    headless=headless,
+                )
 
-        santiago_del_estero = await SantiagoDelEstero.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_SantiagoDelEstero,
-            clave_fiscal_SantiagoDelEstero,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await santiago_del_estero.procesar_jurisdiccion()
+                # Procesar la jurisdicción
+                await instance.procesar_jurisdiccion()
 
+            if iterations > 1:
+                print(f"Iteración {i + 1} completada con éxito.")
 
-async def cordoba_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_CORDOBA_CLIENT")
-        client_folder = os.getenv("TEST_CORDOBA_CLIENT_FOLDER")
-        cuit_Cordoba = os.getenv("TEST_CORDOBA_CUIT")
-        clave_fiscal_Cordoba = os.getenv("TEST_CORDOBA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_CORDOBA_CUIT_CLIENTE_INPUT")
-
-        cordoba = await Cordoba.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_Cordoba,
-            clave_fiscal_Cordoba,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await cordoba.procesar_jurisdiccion()
+        except Exception as e:
+            print(f"Error en {jurisdiccion} (iteración {i + 1}): {e}")
+            if iterations == 1:  # Si solo hay una iteración, propagar el error
+                raise
 
 
-async def arba_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_ARBA_CLIENT")
-        client_folder = os.getenv("TEST_ARBA_CLIENT_FOLDER")
-        cuit_Arba = os.getenv("TEST_ARBA_CUIT")
-        clave_fiscal_Arba = os.getenv("TEST_ARBA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_ARBA_CLIENTE_INPUT")
-
-        arba = await Arba.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_Arba,
-            clave_fiscal_Arba,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await arba.procesar_jurisdiccion()
+# Definir funciones específicas para cada jurisdicción que usan la función genérica
+async def catamarca_test(headless=False, iterations=1):
+    await generic_test("CATAMARCA", Catamarca, headless, iterations)
 
 
-async def salta_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-        client = os.getenv("TEST_SALTA_CLIENT")
-        client_folder = os.getenv("TEST_SALTA_CLIENT_FOLDER")
-        cuit_Salta = os.getenv("TEST_SALTA_CUIT")
-        clave_fiscal_Salta = os.getenv("TEST_SALTA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_SALTA_CUIT_CLIENTE_INPUT")
-
-        salta = await Salta.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_Salta,
-            clave_fiscal_Salta,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await salta.procesar_jurisdiccion()
+async def santiago_test(headless=False, iterations=1):
+    await generic_test("SANTIAGO_DEL_ESTERO", SantiagoDelEstero, headless, iterations)
 
 
-async def sicnea_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-        client = os.getenv("TEST_SICNEA_CLIENT")
-        client_folder = os.getenv("TEST_SICNEA_CLIENT_FOLDER")
-        cuit_sicnea = os.getenv("TEST_SICNEA_CUIT")
-        clave_fiscal_sicnea = os.getenv("TEST_SICNEA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_SICNEA_CUIT_CLIENTE_INPUT")
-
-        sicnea = await Sicnea.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_sicnea,
-            clave_fiscal_sicnea,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await sicnea.procesar_jurisdiccion()
+async def cordoba_test(headless=False, iterations=1):
+    await generic_test("CORDOBA", Cordoba, headless, iterations)
 
 
-async def chaco_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_CHACO_CLIENT")
-        cuit_chaco = os.getenv("TEST_CHACO_CUIT")
-        clave_fiscal_chaco = os.getenv("TEST_CHACO_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_CHACO_CUIT_CLIENTE_INPUT")
-
-        chaco = await Chaco.create(
-            playwright,
-            client,
-            cuit_chaco,
-            clave_fiscal_chaco,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await chaco.procesar_jurisdiccion()
+async def arba_test(headless=False, iterations=1):
+    await generic_test("ARBA", Arba, headless, iterations)
 
 
-async def agip_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_AGIP_CLIENT")
-        client_folder = os.getenv("TEST_SICNEA_CLIENT_FOLDER")
-        cuit_agip = os.getenv("TEST_AGIP_CUIT")
-        clave_fiscal_agip = os.getenv("TEST_AGIP_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_AGIP_CUIT_CLIENTE_INPUT")
-
-        agip = await Agip.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_agip,
-            clave_fiscal_agip,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await agip.procesar_jurisdiccion()  # https://claveciudad.agip.gob.ar/
+async def salta_test(headless=False, iterations=1):
+    await generic_test("SALTA", Salta, headless, iterations)
 
 
-async def rio_negro_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_RIO_NEGRO_CLIENT")
-        client_folder = os.getenv("TEST_RIO_NEGRO_CLIENT_FOLDER")
-        cuit_rio_negro = os.getenv("TEST_RIO_NEGRO_CUIT")
-        clave_fiscal_rio_negro = os.getenv("TEST_RIO_NEGRO_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_RIO_NEGRO_CUIT_CLIENTE_INPUT")
-
-        rio_negro = await RioNegro.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_rio_negro,
-            clave_fiscal_rio_negro,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await rio_negro.procesar_jurisdiccion()
+async def sicnea_test(headless=False, iterations=1):
+    await generic_test("SICNEA", Sicnea, headless, iterations)
 
 
-async def nacional_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_NACIONAL_CLIENT")
-        client_folder = os.getenv("TEST_NACIONAL_CLIENT_FOLDER")
-        cuit_nacional = os.getenv("TEST_NACIONAL_CUIT")
-        clave_fiscal_nacional = os.getenv("TEST_NACIONAL_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_NACIONAL_CUIT_CLIENTE_INPUT")
-
-        nacional = await Nacional.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_nacional,
-            clave_fiscal_nacional,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await nacional.procesar_jurisdiccion()
+async def chaco_test(headless=False, iterations=1):
+    await generic_test("CHACO", Chaco, headless, iterations)
 
 
-async def entre_rios_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_ENTRERIOS_CLIENT")
-        cuit_entre_rios = os.getenv("TEST_ENTRERIOS_CUIT")
-        clave_fiscal_entre_rios = os.getenv("TEST_ENTRERIOS_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_ENTRERIOS_CUIT_CLIENTE_INPUT")
-
-        entre_rios = await EntreRios.create(
-            playwright,
-            client,
-            cuit_entre_rios,
-            clave_fiscal_entre_rios,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await entre_rios.procesar_jurisdiccion()
+async def agip_test(headless=False, iterations=1):
+    await generic_test("AGIP", Agip, headless, iterations)
 
 
-async def san_luis_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_SANLUIS_CLIENT")
-        cuit_san_luis = os.getenv("TEST_SANLUIS_CUIT")
-        clave_fiscal_san_luis = os.getenv("TEST_SANLUIS_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_SANLUIS_CUIT_CLIENTE_INPUT")
-
-        san_luis = await SanLuis.create(
-            playwright,
-            client,
-            cuit_san_luis,
-            clave_fiscal_san_luis,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await san_luis.procesar_jurisdiccion()
+async def rio_negro_test(headless=False, iterations=1):
+    await generic_test("RIO_NEGRO", RioNegro, headless, iterations)
 
 
-async def tucuman_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_TUCUMAN_CLIENT")
-        client_folder = os.getenv("TEST_TUCUMAN_CLIENT_FOLDER")
-        cuit_tucuman = os.getenv("TEST_TUCUMAN_CUIT")
-        clave_fiscal_tucuman = os.getenv("TEST_TUCUMAN_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_TUCUMAN_CUIT_CLIENTE_INPUT")
-
-        tucuman = await Tucuman.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_tucuman,
-            clave_fiscal_tucuman,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await tucuman.procesar_jurisdiccion()
+async def nacional_test(headless=False, iterations=1):
+    await generic_test("NACIONAL", Nacional, headless, iterations)
 
 
-async def la_pampa_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_LA_PAMPA_CLIENT")
-        cuit_la_pampa = os.getenv("TEST_LA_PAMPA_CUIT")
-        clave_fiscal_la_pampa = os.getenv("TEST_LA_PAMPA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_LA_PAMPA_CUIT_CLIENTE_INPUT")
-
-        la_pampa = await LaPampa.create(
-            playwright,
-            client,
-            cuit_la_pampa,
-            clave_fiscal_la_pampa,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await la_pampa.procesar_jurisdiccion()
+async def entre_rios_test(headless=False, iterations=1):
+    await generic_test("ENTRERIOS", EntreRios, headless, iterations)
 
 
-async def mendoza_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_MENDOZA_CLIENT")
-        client_folder = os.getenv("TEST_MENDOZA_CLIENT_FOLDER")
-        cuit_mendoza = os.getenv("TEST_MENDOZA_CUIT")
-        clave_fiscal_mendoza = os.getenv("TEST_MENDOZA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_MENDOZA_CUIT_CLIENTE_INPUT")
-
-        mendoza = await Mendoza.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_mendoza,
-            clave_fiscal_mendoza,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await mendoza.procesar_jurisdiccion()
+async def san_luis_test(headless=False, iterations=1):
+    await generic_test("SANLUIS", SanLuis, headless, iterations)
 
 
-async def formosa_test():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
+async def tucuman_test(headless=False, iterations=1):
+    await generic_test("TUCUMAN", Tucuman, headless, iterations)
 
-        client = os.getenv("TEST_FORMOSA_CLIENT")
-        client_folder = os.getenv("TEST_FORMOSA_CLIENT_FOLDER")
-        cuit_formosa = os.getenv("TEST_FORMOSA_CUIT")
-        clave_fiscal_formosa = os.getenv("TEST_FORMOSA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_FORMOSA_CUIT_CLIENTE_INPUT")
 
-        formosa = await Formosa.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_formosa,
-            clave_fiscal_formosa,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await formosa.procesar_jurisdiccion()
+async def la_pampa_test(headless=False, iterations=1):
+    await generic_test("LA_PAMPA", LaPampa, headless, iterations)
+
+
+async def mendoza_test(headless=False, iterations=1):
+    await generic_test("MENDOZA", Mendoza, headless, iterations)
+
+
+async def formosa_test(headless=False, iterations=1):
+    await generic_test("FORMOSA", Formosa, headless, iterations)
+
+
+async def neuquen_test(headless=False, iterations=1):
+    await generic_test("NEUQUEN", Neuquen, headless, iterations)
 
 
 def send_email_smtp_test():
@@ -485,21 +221,50 @@ def send_email_smtp_test():
         )
 
 
+# Función para ejecutar fácilmente cualquier test enviando su nombre
+async def run_test_by_name(test_name, headless=False, iterations=1):
+    tests = {
+        "catamarca": catamarca_test,
+        "santiago": santiago_test,
+        "cordoba": cordoba_test,
+        "arba": arba_test,
+        "salta": salta_test,
+        "sicnea": sicnea_test,
+        "chaco": chaco_test,
+        "agip": agip_test,
+        "rio_negro": rio_negro_test,
+        "nacional": nacional_test,
+        "entre_rios": entre_rios_test,
+        "san_luis": san_luis_test,
+        "tucuman": tucuman_test,
+        "la_pampa": la_pampa_test,
+        "mendoza": mendoza_test,
+        "formosa": formosa_test,
+        "neuquen": neuquen_test,
+    }
+
+    if test_name.lower() in tests:
+        await tests[test_name.lower()](headless, iterations)
+    else:
+        print(
+            f"Test '{test_name}' no encontrado. Tests disponibles: {', '.join(tests.keys())}"
+        )
+
+
 if __name__ == "__main__":
-    # asyncio.run(catamarca_test())
-    asyncio.run(santiago_test())
-    # asyncio.run(cordoba_test())
-    # asyncio.run(arba_test())
-    # asyncio.run(salta_test())
-    # asyncio.run(chaco_test())
-    # asyncio.run(sicnea_test())
-    # asyncio.run(agip_test())
-    # asyncio.run(rio_negro_test())
-    # asyncio.run(nacional_test())
-    # asyncio.run(entre_rios_test())
-    # asyncio.run(san_luis_test())
-    # asyncio.run(tucuman_test())
-    # asyncio.run(la_pampa_test())
+    # Ejemplos de cómo ejecutar los tests:
+
+    # 1. Ejecutar un test específico:
+    asyncio.run(neuquen_test(headless=False))
+
+    # 2. Ejecutar un test con múltiples iteraciones:
+    # asyncio.run(santiago_test(headless=False, iterations=5))
+
+    # 3. Ejecutar un test por nombre:
+    # asyncio.run(run_test_by_name('nacional', headless=False))
+
+    # 4. Ejecutar el test de email:
     # send_email_smtp_test()
-    # asyncio.run(mendoza_test())
-    # asyncio.run(formosa_test())
+
+    # Descomentar la línea correspondiente al test que se desea ejecutar
+    pass

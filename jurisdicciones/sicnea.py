@@ -3,7 +3,7 @@ from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
 
-from jurisdicciones.jurisdiccion import Jurisdiccion
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 from logger import Logger
 
@@ -103,6 +103,18 @@ class Sicnea(Jurisdiccion):
             "xpath=//td[contains(text(), 'CONEXION')]"
         )
         if conexion_selector:
+            # Verificar si el CUIT existe en las opciones antes de seleccionarlo
+            dropdown = await self.new_page_2.query_selector("xpath=//select[@id='cmbEmpresa']")
+            if dropdown:
+                # Obtener todas las opciones disponibles
+                options = await dropdown.evaluate('''(dropdown) => {
+                    return Array.from(dropdown.options).map(option => option.value);
+                }''')
+                
+                # Verificar si el CUIT del cliente está en las opciones
+                if self.cuit_cliente_input not in options:
+                    raise LoginError(self.cliente, LoginError.PENDIENTE_DELEGACION)
+                    
             await self.new_page_2.select_option(
                 "xpath=//select[@id='cmbEmpresa']", value=self.cuit_cliente_input
             )

@@ -40,10 +40,28 @@ class LoggedException(Exception):
 class LoginError(LoggedException):
     """Excepción lanzada por errores en el inicio de sesión."""
 
-    DEFAULT_MESSAGE = "Credenciales inválidas"
+    # Mensajes predefinidos para los errores más comunes
+    CREDENCIALES_INVALIDAS = "Credenciales inválidas"
+    SERVICIO_NO_DISPONIBLE = "Servicio no disponible"
+    PENDIENTE_DELEGACION = "Servicio pendiente de delegación"
+    SESION_EXPIRADA = "Sesión expirada"
+    CREDENCIALES_ARCA = "Credenciales ARCA inválidas"
+    PENDIENTE_ACEPTACION = "Pendiente de aceptación de T&C"
+    CREDENCIALES_EXPIRADAS = "Credenciales expiradas"
 
-    def __init__(self, cliente, message=None):
-        super().__init__(cliente, message or self.DEFAULT_MESSAGE)
+    def __init__(self, cliente, mensaje=None):
+        """
+        Inicializa una excepción de error de login.
+
+        Args:
+            cliente: Nombre del cliente afectado
+            mensaje: Mensaje personalizado o uno de los predefinidos (usa las constantes de clase)
+        """
+        # Guardar el mensaje original para referencia
+        self.mensaje_original = mensaje
+
+        # El message que se pasa a LoggedException será el mensaje personalizado o predefinido
+        super().__init__(cliente, mensaje or self.CREDENCIALES_INVALIDAS)
 
 
 class LoginErrorAfip(LoginError):
@@ -487,11 +505,81 @@ class Jurisdiccion(ABC):
     async def _ejecutar_tomar_screenshot(self) -> Optional[str]:
         """Ejecuta la toma de capturas de pantalla y maneja los errores."""
         try:
-            screenshot = await self.tomar_screenshot()
-            self.hay_screenshot = (
-                "Se realizó Screenshot" if screenshot else "No se realizó Screenshot"
-            )
-            return None
+            # Si hay un error previo, intentar usar tomar_screenshot_error si está disponible
+            if self.error:
+                error_type = None
+                # Determinar el tipo de error si existe
+                if hasattr(self.error, "__class__") and hasattr(
+                    self.error.__class__, "__name__"
+                ):
+                    error_type = self.error.__class__.__name__
+
+                # Comprobar si la instancia tiene implementado el método tomar_screenshot_error
+                if hasattr(self, "tomar_screenshot_error") and callable(
+                    getattr(self, "tomar_screenshot_error")
+                ):
+                    try:
+                        self.logger.info(
+                            f"Usando método específico tomar_screenshot_error para {self.nombre}"
+                        )
+                        screenshot = await self.tomar_screenshot_error(
+                            error_type=error_type
+                        )
+                        self.hay_screenshot = (
+                            "Se realizó Screenshot"
+                            if screenshot
+                            else "No se realizó Screenshot"
+                        )
+                        return None
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Error al usar tomar_screenshot_error: {e}. Usando método estándar."
+                        )
+                        # Si falla el método específico, continuamos con el método estándar
+
+                # Método estándar de captura de pantalla sin manejo de parámetro extra
+                try:
+                    nombre_extra = "error" if self.error else None
+                    if nombre_extra:
+                        # Intentar con el parámetro nombre_extra
+                        screenshot = await self.tomar_screenshot(
+                            nombre_extra=nombre_extra
+                        )
+                    else:
+                        # Sin parámetro extra
+                        screenshot = await self.tomar_screenshot()
+
+                except TypeError as e:
+                    # Si hay un error de tipo, es probable que el método no acepte nombre_extra
+                    if "unexpected keyword argument 'nombre_extra'" in str(e):
+                        self.logger.warning(
+                            f"El método tomar_screenshot de {self.nombre} no acepta nombre_extra, tomando screenshot básico"
+                        )
+                        screenshot = await self.tomar_screenshot()
+                    else:
+                        # Si es otro tipo de error, propagar la excepción
+                        raise e
+
+                self.hay_screenshot = (
+                    "Se realizó Screenshot"
+                    if screenshot
+                    else "No se realizó Screenshot"
+                )
+                return None
+
+            # Si no hay error, intentar el tomar_screenshot normal
+            try:
+                screenshot = await self.tomar_screenshot()
+                self.hay_screenshot = (
+                    "Se realizó Screenshot"
+                    if screenshot
+                    else "No se realizó Screenshot"
+                )
+                return None
+            except Exception as e:
+                self.logger.error(f"Error al tomar screenshot: {e}")
+                raise
+
         except Exception as e:
             if not self.error:  # Solo establecer error si no hay uno previo
                 self.error = TomarScreenshotError(self.cliente)
@@ -499,6 +587,59 @@ class Jurisdiccion(ABC):
                 str(self.error) if self.error else "Error al tomar screenshot"
             )
             return "TomarScreenshotError"
+
+    async def tomar_screenshot_error(self, error_type=None):
+        """Toma un screenshot cuando ocurre un error.
+
+        Implementación base simple que agrega un sufijo con información del error al nombre del archivo.
+        Las clases derivadas pueden sobreescribir este método para comportamientos específicos.
+
+        Args:
+            error_type: Tipo opcional de error para incluir en el nombre del archivo
+
+        Returns:
+            bool: True si el screenshot se tomó correctamente, False en caso contrario
+        """
+        try:
+            # Determinar el mejor sufijo para el nombre del archivo
+            error_suffix = "error"
+            
+            # Prioridad al mensaje original si existe
+            if hasattr(self.error, "mensaje_original") and self.error.mensaje_original:
+                # Normalizar mensaje para usarlo en nombre de archivo (reemplazar espacios y caracteres especiales)
+                mensaje_normalizado = str(self.error.mensaje_original).replace(" ", "_").replace("/", "_")
+                error_suffix = f"error_{mensaje_normalizado}"
+            # Si no hay mensaje original pero hay tipo de error, usarlo
+            elif error_type:
+                error_suffix = f"error_{error_type}"
+
+            # Usar la página principal por defecto
+            self.logger.info(f"Tomando screenshot de error para {self.nombre}: {error_suffix}")
+
+            # Verificar si el método tomar_screenshot acepta nombre_extra
+            try:
+                # Intentar con el parámetro nombre_extra
+                self.hay_screenshot = await self.tomar_screenshot(
+                    nombre_extra=error_suffix
+                )
+            except TypeError as e:
+                # Si hay un error de tipo, es probable que el método no acepte nombre_extra
+                if "unexpected keyword argument 'nombre_extra'" in str(e):
+                    self.logger.warning(
+                        f"El método tomar_screenshot de {self.nombre} no acepta nombre_extra, tomando screenshot básico"
+                    )
+                    self.hay_screenshot = await self.tomar_screenshot()
+                else:
+                    # Si es otro tipo de error, propagar la excepción
+                    raise e
+
+            return self.hay_screenshot
+        except Exception as e:
+            self.logger.error(
+                f"Error al tomar screenshot de error en {self.nombre}: {str(e)}"
+            )
+            self.hay_screenshot = False
+            return False
 
     def enviar_correo_errores(self, error):
         servidor_smtp = os.getenv("SERVIDOR_SMTP")

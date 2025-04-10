@@ -222,8 +222,10 @@ class ClienteProcessor:
             else:
                 instancias_a_procesar.append(instance)
 
-        cantidad_reintentos = os.getenv("LIMITES_REINTENTO", 5)
-        semaforo = asyncio.Semaphore(5)  # Máximo 5 jurisdicciones concurrentes
+        cantidad_jurisdicciones_concurrentes = int(os.getenv("JURISDICCIONES_CONCURRENTES", 5))
+        semaforo = asyncio.Semaphore(
+            cantidad_jurisdicciones_concurrentes
+        )
 
         async def procesar_con_limite(instance):
             async with semaforo:
