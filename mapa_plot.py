@@ -268,10 +268,9 @@ if __name__ == "__main__":
 
     df_test = pd.DataFrame(
         {
-            "Nombre": ["Agip", "Arba", "Cordoba", "Mendoza"],
+            "Nombre": ["RioNegro", "SanJuan", "Neuquen"],
             "Notificacion": [
                 "Hay notificaciones",
-                "No hay notificaciones",
                 "Hay notificaciones",
                 "No hay notificaciones",
             ],
@@ -279,9 +278,8 @@ if __name__ == "__main__":
                 "Se realizó Screenshot",
                 "Se realizó Screenshot",
                 "Se realizó Screenshot",
-                "Se realizó Screenshot",
             ],
-            "Error": [None, None, None, None],
+            "Error": [None, None, None],
         }
     )
 

@@ -52,13 +52,11 @@ clientes_si_verificar_config = [
     # "EDGE ARGENTINA S.R.L",
     # "J&J ARGENTINA S.A",
     # "BIOMARIN ARGENTINA S.R.L",
-    
     "TRANSPORTADORA DE GAS DEL SUR S.A",
     # "FUNDACION TGS",
     # "COMPANIA DE INVERSIONES DE ENERGIA S.A",
     # "GAS LINK S.A",
     # "TELCOSUR S.A",
-
     # "JOHNSON & JOHNSON MEDICAL S.A",
     # "JANSSEN CILAG FARMACEUTICA S.A",
     # "PFIZER S.R.L - ARCA",
@@ -103,6 +101,7 @@ CLIENTES_CON_DOCUMENTACION = [
     "COMPANIA DE INVERSIONES DE ENERGIA S.A",
     "GAS LINK S.A",
     "TELCOSUR S.A",
+    "THE BRITISH COUNCIL",
 ]
 
 # Criterio de self.client_folder

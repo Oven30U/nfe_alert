@@ -80,6 +80,14 @@ class Chaco(Jurisdiccion):
         )
         return self
 
+    async def verificar_errores_login(self):
+        if await self.page.is_visible("text=Contribuyente no habilitado"):
+            raise LoginError(self.cliente, "Contribuyente no habilitado")
+        if await self.page.is_visible("text=Ingrese su nueva Clave Fiscal"):
+            raise LoginError(self.cliente, LoginError.CREDENCIALES_EXPIRADAS)
+        if await self.page.is_visible("text=Clave Fiscal incorrecta"):
+            raise LoginError(self.cliente, LoginError.CREDENCIALES_EXPIRADAS)
+
     async def consultar_notificaciones(self):
         await self.page.goto(
             "https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/iniciocontribuyente",
@@ -107,10 +115,7 @@ class Chaco(Jurisdiccion):
         await self.page.locator("#vCONCUIT").fill(f"{self._cuit}")
         await self.page.locator("#vCONTRASENA").fill(f"{self._clave_fiscal}")
         await self.page.locator("//input[@name='BUTTON1']").click()
-        if await self.page.is_visible("text=Contribuyente no habilitado"):
-            raise LoginError(self.cliente, "Contribuyente no habilitado")
-        if await self.page.is_visible("text=Ingrese su nueva Clave Fiscal"):
-            raise LoginError(self.cliente, LoginError.CREDENCIALES_EXPIRADAS)
+        await self.verificar_errores_login()
         await self.page.wait_for_load_state("networkidle")
         await self.page.wait_for_load_state("load")
         await self.page.locator("//input[@name='BTNACEPTAR']").click()
