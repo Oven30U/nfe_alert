@@ -15,16 +15,22 @@ from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
 from logger import Logger
 from models import MonitoreoBots, MonitoreoBotsBackup
+from obtener_datos_clientes.obtener_datos_clientes import ObtenerDatosClientes, ProcesamientoGlobalManager, Cliente
+from obtener_datos_clientes.db import SessionLocal
 
 logger = Logger.get_logger()
 
 
 async def main():
+    # Registrar procesamiento global y obtener su ID
+    procesamiento_global = ProcesamientoGlobalManager.registrar_procesamiento()
+    procesamiento_id = procesamiento_global.id if procesamiento_global else None
+    
     async with async_playwright() as playwright:
         df_input = obtener_datos_clientes()
         if df_input.empty:
             logger.info("No se encontraron clientes para procesar.")
-            registrar_sin_clientes()
+            registrar_sin_clientes(procesamiento_id)
             return
 
         df_por_cliente = df_input.groupby(["client_folder", "Cliente"])
@@ -38,12 +44,23 @@ async def main():
             try:
                 cuit_cliente = group["cuit_cliente"].values[0]
                 client_folder = group["client_folder"].values[0]
+                
+                # Obtener el ID del cliente desde la base de datos si está disponible
+                cliente_id = None
+                if os.getenv("INPUT_DATA_FROM_DB").lower() == "true":
+                    with SessionLocal() as db:
+                        cliente_record = db.query(Cliente).filter(Cliente.client_folder == client_folder).first()
+                        if cliente_record:
+                            cliente_id = cliente_record.id
+                
                 processor = ClienteProcessor(
                     cliente=cliente,
                     group=group,
                     cuit_cliente=cuit_cliente,
                     inicio=inicio,
                     client_folder=client_folder,
+                    cliente_id=cliente_id,
+                    procesamiento_id=procesamiento_id
                 )
                 processor.respaldar_archivos()
 
@@ -128,15 +145,24 @@ async def main():
                 except Exception as reg_error:
                     logger.error("Error al registrar ejecución: %s", reg_error)
 
+        # Al finalizar, actualizar el estado del procesamiento global
+        if procesamiento_global:
+            ProcesamientoGlobalManager.finalizar_procesamiento(procesamiento_global, True)
+        
         delete_zip_files_in_backup(os.getenv("PATH_ESTRUCTURA_ROBOT"))
 
 
 def obtener_datos_clientes():
-    df_clientes = obtener_clientes(
-        jurisdiccion_clases=jurisdiccion_clases,
-    )
+    if os.getenv("INPUT_DATA_FROM_DB").lower() == "true":
+        obtener_datos = ObtenerDatosClientes()
+        obtener_datos.run()
+        return obtener_datos.data
+    else:
+        df_clientes = obtener_clientes(
+            jurisdiccion_clases=jurisdiccion_clases,
+        )
+        return df_clientes
 
-    return df_clientes
 
 
 def get_clientes_procesados_hoy() -> set[str]:
@@ -207,20 +233,25 @@ def managed_session(db_type="sqlserver"):
             session.close()
 
 
-def registrar_sin_clientes():
-    proceso = "Revision de Domicilios Fiscales Electronicos"
-    cliente = "TaxTech"
-    username = "TaxTech"
-    estado_value = "Correcto"
-    inicio_value = datetime.now()
-
-    conectar_db(
-        proceso=proceso,
-        cliente=cliente,
-        username=username,
-        inicio_value=inicio_value,
-        estado_value=estado_value,
-    )
+def registrar_sin_clientes(procesamiento_id=None):
+    """
+    Cuando no hay clientes para procesar, simplemente finaliza el procesamiento global
+    sin crear registros en monitoreo_bots.
+    
+    Args:
+        procesamiento_id: ID del procesamiento global que debe finalizarse
+    """
+    logger.info("No hay clientes para procesar hoy. Finalizando procesamiento global.")
+    
+    if procesamiento_id:
+        # Buscar el procesamiento global correspondiente y marcarlo como finalizado
+        try:
+            ProcesamientoGlobalManager.finalizar_procesamiento_sin_clientes(procesamiento_id)
+            logger.info(f"Procesamiento global {procesamiento_id} finalizado correctamente sin clientes.")
+        except Exception as e:
+            logger.error(f"Error al finalizar procesamiento global {procesamiento_id}: {str(e)}")
+    else:
+        logger.warning("No se pudo finalizar el procesamiento global: ID no proporcionado")
 
 
 if __name__ == "__main__":

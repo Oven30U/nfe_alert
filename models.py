@@ -28,13 +28,16 @@ class MonitoreoBots(Base):
 
 class MonitoreoBotsBackup(Base):
     __tablename__ = "monitoreo_bots_backup"
-    id = Column(SmallInteger, primary_key=True, autoincrement=True)
-    username = Column(String, nullable=False)
-    proceso = Column(String, nullable=False)
-    estado = Column(String, nullable=False)
+
+    id = Column(Integer, primary_key=True, index=True)
+    proceso = Column(String(255), nullable=False)
+    cliente = Column(String(255), nullable=False)
+    username = Column(String(255), nullable=False)
+    estado = Column(String(50), nullable=False)
     iniciado = Column(DateTime, nullable=True)
     finalizado = Column(DateTime, nullable=True)
-    cliente = Column(String, nullable=False)
+    cliente_id = Column(Integer, nullable=True)  # Nuevo campo
+    procesamiento_diario_global_id = Column(Integer, nullable=True)  # Nuevo campo
 
 
 class UsuarioAutorizado(Base):

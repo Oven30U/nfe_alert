@@ -30,6 +30,8 @@ class ClienteProcessor:
         cuit_cliente: str,
         inicio: datetime,
         client_folder: str,
+        cliente_id: int = None,
+        procesamiento_id: int = None,
     ):
         self.cliente: str = cliente
         self.client_folder = client_folder
@@ -37,6 +39,8 @@ class ClienteProcessor:
         self.cuit_cliente: str = cuit_cliente
         self.inicio: datetime = inicio
         self.client_folder: str = client_folder
+        self.cliente_id = cliente_id
+        self.procesamiento_id = procesamiento_id
         self.output_folder, self.backup_folder = self.preparar_directorios()
         self.correo_output: str = self.obtener_correo()
         self.socio_responsable: str = self.obtener_socio()
@@ -523,4 +527,6 @@ class ClienteProcessor:
             username=self.obtener_username(),
             inicio_value=inicio,
             estado_value=estado,
+            cliente_id=self.cliente_id,
+            procesamiento_id=self.procesamiento_id
         )

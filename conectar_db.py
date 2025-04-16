@@ -14,12 +14,13 @@ from config import PATH_HTML_SET_PASS, DIAS_VIGENCIA_PASS_ZIP, CORREO_NOTIFICACI
 from database import get_session, get_sqlite_session
 from correo_cli import send_email_smtp
 from models import (
-    MonitoreoBots,
     MonitoreoBotsBackup,
     UsuarioAutorizado,
     Cliente,
     UsuarioCliente,
 )
+from obtener_datos_clientes.models import MonitoreoBots  # Importar desde obtener_datos_clientes
+from logger import Logger
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,6 +28,7 @@ load_dotenv()
 # Define a constant for the sender email
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 
+logger = Logger.get_logger()
 
 def transfer_records_to_sql_server(session: Session, sqlite_records):
     for record in sqlite_records:
@@ -204,41 +206,81 @@ def insert_records(
 
 
 def conectar_db(
-    proceso: str,
-    cliente: str,
-    username: str = os.getlogin(),
-    inicio_value: datetime = datetime.now(),
-    estado_value: str = "Correcto",
+    proceso, 
+    cliente, 
+    username, 
+    inicio_value, 
+    estado_value, 
+    cliente_id=None, 
+    procesamiento_id=None
 ):
-    session = None
-    sqlite_session = None
-    fin_value = datetime.now()
-
+    """
+    Registra la ejecución en la base de datos SQL Server y en SQLite como respaldo.
+    
+    Args:
+        proceso (str): Nombre del proceso ejecutado
+        cliente (str): Nombre del cliente procesado
+        username (str): Usuario que ejecutó el proceso
+        inicio_value (datetime): Fecha y hora de inicio del proceso
+        estado_value (str): Estado final del proceso
+        cliente_id (int, optional): ID del cliente en la base de datos
+        procesamiento_id (int, optional): ID del procesamiento diario global
+    """
+    # Primero intentar registrar en SQL Server
     try:
-        session = get_session()
-    except Exception as e:
-        print(f"Error al conectar con la base de datos SQL Server: {e}")
-
-    try:
-        sqlite_session = get_sqlite_session()
-    except Exception as e:
-        print(f"Error al conectar con la base de datos SQLite: {e}")
-
-    if session:
-        insert_records(
-            session, username, proceso, estado_value, inicio_value, fin_value, cliente
-        )
-
-    if sqlite_session:
-        insert_records_sqlite(
-            sqlite_session,
-            username,
-            proceso,
-            estado_value,
-            inicio_value,
-            fin_value,
-            cliente,
-        )
+        session = None
+        try:
+            session = get_session()
+            monitoreo_bots = MonitoreoBots(
+                proceso=proceso,
+                cliente=cliente,
+                username=username,
+                iniciado=inicio_value,
+                finalizado=datetime.now(),
+                estado=estado_value,
+                cliente_id=cliente_id,
+                id_procesamiento_diario_global=procesamiento_id  # Usar el nombre de campo correcto
+            )
+            session.add(monitoreo_bots)
+            session.commit()
+            logger.info(f"Registro exitoso en SQL Server para {cliente}")
+        except Exception as e:
+            if session:
+                session.rollback()
+            logger.error(f"Error al registrar en SQL Server: {e}")
+            raise
+        finally:
+            if session:
+                session.close()
+    except Exception:
+        # Si hay error en SQL Server, registrar en SQLite como respaldo
+        try:
+            session = None
+            try:
+                session = get_sqlite_session()
+                monitoreo_bots_backup = MonitoreoBotsBackup(
+                    proceso=proceso,
+                    cliente=cliente,
+                    username=username,
+                    iniciado=inicio_value,
+                    finalizado=datetime.now(),
+                    estado=estado_value,
+                    # Nota: Asegúrate de que MonitoreoBotsBackup tenga estos campos
+                    cliente_id=cliente_id,
+                    procesamiento_diario_global_id=procesamiento_id
+                )
+                session.add(monitoreo_bots_backup)
+                session.commit()
+                logger.info(f"Registro respaldo exitoso en SQLite para {cliente}")
+            except Exception as e:
+                if session:
+                    session.rollback()
+                logger.error(f"Error al registrar en SQLite: {e}")
+            finally:
+                if session:
+                    session.close()
+        except Exception as e:
+            logger.error(f"Error general en conexión a bases de datos: {e}")
 
 
 def get_clientes_ejecutados_hoy_with_retries(
