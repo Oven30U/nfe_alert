@@ -268,7 +268,7 @@ if __name__ == "__main__":
 
     df_test = pd.DataFrame(
         {
-            "Nombre": ["RioNegro", "SanJuan", "Neuquen"],
+            "Nombre": ["Salta", "LaPampa", "Chaco"],
             "Notificacion": [
                 "Hay notificaciones",
                 "Hay notificaciones",

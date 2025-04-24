@@ -66,6 +66,7 @@ clientes_si_verificar_config = [
     # "ULTRAGENYX ARGENTINA S.R.L",
     # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
     # "MAGNETI MARELLI REPUESTOS S.A",
+    "SPOTIFY ARGENTINA S.A",
 ]
 SIN_DEBUG_EJECUTAR_LISTA = (
     False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes

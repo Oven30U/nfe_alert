@@ -77,7 +77,7 @@ class Agip(Jurisdiccion):
 
     async def consultar_notificaciones(self):
         try:
-            await self.page.goto("https://claveciudad.agip.gob.ar/", timeout=1200000)
+            await self.page.goto("https://claveciudad.agip.gob.ar/", timeout=100000)
             await self.page.fill('xpath=//*[@id="cuit"]', f"{self._cuit}")
             await self.page.fill('xpath=//*[@id="clave"]', f"{self._clave_fiscal}")
             await self.page.click("xpath=//a[normalize-space()='Ingresar']")
@@ -93,7 +93,7 @@ class Agip(Jurisdiccion):
             await self.page.fill(
                 'xpath=//*[@id="filtro_app"]',
                 "Domicilio Fiscal Electrónico",
-                timeout=90000,
+                timeout=10000,
             )
 
             # Intento principal de navegación
@@ -105,7 +105,7 @@ class Agip(Jurisdiccion):
             except Exception:
                 # Ruta alternativa
                 await self.page.click(
-                    "xpath=//*[@onclick='ir_servicio(54, 0)']", timeout=900000
+                    "xpath=//*[@onclick='ir_servicio(54, 0)']", timeout=100000
                 )
                 # Clickear en Representados
                 await self.page.wait_for_selector(
@@ -118,18 +118,18 @@ class Agip(Jurisdiccion):
                 )
                 # Seleccionar el DFE del CUIT representado
                 await self.page.wait_for_selector(
-                    f"a[data-id='{self._cuit_cliente_input}']", timeout=900000
+                    f"a[data-id='{self._cuit_cliente_input}']", timeout=100000
                 )
                 await self.page.click(
-                    f"xpath=//*[a[@data-id={self._cuit_cliente_input}]]", timeout=900000
+                    f"xpath=//*[a[@data-id={self._cuit_cliente_input}]]", timeout=100000
                 )
 
             # Esta parte siempre debe ejecutarse si no hubo excepciones previas
             boton_filtro = (
                 "xpath=//button[@class='btnNoLeidas btn btn-default']"  # no_leidas
             )
-            await self.page.wait_for_selector(boton_filtro, timeout=900000)
-            await self.page.click(boton_filtro, timeout=900000)  # 15 min
+            await self.page.wait_for_selector(boton_filtro, timeout=100000)
+            await self.page.click(boton_filtro, timeout=100000)  # 15 min
 
         except LoginError as le:
             # Re-lanzar errores de login directamente sin convertirlos

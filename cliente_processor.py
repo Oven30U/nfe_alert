@@ -514,7 +514,7 @@ class ClienteProcessor:
 
     def registrar_ejecucion(self, proceso, inicio, estado):
         # Verificar si estamos en modo desarrollo
-        if os.getenv("DEV_MODE", "False").lower() == "true":
+        if os.getenv("GRABAR_EJECUCIONES", "false").lower() == "false":
             logger.info(
                 f"Modo desarrollo: Omitiendo registro de ejecución para {self.cliente}"
             )
