@@ -276,7 +276,68 @@ class ClienteProcessor:
         df = pd.DataFrame(
             resultados, columns=["Nombre", "Notificacion", "Screenshot", "Error"]
         )
+        
+        # Actualizar fecha_login_error para errores de login
+        if self.cliente_id is not None:  # Solo si tenemos ID de cliente
+            await self.actualizar_fecha_login_error(df)
+            
         return df
+
+    async def actualizar_fecha_login_error(self, df_final: pd.DataFrame) -> None:
+        """
+        Actualiza el campo fecha_login_error en la tabla ClienteJurisdiccion 
+        cuando se detectan errores de login.
+        
+        Args:
+            df_final: DataFrame con los resultados de la ejecución
+        """
+        from datetime import datetime
+        from sqlalchemy import update
+        from obtener_datos_clientes.db import SessionLocal
+        from obtener_datos_clientes.models import ClienteJurisdiccion, Jurisdiccion  # Correct import path
+        
+        # Verificar si hay errores de login
+        login_errors = df_final[df_final["Error"].isin(["LoginError", "LoginErrorAfip"])]
+        
+        if login_errors.empty:
+            logger.debug("No se encontraron errores de login para actualizar")
+            return
+        
+        try:
+            with SessionLocal() as db:
+                # Para cada jurisdicción con error de login
+                for _, row in login_errors.iterrows():
+                    jurisdiccion_name = row["Nombre"]
+                    
+                    # Obtener el ID de la jurisdicción
+                    jurisdiccion = db.query(Jurisdiccion).filter(
+                        Jurisdiccion.clase == jurisdiccion_name
+                    ).first()
+                    
+                    if not jurisdiccion:
+                        logger.warning(f"No se encontró la jurisdicción '{jurisdiccion_name}' en la base de datos")
+                        continue
+                    
+                    # Actualizar fecha_login_error para esta jurisdicción y cliente
+                    stmt = update(ClienteJurisdiccion).where(
+                        ClienteJurisdiccion.cliente_id == self.cliente_id,
+                        ClienteJurisdiccion.jurisdiccion_id == jurisdiccion.id
+                    ).values(
+                        fecha_login_error=datetime.now()
+                    )
+                    
+                    result = db.execute(stmt)
+                    db.commit()
+                    
+                    logger.info(
+                        f"Actualizado fecha_login_error para cliente_id={self.cliente_id}, "
+                        f"jurisdiccion='{jurisdiccion_name}' (id={jurisdiccion.id}). "
+                        f"Filas afectadas: {result.rowcount}"
+                    )
+                    
+        except Exception as e:
+            logger.error(f"Error al actualizar fecha_login_error: {str(e)}")
+            # No propagamos la excepción para que el flujo principal del programa continúe
 
     async def reintentar_errores(self, playwright, df_final):
         errores = df_final[
