@@ -113,6 +113,7 @@ class MonitoreoBots(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(255), nullable=False)
+    proceso = Column(String(50), nullable=False, default="NFE Alert")
     estado = Column(String(50), nullable=False)
     iniciado = Column(DateTime(timezone=True), nullable=True)
     finalizado = Column(DateTime(timezone=True), nullable=True)

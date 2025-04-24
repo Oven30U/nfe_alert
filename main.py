@@ -3,6 +3,7 @@ import os
 from contextlib import contextmanager
 from datetime import date, datetime
 
+import pandas as pd
 from playwright.async_api import async_playwright
 
 from cliente_processor import ClienteProcessor
@@ -15,8 +16,12 @@ from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
 from logger import Logger
 from models import MonitoreoBots, MonitoreoBotsBackup
-from obtener_datos_clientes.obtener_datos_clientes import ObtenerDatosClientes, ProcesamientoGlobalManager, Cliente
 from obtener_datos_clientes.db import SessionLocal
+from obtener_datos_clientes.obtener_datos_clientes import (
+    Cliente,
+    ObtenerDatosClientes,
+    ProcesamientoGlobalManager,
+)
 
 logger = Logger.get_logger()
 
@@ -25,7 +30,10 @@ async def main():
     # Registrar procesamiento global y obtener su ID
     procesamiento_global = ProcesamientoGlobalManager.registrar_procesamiento()
     procesamiento_id = procesamiento_global.id if procesamiento_global else None
-    
+
+    # Obtener el número de procesamientos diarios máximo de las variables de entorno
+    PROCESAMIENTOS_DIARIOS = int(os.getenv("PROCESAMIENTOS_DIARIOS", 3))
+
     async with async_playwright() as playwright:
         df_input = obtener_datos_clientes()
         if df_input.empty:
@@ -44,15 +52,19 @@ async def main():
             try:
                 cuit_cliente = group["cuit_cliente"].values[0]
                 client_folder = group["client_folder"].values[0]
-                
+
                 # Obtener el ID del cliente desde la base de datos si está disponible
                 cliente_id = None
                 if os.getenv("INPUT_DATA_FROM_DB").lower() == "true":
                     with SessionLocal() as db:
-                        cliente_record = db.query(Cliente).filter(Cliente.client_folder == client_folder).first()
+                        cliente_record = (
+                            db.query(Cliente)
+                            .filter(Cliente.client_folder == client_folder)
+                            .first()
+                        )
                         if cliente_record:
                             cliente_id = cliente_record.id
-                
+
                 processor = ClienteProcessor(
                     cliente=cliente,
                     group=group,
@@ -60,7 +72,7 @@ async def main():
                     inicio=inicio,
                     client_folder=client_folder,
                     cliente_id=cliente_id,
-                    procesamiento_id=procesamiento_id
+                    procesamiento_id=procesamiento_id,
                 )
                 processor.respaldar_archivos()
 
@@ -116,6 +128,21 @@ async def main():
                 )
                 # Estado ya está configurado como "Erróneo" por defecto
             finally:
+                # Verificar si necesitamos modificar los destinatarios del correo basado en el estado y número de procesamiento
+                if (
+                    estado != "Correcto"
+                    and procesamiento_global
+                    and procesamiento_global.numero_procesamiento
+                    < PROCESAMIENTOS_DIARIOS
+                ):
+                    logger.info(
+                        f"Modificando destinatarios del correo para {cliente} debido a estado '{estado}' en procesamiento {procesamiento_global.numero_procesamiento}"
+                    )
+                    processor.socio_responsable = os.getenv(
+                        "CORREO_NOTIFICACION_ERROR", "rpa-tax-ar@deloitte.com"
+                    )
+                    processor.correo_output = ""
+
                 # Siempre intentar enviar correo y registrar, incluso con errores
                 if df_final is not None:
                     try:
@@ -147,22 +174,84 @@ async def main():
 
         # Al finalizar, actualizar el estado del procesamiento global
         if procesamiento_global:
-            ProcesamientoGlobalManager.finalizar_procesamiento(procesamiento_global, True)
-        
+            ProcesamientoGlobalManager.finalizar_procesamiento(
+                procesamiento_global, True
+            )
+
         delete_zip_files_in_backup(os.getenv("PATH_ESTRUCTURA_ROBOT"))
 
 
-def obtener_datos_clientes():
-    if os.getenv("INPUT_DATA_FROM_DB").lower() == "true":
+def obtener_datos_clientes() -> pd.DataFrame:
+    """
+    Obtiene los datos de clientes desde la base de datos o archivo de configuración.
+
+    En modo desarrollo (DEV_MODE=true), redirige todos los correos al correo de prueba
+    configurado en CORREO_RECEPTOR_TEST_MAIL.
+
+    Returns:
+        pd.DataFrame: DataFrame con la información de clientes y jurisdicciones a procesar
+    """
+    # Obtener datos según la fuente configurada
+    if os.getenv("INPUT_DATA_FROM_DB", "false").lower() == "true":
         obtener_datos = ObtenerDatosClientes()
         obtener_datos.run()
+
+        # Aplicar modificaciones si estamos en modo desarrollo
+        if os.getenv("DEV_MODE", "false").lower() == "true":
+            logger.info(
+                "Ejecutando en modo desarrollo - Redirigiendo correos al correo de prueba"
+            )
+            test_email = os.getenv("CORREO_RECEPTOR_TEST_MAIL")
+
+            # Verificar que el correo de prueba esté configurado
+            if not test_email:
+                logger.warning(
+                    "CORREO_RECEPTOR_TEST_MAIL no está configurado. No se modificarán los correos."
+                )
+            else:
+                # Reemplazar correos de destino por el correo de prueba
+                if "CC: Equipo Deloitte" in obtener_datos.data.columns:
+                    obtener_datos.data["CC: Equipo Deloitte"] = test_email
+                    logger.info(
+                        f"Correos CC: Equipo Deloitte redirigidos a {test_email}"
+                    )
+
+                # Vaciar los correos de salida primarios
+                if "Correo Output" in obtener_datos.data.columns:
+                    obtener_datos.data["Correo Output"] = ""
+                    logger.info("Correos de salida (Correo Output) vaciados")
+
         return obtener_datos.data
     else:
         df_clientes = obtener_clientes(
             jurisdiccion_clases=jurisdiccion_clases,
         )
-        return df_clientes
 
+        # Aplicar modificaciones si estamos en modo desarrollo
+        if os.getenv("DEV_MODE", "false").lower() == "true":
+            logger.info(
+                "Ejecutando en modo desarrollo - Redirigiendo correos al correo de prueba"
+            )
+            test_email = os.getenv("CORREO_RECEPTOR_TEST_MAIL")
+
+            # Verificar que el correo de prueba esté configurado
+            if not test_email:
+                logger.warning(
+                    "CORREO_RECEPTOR_TEST_MAIL no está configurado. No se modificarán los correos."
+                )
+            else:
+                # Reemplazar correos de destino según el formato usado en inputs.obtener_clientes
+                if "CC: Equipo Deloitte" in df_clientes.columns:
+                    df_clientes["CC: Equipo Deloitte"] = test_email
+                    logger.info(
+                        f"Correos CC: Equipo Deloitte redirigidos a {test_email}"
+                    )
+
+                if "Correo Output" in df_clientes.columns:
+                    df_clientes["Correo Output"] = ""
+                    logger.info("Correos de salida (Correo Output) vaciados")
+
+        return df_clientes
 
 
 def get_clientes_procesados_hoy() -> set[str]:
@@ -237,21 +326,29 @@ def registrar_sin_clientes(procesamiento_id=None):
     """
     Cuando no hay clientes para procesar, simplemente finaliza el procesamiento global
     sin crear registros en monitoreo_bots.
-    
+
     Args:
         procesamiento_id: ID del procesamiento global que debe finalizarse
     """
     logger.info("No hay clientes para procesar hoy. Finalizando procesamiento global.")
-    
+
     if procesamiento_id:
         # Buscar el procesamiento global correspondiente y marcarlo como finalizado
         try:
-            ProcesamientoGlobalManager.finalizar_procesamiento_sin_clientes(procesamiento_id)
-            logger.info(f"Procesamiento global {procesamiento_id} finalizado correctamente sin clientes.")
+            ProcesamientoGlobalManager.finalizar_procesamiento_sin_clientes(
+                procesamiento_id
+            )
+            logger.info(
+                f"Procesamiento global {procesamiento_id} finalizado correctamente sin clientes."
+            )
         except Exception as e:
-            logger.error(f"Error al finalizar procesamiento global {procesamiento_id}: {str(e)}")
+            logger.error(
+                f"Error al finalizar procesamiento global {procesamiento_id}: {str(e)}"
+            )
     else:
-        logger.warning("No se pudo finalizar el procesamiento global: ID no proporcionado")
+        logger.warning(
+            "No se pudo finalizar el procesamiento global: ID no proporcionado"
+        )
 
 
 if __name__ == "__main__":
