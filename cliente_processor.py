@@ -3,6 +3,7 @@ import glob
 import os
 import shutil
 from datetime import datetime
+from typing import Optional
 
 import pandas as pd
 import pyminizip
@@ -90,23 +91,137 @@ class ClienteProcessor:
         else:
             return None
 
+    def filtrar_jurisdicciones_por_login_error(self) -> None:
+        """
+        Filtra las jurisdicciones que no deben procesarse debido a errores de login recientes,
+        pero las mantiene en el DataFrame con un mensaje indicativo para mostrarlas en el resultado final.
+
+        Modifica el DataFrame self.group añadiendo las columnas 'Saltar', 'Error' y 'Notificacion'
+        para las jurisdicciones que deben saltarse por error de login reciente.
+        """
+        from sqlalchemy import text
+        from obtener_datos_clientes.db import SessionLocal
+        from obtener_datos_clientes.models import (
+            Cliente,
+            ClienteJurisdiccion,
+            Jurisdiccion,
+        )
+
+        # Añadir columnas para marcar jurisdicciones a saltar
+        if "Saltar" not in self.group.columns:
+            self.group["Saltar"] = False
+        if "Error" not in self.group.columns:
+            self.group["Error"] = None
+        if "Notificacion" not in self.group.columns:
+            self.group["Notificacion"] = None
+
+        # Solo continuar si tenemos cliente_id
+        if self.cliente_id is None:
+            logger.debug("No se puede filtrar por login_error: cliente_id es None")
+            return
+
+        try:
+            with SessionLocal() as db:
+                # Obtener todas las jurisdicciones del cliente actual
+                for idx, row in self.group.iterrows():
+                    jurisdiccion_name = row["Jurisdiccion"]
+
+                    # Obtener IDs de cliente y jurisdicción
+                    jurisdiccion = (
+                        db.query(Jurisdiccion)
+                        .filter(Jurisdiccion.clase == jurisdiccion_name)
+                        .first()
+                    )
+
+                    if not jurisdiccion:
+                        logger.warning(
+                            f"No se encontró jurisdicción con clase={jurisdiccion_name}"
+                        )
+                        continue
+
+                    # Obtener el registro ClienteJurisdiccion
+                    cliente_jurisdiccion = (
+                        db.query(ClienteJurisdiccion)
+                        .filter(
+                            ClienteJurisdiccion.cliente_id == self.cliente_id,
+                            ClienteJurisdiccion.jurisdiccion_id == jurisdiccion.id,
+                        )
+                        .first()
+                    )
+
+                    if not cliente_jurisdiccion:
+                        logger.warning(
+                            f"No se encontró relación cliente-jurisdicción para {self.client_folder}-{jurisdiccion_name}"
+                        )
+                        continue
+
+                    # Verificar si se debe procesar
+                    if cliente_jurisdiccion.fecha_login_error is None:
+                        # No hay error de login, procesar normalmente
+                        continue
+
+                    # Si hay error de login pero se han actualizado las credenciales después, procesar y resetear error
+                    if (
+                        cliente_jurisdiccion.fecha_actualizacion
+                        and cliente_jurisdiccion.fecha_login_error
+                        < cliente_jurisdiccion.fecha_actualizacion
+                    ):
+                        # En este caso, resetear fecha_login_error
+                        try:
+                            # Usamos SQL directo para no actualizar fecha_actualizacion
+                            sql = text("""
+                                UPDATE cliente_jurisdiccion
+                                SET fecha_login_error = NULL
+                                WHERE id = :id
+                            """)
+
+                            db.execute(sql, {"id": cliente_jurisdiccion.id})
+                            db.commit()
+                            logger.info(
+                                f"Reset de fecha_login_error para ClienteJurisdiccion id={cliente_jurisdiccion.id}"
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                f"Error al resetear fecha_login_error: {str(e)}"
+                            )
+
+                        continue
+
+                    # Si el error es más reciente que la actualización, marcar para saltar
+                    self.group.loc[idx, "Saltar"] = True
+                    self.group.loc[idx, "Error"] = "LoginError"
+                    self.group.loc[idx, "Notificacion"] = "Credenciales inválidas"
+                    logger.info(
+                        f"Marcando jurisdicción {jurisdiccion_name} para saltarla por error de login reciente"
+                    )
+
+        except Exception as e:
+            logger.error(f"Error al filtrar jurisdicciones por login_error: {str(e)}")
+
     async def procesar_jurisdicciones(self, playwright):
         """
         Procesa todas las jurisdicciones del cliente con un orden específico.
+        Respeta las marcas de jurisdicciones que deben saltarse por errores de login recientes.
 
         Returns:
-            Tuple con (instancias, encontradas, no_encontradas)
+            Tuple con (instancias, encontradas, no_encontradas, saltadas_por_dependencia, login_error_nacional)
         """
+        # Filtrar jurisdicciones con errores de login recientes
+        self.filtrar_jurisdicciones_por_login_error()
+
         jurisdicciones_dependientes = os.getenv(
             "JURISDICCIONES_DEPENDIENTES_NACIONAL", ""
         ).split(",")
         instances = []
         encontradas = []
         no_encontradas = []
-        saltadas_por_dependencia = []  # ← Nueva lista para jurisdicciones saltadas
-        login_error_nacional = None  # ← Guardar el tipo de error específico
+        saltadas_por_dependencia = []
+        login_error_nacional = None
 
-        # 1. Clasificar las jurisdicciones en 3 grupos: Nacional, dependientes, y otras
+        # Resultados pre-marcados para jurisdicciones con error de login reciente
+        jurisdicciones_con_error_login = []
+
+        # 1. Clasificar las jurisdicciones en distintos grupos
         nacional_instance = None
         jurisdicciones_dependientes_instances = []
         otras_jurisdicciones_instances = []
@@ -114,7 +229,22 @@ class ClienteProcessor:
         for _, row in self.group.iterrows():
             try:
                 jurisdiction = row["Jurisdiccion"]
-                # Intentar crear la instancia
+
+                # Verificar si esta jurisdicción debe saltarse por error de login reciente
+                if "Saltar" in row and row["Saltar"]:
+                    # Agregar a la lista de jurisdicciones con error pero sin procesarlas
+                    jurisdicciones_con_error_login.append(
+                        {
+                            "nombre": jurisdiction,
+                            "notificacion": row["Notificacion"],
+                            "screenshot": "No se realizó Screenshot",
+                            "error": row["Error"],
+                        }
+                    )
+                    encontradas.append(jurisdiction)
+                    continue
+
+                # Procesamiento normal para jurisdicciones sin error de login reciente
                 instance = await self.crear_instancia_jurisdiccion(
                     playwright, row, jurisdiction
                 )
@@ -142,15 +272,13 @@ class ClienteProcessor:
                 instances.append(nacional_instance)
 
                 # Verificar si hubo error de login
-                error_type = result[3]  # El tipo de error está en la posición 3
+                error_type = result[3]
                 if error_type == "LoginError" or error_type == "LoginErrorAfip":
                     logger.warning(
                         "Error de login en Nacional. Filtrando jurisdicciones dependientes."
                     )
                     error_nacional = True
-                    login_error_nacional = (
-                        error_type  # ← Guardar el tipo exacto de error
-                    )
+                    login_error_nacional = error_type
 
             except Exception as e:
                 logger.error(f"Error procesando Nacional: {e}")
@@ -160,9 +288,7 @@ class ClienteProcessor:
         if error_nacional:
             for instance in jurisdicciones_dependientes_instances:
                 encontradas.remove(instance.nombre)
-                saltadas_por_dependencia.append(
-                    (instance, login_error_nacional)
-                )  # ← Guardar la instancia y el tipo
+                saltadas_por_dependencia.append((instance, login_error_nacional))
                 no_encontradas.append(instance.nombre)
                 logger.info(
                     f"Saltando {instance.nombre} debido a error de login en Nacional"
@@ -179,6 +305,7 @@ class ClienteProcessor:
             no_encontradas,
             saltadas_por_dependencia,
             login_error_nacional,
+            jurisdicciones_con_error_login,  # Nueva lista de jurisdicciones con error de login reciente
         )
 
     async def crear_instancia_jurisdiccion(
@@ -206,9 +333,24 @@ class ClienteProcessor:
         return await JurisdictionClass.create(**create_args)
 
     async def ejecutar_jurisdicciones(
-        self, instances, saltadas_por_dependencia=None, login_error_nacional=None
-    ):
-        """Ejecuta todas las instancias en paralelo y devuelve los resultados en un DataFrame."""
+        self,
+        instances: list,
+        saltadas_por_dependencia: Optional[list] = None,
+        login_error_nacional: Optional[str] = None,
+        jurisdicciones_con_error_login: Optional[list] = None,
+    ) -> pd.DataFrame:
+        """
+        Ejecuta todas las instancias en paralelo y devuelve los resultados en un DataFrame.
+
+        Args:
+            instances: Lista de instancias de jurisdicciones a procesar.
+            saltadas_por_dependencia: Lista de jurisdicciones saltadas por dependencia.
+            login_error_nacional: Error de login en jurisdicción Nacional, si aplica.
+            jurisdicciones_con_error_login: Lista de jurisdicciones con errores de login recientes.
+
+        Returns:
+            pd.DataFrame: DataFrame con los resultados de la ejecución.
+        """
         # Instancias de Nacional ya fueron procesadas, solo procesar el resto
         nacional_results = []
         instancias_a_procesar = []
@@ -220,16 +362,16 @@ class ClienteProcessor:
                         instance.nombre,
                         instance.hay_notificacion,
                         instance.hay_screenshot,
-                        login_error_nacional,  # Usar el error real de login si existe
+                        login_error_nacional,
                     )
                 )
             else:
                 instancias_a_procesar.append(instance)
 
-        cantidad_jurisdicciones_concurrentes = int(os.getenv("JURISDICCIONES_CONCURRENTES", 5))
-        semaforo = asyncio.Semaphore(
-            cantidad_jurisdicciones_concurrentes
+        cantidad_jurisdicciones_concurrentes = int(
+            os.getenv("JURISDICCIONES_CONCURRENTES", 5)
         )
+        semaforo = asyncio.Semaphore(cantidad_jurisdicciones_concurrentes)
 
         async def procesar_con_limite(instance):
             async with semaforo:
@@ -273,21 +415,34 @@ class ClienteProcessor:
                         f"Error al cerrar recursos de {instance.nombre}: {e}"
                     )
 
+        # Añadir jurisdicciones con error de login reciente
+        if jurisdicciones_con_error_login:
+            for jurisdiccion in jurisdicciones_con_error_login:
+                resultados.append(
+                    (
+                        jurisdiccion["nombre"],
+                        "Credenciales inválidas",  # Notificación específica
+                        jurisdiccion.get("screenshot", "No disponible"),
+                        jurisdiccion.get("error", "LoginError"),
+                    )
+                )
+
+        # Crear el DataFrame final
         df = pd.DataFrame(
             resultados, columns=["Nombre", "Notificacion", "Screenshot", "Error"]
         )
-        
-        # Actualizar fecha_login_error para errores de login
-        if self.cliente_id is not None:  # Solo si tenemos ID de cliente
+
+        # Actualizar fecha_login_error para nuevos errores de login
+        if self.cliente_id is not None:
             await self.actualizar_fecha_login_error(df)
-            
+
         return df
 
     async def actualizar_fecha_login_error(self, df_final: pd.DataFrame) -> None:
         """
-        Actualiza el campo fecha_login_error en la tabla ClienteJurisdiccion 
+        Actualiza el campo fecha_login_error en la tabla ClienteJurisdiccion
         cuando se detectan errores de login, sin modificar fecha_actualizacion.
-        
+
         Args:
             df_final: DataFrame con los resultados de la ejecución
         """
@@ -295,52 +450,58 @@ class ClienteProcessor:
         from sqlalchemy import text
         from obtener_datos_clientes.db import SessionLocal
         from obtener_datos_clientes.models import ClienteJurisdiccion, Jurisdiccion
-        
+
         # Verificar si hay errores de login
-        login_errors = df_final[df_final["Error"].isin(["LoginError", "LoginErrorAfip"])]
-        
+        login_errors = df_final[
+            df_final["Error"].isin(["LoginError", "LoginErrorAfip"])
+        ]
+
         if login_errors.empty:
             logger.debug("No se encontraron errores de login para actualizar")
             return
-        
+
         try:
             with SessionLocal() as db:
                 # Para cada jurisdicción con error de login
                 for _, row in login_errors.iterrows():
                     jurisdiccion_name = row["Nombre"]
-                    
+
                     # Obtener el ID de la jurisdicción
-                    jurisdiccion = db.query(Jurisdiccion).filter(
-                        Jurisdiccion.clase == jurisdiccion_name
-                    ).first()
-                    
+                    jurisdiccion = (
+                        db.query(Jurisdiccion)
+                        .filter(Jurisdiccion.clase == jurisdiccion_name)
+                        .first()
+                    )
+
                     if not jurisdiccion:
-                        logger.warning(f"No se encontró la jurisdicción '{jurisdiccion_name}' en la base de datos")
+                        logger.warning(
+                            f"No se encontró la jurisdicción '{jurisdiccion_name}' en la base de datos"
+                        )
                         continue
-                    
+
                     # Usamos SQL directo para evitar que onupdate se active en fecha_actualizacion
                     sql = text("""
                         UPDATE cliente_jurisdiccion
                         SET fecha_login_error = :now
                         WHERE cliente_id = :cliente_id AND jurisdiccion_id = :jurisdiccion_id
                     """)
-                    
+
                     result = db.execute(
-                        sql, 
+                        sql,
                         {
-                            "now": datetime.now(), 
-                            "cliente_id": self.cliente_id, 
-                            "jurisdiccion_id": jurisdiccion.id
-                        }
+                            "now": datetime.now(),
+                            "cliente_id": self.cliente_id,
+                            "jurisdiccion_id": jurisdiccion.id,
+                        },
                     )
                     db.commit()
-                    
+
                     logger.info(
                         f"Actualizado fecha_login_error para cliente_id={self.cliente_id}, "
                         f"jurisdiccion='{jurisdiccion_name}' (id={jurisdiccion.id}). "
                         f"Filas afectadas: {result.rowcount}"
                     )
-                    
+
         except Exception as e:
             logger.error(f"Error al actualizar fecha_login_error: {str(e)}")
             # No propagamos la excepción para que el flujo principal del programa continúe
@@ -596,51 +757,5 @@ class ClienteProcessor:
             inicio_value=inicio,
             estado_value=estado,
             cliente_id=self.cliente_id,
-            procesamiento_id=self.procesamiento_id
+            procesamiento_id=self.procesamiento_id,
         )
-
-    # def debe_procesar_jurisdiccion(self, cliente_jurisdiccion) -> bool:
-    #     """
-    #     Determina si una jurisdicción debe procesarse basada en fecha_login_error y fecha_actualizacion.
-        
-    #     Esta función implementa la lógica de negocio para gestionar los errores de login:
-    #     - Si no hay error de login registrado, siempre procesar
-    #     - Si se actualizaron credenciales después del último error, procesar y resetear error
-    #     - Si el error es más reciente que la última actualización, no procesar
-        
-    #     Args:
-    #         cliente_jurisdiccion: Objeto ClienteJurisdiccion a evaluar
-        
-    #     Returns:
-    #         bool: True si se debe procesar, False si se debe omitir
-    #     """
-    #     # Si no hay error de login registrado, siempre procesar
-    #     if cliente_jurisdiccion.fecha_login_error is None:
-    #         return True
-            
-    #     # Si hay error de login pero se han actualizado las credenciales después, procesar
-    #     if (cliente_jurisdiccion.fecha_actualizacion and 
-    #         cliente_jurisdiccion.fecha_login_error < cliente_jurisdiccion.fecha_actualizacion):
-    #         # En este caso, deberíamos también resetear fecha_login_error
-    #         from sqlalchemy import text
-    #         from obtener_datos_clientes.db import SessionLocal
-    #         with SessionLocal() as db:
-    #             try:
-    #                 # Usamos SQL directo para no actualizar fecha_actualizacion
-    #                 sql = text("""
-    #                     UPDATE cliente_jurisdiccion
-    #                     SET fecha_login_error = NULL
-    #                     WHERE id = :id
-    #                 """)
-                    
-    #                 db.execute(sql, {"id": cliente_jurisdiccion.id})
-    #                 db.commit()
-    #                 logger.info(f"Reset de fecha_login_error para ClienteJurisdiccion id={cliente_jurisdiccion.id}")
-    #             except Exception as e:
-    #                 logger.warning(f"Error al resetear fecha_login_error: {str(e)}")
-            
-    #         return True
-            
-    #     # Si el error de login es más reciente que la actualización de credenciales, no procesar
-    #     logger.info(f"Saltando jurisdicción {cliente_jurisdiccion.jurisdiccion.clase} por error de login reciente")
-    #     return False

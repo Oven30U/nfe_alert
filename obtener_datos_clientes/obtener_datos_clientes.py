@@ -299,8 +299,8 @@ class ObtenerDatosClientes:
             
             def calcular_fechas(row):
                 dias = row["rango_consulta_dias"] or 7
-                fecha_hasta = today.strftime("%d/%m/%Y")
-                fecha_desde = (today - timedelta(days=dias)).strftime("%d/%m/%Y")
+                fecha_hasta = today.strftime("%d%m%Y")
+                fecha_desde = (today - timedelta(days=dias)).strftime("%d%m%Y")
                 return pd.Series({"fecha_desde": fecha_desde, "fecha_hasta": fecha_hasta})
             
             fechas_df = df_merged.apply(calcular_fechas, axis=1)
@@ -312,14 +312,25 @@ class ObtenerDatosClientes:
                 "jurisdiccion_clase": "Jurisdiccion",
                 "cuit": "cuit_cliente",
                 "usuario": "Usuario",
-                "password": "Password"
+                "password": "Password",
+                "correo_output": "Correo Output",
+                "socio_responsable": "CC: Equipo Deloitte",
+                "zip_password": "ZIP_Password"
             })
             
             # Seleccionar columnas necesarias
             columns_to_keep = [
-                "Cliente", "Jurisdiccion", "client_folder", "cuit_cliente",
-                "Usuario", "Password", "fecha_desde", "fecha_hasta",
-                "correo_output", "socio_responsable", "zip_password"
+                "Cliente",
+                "Jurisdiccion",
+                "client_folder",
+                "cuit_cliente",
+                "Usuario",
+                "Password",
+                "fecha_desde",
+                "fecha_hasta",
+                "Correo Output",
+                "CC: Equipo Deloitte",
+                "ZIP_Password",
             ]
             
             df_base = df_base[columns_to_keep]
@@ -350,12 +361,12 @@ class ObtenerDatosClientes:
                 df_result["cuit_cliente"] = df_result["cuit_cliente"].astype(str)
             
             # Rellenar valores nulos en ciertas columnas
-            for col in ["correo_output", "socio_responsable", "zip_password"]:
+            for col in ["Correo Output", "CC: Equipo Deloitte", "ZIP_Password"]:
                 if col in df_result.columns:
                     df_result[col] = df_result[col].fillna("")
             
             # Agregar columnas de configuración si es necesario
-            df_result["ZIP_Password"] = df_result["zip_password"]
+            df_result["ZIP_Password"] = df_result["ZIP_Password"]
             
             # Mantener la compatibilidad con el formato anterior de query_data
             # Esto puede personalizarse según las necesidades específicas
@@ -398,20 +409,27 @@ class ObtenerDatosClientes:
 
     def filtrar_jurisdicciones_por_login_error(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Filtra las jurisdicciones que no deben procesarse debido a errores de login recientes.
+        Filtra las jurisdicciones que no deben procesarse debido a errores de login recientes,
+        pero las mantiene en el DataFrame con un mensaje indicativo para mostrarlas en el resultado final.
 
         Args:
             df: DataFrame con datos de jurisdicciones por cliente
 
         Returns:
-            pd.DataFrame: DataFrame filtrado sin las jurisdicciones que no deben procesarse
+            pd.DataFrame: DataFrame con jurisdicciones marcadas pero no eliminadas
         """
         from sqlalchemy import text
 
-        jurisdicciones_a_saltar = []
-
         # Crear una copia para no modificar el original durante la iteración
         df_result = df.copy()
+        
+        # Añadir columnas para el resultado final si no existen
+        if "Notificacion" not in df_result.columns:
+            df_result["Notificacion"] = None
+        if "Error" not in df_result.columns:
+            df_result["Error"] = None
+        if "Saltar" not in df_result.columns:
+            df_result["Saltar"] = False
 
         try:
             with SessionLocal() as db:
@@ -464,21 +482,18 @@ class ObtenerDatosClientes:
                     # Verificar si se debe procesar
                     procesar = self.debe_procesar_jurisdiccion(cliente_jurisdiccion)
                     if not procesar:
-                        jurisdicciones_a_saltar.append(
-                            (idx, cliente_folder, jurisdiccion_nombre)
+                        # En lugar de eliminar, marcar la fila como que debe saltarse
+                        df_result.loc[idx, "Notificacion"] = "Credenciales inválidas"
+                        df_result.loc[idx, "Error"] = "LoginError"
+                        df_result.loc[idx, "Saltar"] = True
+                        logger.info(
+                            f"Marcando jurisdicción {jurisdiccion_nombre} para cliente {cliente_folder} por error de login reciente"
                         )
 
         except Exception as e:
             logger.error(f"Error al filtrar jurisdicciones por login_error: {str(e)}")
 
-        # Eliminar las jurisdicciones que no deben procesarse
-        for idx, cliente, jurisdiccion in jurisdicciones_a_saltar:
-            df_result = df_result.drop(idx)
-            logger.info(
-                f"Saltando jurisdicción {jurisdiccion} para cliente {cliente} por error de login reciente"
-            )
-
-        return df_result.reset_index(drop=True)
+        return df_result
 
     def debe_procesar_jurisdiccion(self, cliente_jurisdiccion) -> bool:
         """

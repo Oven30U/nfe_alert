@@ -84,6 +84,7 @@ async def main():
                         no_encontradas,
                         saltadas_por_dependencia,
                         login_error_nacional,
+                        jurisdicciones_con_error_login,  # Agregar esta variable
                     ) = await processor.procesar_jurisdicciones(playwright)
                     logger.info(
                         "Cliente: %s - Jurisdicciones encontradas: %s - No encontradas: %s",
@@ -101,6 +102,25 @@ async def main():
                         instances, saltadas_por_dependencia, login_error_nacional
                     )
                     df_final = await processor.reintentar_errores(playwright, df_final)
+
+                    # Agregar jurisdicciones con error de login reciente al df_final
+                    if jurisdicciones_con_error_login:
+                        # Crear DataFrame y renombrar columnas para que coincidan con df_final
+                        df_error_login = pd.DataFrame(jurisdicciones_con_error_login)
+                        df_error_login.rename(
+                            columns={
+                                "nombre": "Nombre",
+                                "notificacion": "Notificacion",
+                                "screenshot": "Screenshot",
+                                "error": "Error",
+                            },
+                            inplace=True,
+                        )
+                        # Concatenar los DataFrames
+                        df_final = pd.concat(
+                            [df_final, df_error_login], ignore_index=True
+                        )
+
                     logger.info("Resultados para %s:\n%s", cliente, df_final)
                 except Exception as e:
                     logger.error("Error al ejecutar jurisdicciones: %s, %s", cliente, e)
@@ -210,14 +230,16 @@ def obtener_datos_clientes() -> pd.DataFrame:
                 )
             else:
                 # Reemplazar correos de destino por el correo de prueba
-                if "CC: Equipo Deloitte" in obtener_datos.data.columns:  #! socio_responsable
+                if (
+                    "CC: Equipo Deloitte" in obtener_datos.data.columns
+                ):  #! socio_responsable
                     obtener_datos.data["CC: Equipo Deloitte"] = test_email
                     logger.info(
                         f"Correos CC: Equipo Deloitte redirigidos a {test_email}"
                     )
 
                 # Vaciar los correos de salida primarios
-                if "Correo Output" in obtener_datos.data.columns: #! correo_output
+                if "Correo Output" in obtener_datos.data.columns:  #! correo_output
                     obtener_datos.data["Correo Output"] = ""
                     logger.info("Correos de salida (Correo Output) vaciados")
 

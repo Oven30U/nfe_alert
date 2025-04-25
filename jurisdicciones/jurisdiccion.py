@@ -332,8 +332,22 @@ class Jurisdiccion(ABC):
         """Metodo utilizado para tomar un screenshot de la sección de notificaciones de la jurisdicción."""
         if page is None:
             page = self.page
+
+        # Normalize dates by replacing slashes with underscores
+        fecha_desde_norm = (
+            self.fecha_desde.replace("/", "_")
+            if "/" in self.fecha_desde
+            else self.fecha_desde
+        )
+        fecha_hasta_norm = (
+            self.fecha_hasta.replace("/", "_")
+            if "/" in self.fecha_hasta
+            else self.fecha_hasta
+        )
+
         PATH_ESTRUCTURA_ROBOT = os.getenv("PATH_ESTRUCTURA_ROBOT")
-        base_nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.client_folder}/Output/{self.nombre}_{self.client_folder}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}"
+        base_nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.client_folder}/Output/{self.nombre}_{self.client_folder}_{fecha_desde_norm}_{fecha_hasta_norm}_{self.hora_actual}"
+
         if nombre_extra:
             base_nombre_archivo += f"_{nombre_extra}"
         extension = ".png"
@@ -386,7 +400,19 @@ class Jurisdiccion(ABC):
                 await page.wait_for_load_state("domcontentloaded")
                 await page.wait_for_load_state("load")
                 PATH_ESTRUCTURA_ROBOT = os.getenv("PATH_ESTRUCTURA_ROBOT")
-                nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.client_folder}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_{seccion}.png"
+
+                fecha_desde_norm = (
+                    self.fecha_desde.replace("/", "_")
+                    if "/" in self.fecha_desde
+                    else self.fecha_desde
+                )
+                fecha_hasta_norm = (
+                    self.fecha_hasta.replace("/", "_")
+                    if "/" in self.fecha_hasta
+                    else self.fecha_hasta
+                )
+                nombre_archivo = f"{PATH_ESTRUCTURA_ROBOT}/{self.client_folder}/Output/{self.nombre}_{self.cliente}_{fecha_desde_norm}_{fecha_hasta_norm}_{self.hora_actual}_{seccion}.png"
+
                 await page.screenshot(path=nombre_archivo, full_page=True)
                 self.hay_screenshot = True
             except Exception as e:
@@ -603,18 +629,22 @@ class Jurisdiccion(ABC):
         try:
             # Determinar el mejor sufijo para el nombre del archivo
             error_suffix = "error"
-            
+
             # Prioridad al mensaje original si existe
             if hasattr(self.error, "mensaje_original") and self.error.mensaje_original:
                 # Normalizar mensaje para usarlo en nombre de archivo (reemplazar espacios y caracteres especiales)
-                mensaje_normalizado = str(self.error.mensaje_original).replace(" ", "_").replace("/", "_")
+                mensaje_normalizado = (
+                    str(self.error.mensaje_original).replace(" ", "_").replace("/", "_")
+                )
                 error_suffix = f"error_{mensaje_normalizado}"
             # Si no hay mensaje original pero hay tipo de error, usarlo
             elif error_type:
                 error_suffix = f"error_{error_type}"
 
             # Usar la página principal por defecto
-            self.logger.info(f"Tomando screenshot de error para {self.nombre}: {error_suffix}")
+            self.logger.info(
+                f"Tomando screenshot de error para {self.nombre}: {error_suffix}"
+            )
 
             # Verificar si el método tomar_screenshot acepta nombre_extra
             try:
