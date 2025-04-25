@@ -1,9 +1,16 @@
-from obtener_datos_clientes.query_data import query_data
-from obtener_datos_clientes.db import SessionLocal
-from obtener_datos_clientes.models import ProcesamientosDiariosGlobal, Cliente
 import datetime
-from datetime import timezone
+from datetime import timezone, timedelta
+from typing import Dict, List, Optional, Union
+
+import pandas as pd
 from sqlalchemy.sql import func
+
+from logger import Logger
+from obtener_datos_clientes.db import SessionLocal
+from obtener_datos_clientes.models import Cliente, ClienteJurisdiccion, Jurisdiccion, ProcesamientosDiariosGlobal
+from obtener_datos_clientes.query_data import query_data
+
+logger = Logger.get_logger()
 
 
 class ProcesamientoGlobalManager:
@@ -77,17 +84,19 @@ class ProcesamientoGlobalManager:
     def finalizar_procesamiento_sin_clientes(procesamiento_id):
         """
         Marca un procesamiento global como finalizado cuando no hay clientes para procesar.
-        
+
         Args:
             procesamiento_id: ID del procesamiento global a finalizar
         """
         with SessionLocal() as db:
-            procesamiento = db.query(ProcesamientosDiariosGlobal).filter(
-                ProcesamientosDiariosGlobal.id == procesamiento_id
-            ).first()
-            
+            procesamiento = (
+                db.query(ProcesamientosDiariosGlobal)
+                .filter(ProcesamientosDiariosGlobal.id == procesamiento_id)
+                .first()
+            )
+
             if procesamiento:
-                procesamiento.finalizado = datetime.now()
+                procesamiento.finalizado = datetime.datetime.now(timezone.utc)
                 procesamiento.procesamiento_correcto = True
                 db.commit()
                 return True
@@ -125,17 +134,35 @@ class ObtenerDatosClientes:
         self.procesamiento = None
 
     def run(self):
-        """Ejecuta la consulta de datos."""
+        """Ejecuta el proceso de obtención y transformación de datos de clientes"""
         try:
-            self.data = query_data()
-            print(f"Datos obtenidos correctamente: {len(self.data)} registros")
-            self.display_data()
+            # Obtener datos de clientes
+            df_clientes = self.obtener_clientes_desde_db()
+            if df_clientes.empty:
+                logger.warning("No se encontraron clientes en la base de datos")
+                return
+
+            # Obtener datos de jurisdicciones para estos clientes
+            df_jurisdicciones = self.obtener_jurisdicciones_desde_db(df_clientes)
+            if df_jurisdicciones.empty:
+                logger.warning("No se encontraron jurisdicciones para los clientes")
+                return
+
+            # Crear DataFrame base con todos los datos
+            df_base = self.crear_dataframe_base(df_clientes, df_jurisdicciones)
+
+            # Filtrar jurisdicciones con errores de login recientes
+            df_filtrado = self.filtrar_jurisdicciones_por_login_error(df_base)
+
+            # Aplicar transformaciones adicionales al DataFrame
+            self.data = self.transformar_dataframe(df_filtrado)
+
+            logger.info(f"Datos obtenidos correctamente: {len(self.data)} filas")
+
         except Exception as e:
-            print(f"Error al obtener datos: {str(e)}")
-            # En caso de error, inicializar con DataFrame vacío
-            import pandas as pd
+            logger.error(f"Error al obtener datos de clientes: {str(e)}")
+            # En caso de error, asignar DataFrame vacío
             self.data = pd.DataFrame()
-            print("Se continuará con un DataFrame vacío")
 
     def display_data(self):
         """Muestra los datos obtenidos."""
@@ -158,6 +185,345 @@ class ObtenerDatosClientes:
         except Exception as e:
             print(f"Error en gestión de correos: {str(e)}")
             print("Se continuará con la ejecución principal")
+
+    def obtener_clientes_desde_db(self) -> pd.DataFrame:
+        """
+        Obtiene los clientes activos desde la base de datos.
+        
+        Returns:
+            pd.DataFrame: DataFrame con la información de los clientes
+        """
+        try:
+            with SessionLocal() as db:
+                # Obtener todos los clientes
+                clientes = db.query(Cliente).all()
+                
+                if not clientes:
+                    logger.warning("No se encontraron clientes en la base de datos")
+                    return pd.DataFrame()
+                
+                # Convertir a DataFrame
+                data = []
+                for cliente in clientes:
+                    # Filtrar por días de ejecución si está configurado
+                    if self._cliente_ejecuta_hoy(cliente):
+                        data.append({
+                            "id": cliente.id,
+                            "nombre": cliente.nombre,
+                            "cuit": cliente.cuit,
+                            "client_folder": cliente.client_folder,
+                            "correo_output": cliente.correo_output,
+                            "socio_responsable": cliente.socio_responsable,
+                            "zip_password": cliente.zip_password,
+                            "rango_consulta_dias": cliente.rango_consulta_dias
+                        })
+                
+                df_clientes = pd.DataFrame(data)
+                logger.info(f"Se obtuvieron {len(df_clientes)} clientes para procesar")
+                return df_clientes
+                
+        except Exception as e:
+            logger.error(f"Error al obtener clientes desde DB: {str(e)}")
+            return pd.DataFrame()
+
+    def obtener_jurisdicciones_desde_db(self, df_clientes: pd.DataFrame) -> pd.DataFrame:
+        """
+        Obtiene las jurisdicciones para los clientes especificados.
+        
+        Args:
+            df_clientes: DataFrame con la información de los clientes
+            
+        Returns:
+            pd.DataFrame: DataFrame con las jurisdicciones de los clientes
+        """
+        try:
+            with SessionLocal() as db:
+                data = []
+                
+                for _, cliente_row in df_clientes.iterrows():
+                    cliente_id = cliente_row["id"]
+                    
+                    # Obtener relaciones cliente-jurisdicción
+                    cliente_jurisdicciones = (
+                        db.query(ClienteJurisdiccion, Jurisdiccion)
+                        .join(Jurisdiccion, ClienteJurisdiccion.jurisdiccion_id == Jurisdiccion.id)
+                        .filter(ClienteJurisdiccion.cliente_id == cliente_id)
+                        .filter(ClienteJurisdiccion.consultar == True)
+                        .all()
+                    )
+                    
+                    for cj, jurisdiccion in cliente_jurisdicciones:
+                        data.append({
+                            "cliente_id": cliente_id,
+                            "jurisdiccion_id": jurisdiccion.id,
+                            "jurisdiccion_clase": jurisdiccion.clase,
+                            "jurisdiccion_codigo": jurisdiccion.codigo,
+                            "usuario": cj.usuario,
+                            "password": cj.password,
+                            "headless": jurisdiccion.headless
+                        })
+                
+                df_jurisdicciones = pd.DataFrame(data)
+                logger.info(f"Se obtuvieron {len(df_jurisdicciones)} jurisdicciones para los clientes")
+                return df_jurisdicciones
+                
+        except Exception as e:
+            logger.error(f"Error al obtener jurisdicciones desde DB: {str(e)}")
+            return pd.DataFrame()
+
+    def crear_dataframe_base(
+        self, df_clientes: pd.DataFrame, df_jurisdicciones: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Crea un DataFrame base con la unión de clientes y jurisdicciones.
+        
+        Args:
+            df_clientes: DataFrame con información de clientes
+            df_jurisdicciones: DataFrame con información de jurisdicciones
+            
+        Returns:
+            pd.DataFrame: DataFrame combinado con toda la información
+        """
+        try:
+            # Fusionar DataFrames
+            df_merged = pd.merge(
+                df_clientes,
+                df_jurisdicciones,
+                how="inner",
+                left_on="id",
+                right_on="cliente_id",
+            )
+            
+            # Crear campos para fechas de consulta
+            today = datetime.datetime.now()
+            
+            def calcular_fechas(row):
+                dias = row["rango_consulta_dias"] or 7
+                fecha_hasta = today.strftime("%d/%m/%Y")
+                fecha_desde = (today - timedelta(days=dias)).strftime("%d/%m/%Y")
+                return pd.Series({"fecha_desde": fecha_desde, "fecha_hasta": fecha_hasta})
+            
+            fechas_df = df_merged.apply(calcular_fechas, axis=1)
+            df_merged = pd.concat([df_merged, fechas_df], axis=1)
+            
+            # Renombrar y seleccionar columnas
+            df_base = df_merged.rename(columns={
+                "nombre": "Cliente",
+                "jurisdiccion_clase": "Jurisdiccion",
+                "cuit": "cuit_cliente",
+                "usuario": "Usuario",
+                "password": "Password"
+            })
+            
+            # Seleccionar columnas necesarias
+            columns_to_keep = [
+                "Cliente", "Jurisdiccion", "client_folder", "cuit_cliente",
+                "Usuario", "Password", "fecha_desde", "fecha_hasta",
+                "correo_output", "socio_responsable", "zip_password"
+            ]
+            
+            df_base = df_base[columns_to_keep]
+            
+            logger.info(f"DataFrame base creado con {len(df_base)} filas")
+            return df_base
+            
+        except Exception as e:
+            logger.error(f"Error al crear DataFrame base: {str(e)}")
+            return pd.DataFrame()
+    
+    def transformar_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Aplica transformaciones adicionales al DataFrame.
+        
+        Args:
+            df: DataFrame a transformar
+            
+        Returns:
+            pd.DataFrame: DataFrame transformado
+        """
+        try:
+            # Crear copia para no modificar el original
+            df_result = df.copy()
+            
+            # Asegurarse de que los campos cuit sean strings
+            if "cuit_cliente" in df_result.columns:
+                df_result["cuit_cliente"] = df_result["cuit_cliente"].astype(str)
+            
+            # Rellenar valores nulos en ciertas columnas
+            for col in ["correo_output", "socio_responsable", "zip_password"]:
+                if col in df_result.columns:
+                    df_result[col] = df_result[col].fillna("")
+            
+            # Agregar columnas de configuración si es necesario
+            df_result["ZIP_Password"] = df_result["zip_password"]
+            
+            # Mantener la compatibilidad con el formato anterior de query_data
+            # Esto puede personalizarse según las necesidades específicas
+            
+            return df_result
+            
+        except Exception as e:
+            logger.error(f"Error al transformar DataFrame: {str(e)}")
+            return df
+
+    def _cliente_ejecuta_hoy(self, cliente: Cliente) -> bool:
+        """
+        Verifica si un cliente debe ejecutarse hoy según su configuración de días.
+        
+        Args:
+            cliente: Objeto Cliente a evaluar
+            
+        Returns:
+            bool: True si el cliente debe ejecutarse hoy, False en caso contrario
+        """
+        try:
+            # Si no hay configuración de días, ejecutar siempre
+            if not cliente.dias_ejecucion:
+                return True
+                
+            # Obtener día de la semana (0-6, donde 0 es lunes)
+            dia_hoy = datetime.datetime.now().weekday()
+            
+            # Convertir a números (0-6) los días configurados
+            # Formato esperado: "0,1,4" (lunes, martes, viernes)
+            dias_config = [int(d.strip()) for d in cliente.dias_ejecucion.split(',') if d.strip().isdigit()]
+            
+            # Verificar si el día actual está en la configuración
+            return dia_hoy in dias_config
+            
+        except Exception as e:
+            logger.error(f"Error al verificar días de ejecución del cliente {cliente.nombre}: {str(e)}")
+            # En caso de error, permitir ejecución por seguridad
+            return True
+
+    def filtrar_jurisdicciones_por_login_error(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Filtra las jurisdicciones que no deben procesarse debido a errores de login recientes.
+
+        Args:
+            df: DataFrame con datos de jurisdicciones por cliente
+
+        Returns:
+            pd.DataFrame: DataFrame filtrado sin las jurisdicciones que no deben procesarse
+        """
+        from sqlalchemy import text
+
+        jurisdicciones_a_saltar = []
+
+        # Crear una copia para no modificar el original durante la iteración
+        df_result = df.copy()
+
+        try:
+            with SessionLocal() as db:
+                # Para cada fila en el DataFrame
+                for idx, row in df.iterrows():
+                    cliente_folder = row["client_folder"]
+                    jurisdiccion_nombre = row["Jurisdiccion"]
+
+                    # Obtener IDs de cliente y jurisdicción
+                    cliente = (
+                        db.query(Cliente)
+                        .filter(Cliente.client_folder == cliente_folder)
+                        .first()
+                    )
+
+                    if not cliente:
+                        logger.warning(
+                            f"No se encontró cliente con client_folder={cliente_folder}"
+                        )
+                        continue
+
+                    jurisdiccion = (
+                        db.query(Jurisdiccion)
+                        .filter(Jurisdiccion.clase == jurisdiccion_nombre)
+                        .first()
+                    )
+
+                    if not jurisdiccion:
+                        logger.warning(
+                            f"No se encontró jurisdicción con clase={jurisdiccion_nombre}"
+                        )
+                        continue
+
+                    # Obtener el registro ClienteJurisdiccion
+                    cliente_jurisdiccion = (
+                        db.query(ClienteJurisdiccion)
+                        .filter(
+                            ClienteJurisdiccion.cliente_id == cliente.id,
+                            ClienteJurisdiccion.jurisdiccion_id == jurisdiccion.id,
+                        )
+                        .first()
+                    )
+
+                    if not cliente_jurisdiccion:
+                        logger.warning(
+                            f"No se encontró relación cliente-jurisdicción para {cliente_folder}-{jurisdiccion_nombre}"
+                        )
+                        continue
+
+                    # Verificar si se debe procesar
+                    procesar = self.debe_procesar_jurisdiccion(cliente_jurisdiccion)
+                    if not procesar:
+                        jurisdicciones_a_saltar.append(
+                            (idx, cliente_folder, jurisdiccion_nombre)
+                        )
+
+        except Exception as e:
+            logger.error(f"Error al filtrar jurisdicciones por login_error: {str(e)}")
+
+        # Eliminar las jurisdicciones que no deben procesarse
+        for idx, cliente, jurisdiccion in jurisdicciones_a_saltar:
+            df_result = df_result.drop(idx)
+            logger.info(
+                f"Saltando jurisdicción {jurisdiccion} para cliente {cliente} por error de login reciente"
+            )
+
+        return df_result.reset_index(drop=True)
+
+    def debe_procesar_jurisdiccion(self, cliente_jurisdiccion) -> bool:
+        """
+        Determina si una jurisdicción debe procesarse basada en fecha_login_error y fecha_actualizacion.
+        
+        Esta función implementa la lógica de negocio para gestionar los errores de login:
+        - Si no hay error de login registrado, siempre procesar
+        - Si se actualizaron credenciales después del último error, procesar y resetear error
+        - Si el error es más reciente que la última actualización, no procesar
+        
+        Args:
+            cliente_jurisdiccion: Objeto ClienteJurisdiccion a evaluar
+        
+        Returns:
+            bool: True si se debe procesar, False si se debe omitir
+        """
+        # Si no hay error de login registrado, siempre procesar
+        if cliente_jurisdiccion.fecha_login_error is None:
+            return True
+            
+        # Si hay error de login pero se han actualizado las credenciales después, procesar
+        if (cliente_jurisdiccion.fecha_actualizacion and 
+            cliente_jurisdiccion.fecha_login_error < cliente_jurisdiccion.fecha_actualizacion):
+            # En este caso, deberíamos también resetear fecha_login_error
+            from sqlalchemy import text
+            with SessionLocal() as db:
+                try:
+                    # Usamos SQL directo para no actualizar fecha_actualizacion
+                    sql = text("""
+                        UPDATE cliente_jurisdiccion
+                        SET fecha_login_error = NULL
+                        WHERE id = :id
+                    """)
+                    
+                    db.execute(sql, {"id": cliente_jurisdiccion.id})
+                    db.commit()
+                    logger.info(f"Reset de fecha_login_error para ClienteJurisdiccion id={cliente_jurisdiccion.id}")
+                except Exception as e:
+                    logger.warning(f"Error al resetear fecha_login_error: {str(e)}")
+            
+            return True
+            
+        # Si el error de login es más reciente que la actualización de credenciales, no procesar
+        logger.info(f"Saltando jurisdicción {cliente_jurisdiccion.jurisdiccion.clase} por error de login reciente")
+        return False
 
 
 if __name__ == "__main__":

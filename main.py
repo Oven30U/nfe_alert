@@ -210,14 +210,14 @@ def obtener_datos_clientes() -> pd.DataFrame:
                 )
             else:
                 # Reemplazar correos de destino por el correo de prueba
-                if "CC: Equipo Deloitte" in obtener_datos.data.columns:
+                if "CC: Equipo Deloitte" in obtener_datos.data.columns:  #! socio_responsable
                     obtener_datos.data["CC: Equipo Deloitte"] = test_email
                     logger.info(
                         f"Correos CC: Equipo Deloitte redirigidos a {test_email}"
                     )
 
                 # Vaciar los correos de salida primarios
-                if "Correo Output" in obtener_datos.data.columns:
+                if "Correo Output" in obtener_datos.data.columns: #! correo_output
                     obtener_datos.data["Correo Output"] = ""
                     logger.info("Correos de salida (Correo Output) vaciados")
 

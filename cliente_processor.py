@@ -286,15 +286,15 @@ class ClienteProcessor:
     async def actualizar_fecha_login_error(self, df_final: pd.DataFrame) -> None:
         """
         Actualiza el campo fecha_login_error en la tabla ClienteJurisdiccion 
-        cuando se detectan errores de login.
+        cuando se detectan errores de login, sin modificar fecha_actualizacion.
         
         Args:
             df_final: DataFrame con los resultados de la ejecución
         """
         from datetime import datetime
-        from sqlalchemy import update
+        from sqlalchemy import text
         from obtener_datos_clientes.db import SessionLocal
-        from obtener_datos_clientes.models import ClienteJurisdiccion, Jurisdiccion  # Correct import path
+        from obtener_datos_clientes.models import ClienteJurisdiccion, Jurisdiccion
         
         # Verificar si hay errores de login
         login_errors = df_final[df_final["Error"].isin(["LoginError", "LoginErrorAfip"])]
@@ -318,15 +318,21 @@ class ClienteProcessor:
                         logger.warning(f"No se encontró la jurisdicción '{jurisdiccion_name}' en la base de datos")
                         continue
                     
-                    # Actualizar fecha_login_error para esta jurisdicción y cliente
-                    stmt = update(ClienteJurisdiccion).where(
-                        ClienteJurisdiccion.cliente_id == self.cliente_id,
-                        ClienteJurisdiccion.jurisdiccion_id == jurisdiccion.id
-                    ).values(
-                        fecha_login_error=datetime.now()
-                    )
+                    # Usamos SQL directo para evitar que onupdate se active en fecha_actualizacion
+                    sql = text("""
+                        UPDATE cliente_jurisdiccion
+                        SET fecha_login_error = :now
+                        WHERE cliente_id = :cliente_id AND jurisdiccion_id = :jurisdiccion_id
+                    """)
                     
-                    result = db.execute(stmt)
+                    result = db.execute(
+                        sql, 
+                        {
+                            "now": datetime.now(), 
+                            "cliente_id": self.cliente_id, 
+                            "jurisdiccion_id": jurisdiccion.id
+                        }
+                    )
                     db.commit()
                     
                     logger.info(
@@ -343,6 +349,7 @@ class ClienteProcessor:
         errores = df_final[
             (df_final["Error"].notna())
             | (df_final["Screenshot"] != "Se realizó Screenshot")
+            | (df_final["Notificacion"] == "La página se encuentra caída")
         ]
         for _, error_row in errores.iterrows():
             jurisdiction = error_row["Nombre"]
@@ -591,3 +598,49 @@ class ClienteProcessor:
             cliente_id=self.cliente_id,
             procesamiento_id=self.procesamiento_id
         )
+
+    # def debe_procesar_jurisdiccion(self, cliente_jurisdiccion) -> bool:
+    #     """
+    #     Determina si una jurisdicción debe procesarse basada en fecha_login_error y fecha_actualizacion.
+        
+    #     Esta función implementa la lógica de negocio para gestionar los errores de login:
+    #     - Si no hay error de login registrado, siempre procesar
+    #     - Si se actualizaron credenciales después del último error, procesar y resetear error
+    #     - Si el error es más reciente que la última actualización, no procesar
+        
+    #     Args:
+    #         cliente_jurisdiccion: Objeto ClienteJurisdiccion a evaluar
+        
+    #     Returns:
+    #         bool: True si se debe procesar, False si se debe omitir
+    #     """
+    #     # Si no hay error de login registrado, siempre procesar
+    #     if cliente_jurisdiccion.fecha_login_error is None:
+    #         return True
+            
+    #     # Si hay error de login pero se han actualizado las credenciales después, procesar
+    #     if (cliente_jurisdiccion.fecha_actualizacion and 
+    #         cliente_jurisdiccion.fecha_login_error < cliente_jurisdiccion.fecha_actualizacion):
+    #         # En este caso, deberíamos también resetear fecha_login_error
+    #         from sqlalchemy import text
+    #         from obtener_datos_clientes.db import SessionLocal
+    #         with SessionLocal() as db:
+    #             try:
+    #                 # Usamos SQL directo para no actualizar fecha_actualizacion
+    #                 sql = text("""
+    #                     UPDATE cliente_jurisdiccion
+    #                     SET fecha_login_error = NULL
+    #                     WHERE id = :id
+    #                 """)
+                    
+    #                 db.execute(sql, {"id": cliente_jurisdiccion.id})
+    #                 db.commit()
+    #                 logger.info(f"Reset de fecha_login_error para ClienteJurisdiccion id={cliente_jurisdiccion.id}")
+    #             except Exception as e:
+    #                 logger.warning(f"Error al resetear fecha_login_error: {str(e)}")
+            
+    #         return True
+            
+    #     # Si el error de login es más reciente que la actualización de credenciales, no procesar
+    #     logger.info(f"Saltando jurisdicción {cliente_jurisdiccion.jurisdiccion.clase} por error de login reciente")
+    #     return False
