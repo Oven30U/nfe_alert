@@ -52,12 +52,12 @@ clientes_si_verificar_config = [
     # "EDGE ARGENTINA S.R.L",
     # "J&J ARGENTINA S.A",
     # "BIOMARIN ARGENTINA S.R.L",
-    "TRANSPORTADORA DE GAS DEL SUR S.A",
+    # "TRANSPORTADORA DE GAS DEL SUR S.A",
     # "FUNDACION TGS",
     # "COMPANIA DE INVERSIONES DE ENERGIA S.A",
     # "GAS LINK S.A",
     # "TELCOSUR S.A",
-    # "JOHNSON & JOHNSON MEDICAL S.A",
+    "JOHNSON & JOHNSON MEDICAL S.A",
     # "JANSSEN CILAG FARMACEUTICA S.A",
     # "PFIZER S.R.L - ARCA",
     # "PFIZER S.R.L - PROVINCIALES",
@@ -66,6 +66,7 @@ clientes_si_verificar_config = [
     # "ULTRAGENYX ARGENTINA S.R.L",
     # "MAGNETI MARELLI CONJ.DE ESCAPE S.A",
     # "MAGNETI MARELLI REPUESTOS S.A",
+    # "SPOTIFY ARGENTINA S.A",
 ]
 SIN_DEBUG_EJECUTAR_LISTA = (
     False  # Dejar siempre en False, en True saltea debug y ejecuta la lista de clientes
