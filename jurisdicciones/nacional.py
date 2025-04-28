@@ -93,6 +93,7 @@ class Nacional(Jurisdiccion):
             self.new_page = popup_info
             await self.new_page.wait_for_load_state("networkidle")
             # await self.new_page.wait_for_selector('text="Recordar más tarde"')
+            await self._click_boton_cerrar()
             await self.new_page.click('text="Recordar más tarde"')
             await self.new_page.click('text=" Comunicaciones de mis representados "')
             # await self.new_page.click("#d-select-81")
@@ -355,6 +356,15 @@ class Nacional(Jurisdiccion):
 
         # Si ya se tomaron capturas filtradas exitosamente, simplemente devuelve ese valor
         return self.hay_screenshots_filtrados
+
+    async def _click_boton_cerrar(self):
+        try:
+            # Esperar a que el botón de cerrar esté visible
+            await self.new_page.wait_for_selector('text="Cerrar"', timeout=5000)
+            await self.new_page.click('text="Cerrar"')
+            self.logger.debug("Botón 'Cerrar' encontrado y clickeado")
+        except Exception as e:
+            self.logger.debug("No se encontró botón 'Cerrar' o no fue necesario clickearlo")
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
