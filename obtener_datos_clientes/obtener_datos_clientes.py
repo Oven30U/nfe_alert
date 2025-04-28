@@ -1,5 +1,6 @@
 import datetime
 from datetime import timezone, timedelta
+import os
 from typing import Dict, List, Optional, Union
 
 import pandas as pd
@@ -7,7 +8,13 @@ from sqlalchemy.sql import func
 
 from logger import Logger
 from obtener_datos_clientes.db import SessionLocal
-from obtener_datos_clientes.models import Cliente, ClienteJurisdiccion, Jurisdiccion, ProcesamientosDiariosGlobal
+from obtener_datos_clientes.models import (
+    Cliente,
+    ClienteJurisdiccion,
+    Jurisdiccion,
+    ProcesamientosDiariosGlobal,
+    MonitoreoBots,
+)
 from obtener_datos_clientes.query_data import query_data
 
 logger = Logger.get_logger()
@@ -188,85 +195,122 @@ class ObtenerDatosClientes:
 
     def obtener_clientes_desde_db(self) -> pd.DataFrame:
         """
-        Obtiene los clientes activos desde la base de datos.
-        
+        Obtiene los clientes activos desde la base de datos, excluyendo aquellos con estado 'Correcto' en MonitoreoBots para el día actual.
+
         Returns:
             pd.DataFrame: DataFrame con la información de los clientes
         """
         try:
+            from sqlalchemy import select
+
             with SessionLocal() as db:
-                # Obtener todos los clientes
-                clientes = db.query(Cliente).all()
-                
+                # Obtener la fecha actual
+                fecha_hoy = datetime.datetime.now().date()
+
+                # Subquery para obtener los clientes con estado 'Correcto' en MonitoreoBots para el día actual
+                # Usando funciones compatibles con SQL Server para comparar fechas
+                subquery = (
+                    db.query(MonitoreoBots.username)
+                    .filter(
+                        func.year(MonitoreoBots.iniciado) == fecha_hoy.year,
+                        func.month(MonitoreoBots.iniciado) == fecha_hoy.month,
+                        func.day(MonitoreoBots.iniciado) == fecha_hoy.day,
+                        MonitoreoBots.proceso == "NFE Alert",
+                        MonitoreoBots.estado
+                        == "Correcto",  # Cambiado a == "Correcto" para excluir los exitosos
+                    )
+                    .subquery()
+                )
+
+                # Convertir el subquery a un SELECT explícito
+                subquery_select = select(subquery.c.username)
+
+                # Excluir los clientes que están en el subquery
+                clientes = (
+                    db.query(Cliente)
+                    .filter(~Cliente.client_folder.in_(subquery_select))
+                    .all()
+                )
+
                 if not clientes:
                     logger.warning("No se encontraron clientes en la base de datos")
                     return pd.DataFrame()
-                
+
                 # Convertir a DataFrame
                 data = []
                 for cliente in clientes:
-                    # Filtrar por días de ejecución si está configurado
                     if self._cliente_ejecuta_hoy(cliente):
-                        data.append({
-                            "id": cliente.id,
-                            "nombre": cliente.nombre,
-                            "cuit": cliente.cuit,
-                            "client_folder": cliente.client_folder,
-                            "correo_output": cliente.correo_output,
-                            "socio_responsable": cliente.socio_responsable,
-                            "zip_password": cliente.zip_password,
-                            "rango_consulta_dias": cliente.rango_consulta_dias
-                        })
-                
+                        data.append(
+                            {
+                                "id": cliente.id,
+                                "nombre": cliente.nombre,
+                                "cuit": cliente.cuit,
+                                "client_folder": cliente.client_folder,
+                                "correo_output": cliente.correo_output,
+                                "socio_responsable": cliente.socio_responsable,
+                                "zip_password": cliente.zip_password,
+                                "rango_consulta_dias": cliente.rango_consulta_dias,
+                            }
+                        )
+
                 df_clientes = pd.DataFrame(data)
                 logger.info(f"Se obtuvieron {len(df_clientes)} clientes para procesar")
                 return df_clientes
-                
+
         except Exception as e:
             logger.error(f"Error al obtener clientes desde DB: {str(e)}")
             return pd.DataFrame()
 
-    def obtener_jurisdicciones_desde_db(self, df_clientes: pd.DataFrame) -> pd.DataFrame:
+    def obtener_jurisdicciones_desde_db(
+        self, df_clientes: pd.DataFrame
+    ) -> pd.DataFrame:
         """
         Obtiene las jurisdicciones para los clientes especificados.
-        
+
         Args:
             df_clientes: DataFrame con la información de los clientes
-            
+
         Returns:
             pd.DataFrame: DataFrame con las jurisdicciones de los clientes
         """
         try:
             with SessionLocal() as db:
                 data = []
-                
+
                 for _, cliente_row in df_clientes.iterrows():
                     cliente_id = cliente_row["id"]
-                    
+
                     # Obtener relaciones cliente-jurisdicción
                     cliente_jurisdicciones = (
                         db.query(ClienteJurisdiccion, Jurisdiccion)
-                        .join(Jurisdiccion, ClienteJurisdiccion.jurisdiccion_id == Jurisdiccion.id)
+                        .join(
+                            Jurisdiccion,
+                            ClienteJurisdiccion.jurisdiccion_id == Jurisdiccion.id,
+                        )
                         .filter(ClienteJurisdiccion.cliente_id == cliente_id)
                         .filter(ClienteJurisdiccion.consultar == True)
                         .all()
                     )
-                    
+
                     for cj, jurisdiccion in cliente_jurisdicciones:
-                        data.append({
-                            "cliente_id": cliente_id,
-                            "jurisdiccion_id": jurisdiccion.id,
-                            "jurisdiccion_clase": jurisdiccion.clase,
-                            "jurisdiccion_codigo": jurisdiccion.codigo,
-                            "usuario": cj.usuario,
-                            "password": cj.password,
-                            "headless": jurisdiccion.headless
-                        })
-                
+                        data.append(
+                            {
+                                "cliente_id": cliente_id,
+                                "jurisdiccion_id": jurisdiccion.id,
+                                "jurisdiccion_clase": jurisdiccion.clase,
+                                "jurisdiccion_codigo": jurisdiccion.codigo,
+                                "usuario": cj.usuario,
+                                "password": cj.password,
+                                "headless": jurisdiccion.headless,
+                            }
+                        )
+
                 df_jurisdicciones = pd.DataFrame(data)
-                logger.info(f"Se obtuvieron {len(df_jurisdicciones)} jurisdicciones para los clientes")
+                logger.info(
+                    f"Se obtuvieron {len(df_jurisdicciones)} jurisdicciones para los clientes"
+                )
                 return df_jurisdicciones
-                
+
         except Exception as e:
             logger.error(f"Error al obtener jurisdicciones desde DB: {str(e)}")
             return pd.DataFrame()
@@ -276,11 +320,11 @@ class ObtenerDatosClientes:
     ) -> pd.DataFrame:
         """
         Crea un DataFrame base con la unión de clientes y jurisdicciones.
-        
+
         Args:
             df_clientes: DataFrame con información de clientes
             df_jurisdicciones: DataFrame con información de jurisdicciones
-            
+
         Returns:
             pd.DataFrame: DataFrame combinado con toda la información
         """
@@ -293,31 +337,35 @@ class ObtenerDatosClientes:
                 left_on="id",
                 right_on="cliente_id",
             )
-            
+
             # Crear campos para fechas de consulta
             today = datetime.datetime.now()
-            
+
             def calcular_fechas(row):
                 dias = row["rango_consulta_dias"] or 7
                 fecha_hasta = today.strftime("%d%m%Y")
                 fecha_desde = (today - timedelta(days=dias)).strftime("%d%m%Y")
-                return pd.Series({"fecha_desde": fecha_desde, "fecha_hasta": fecha_hasta})
-            
+                return pd.Series(
+                    {"fecha_desde": fecha_desde, "fecha_hasta": fecha_hasta}
+                )
+
             fechas_df = df_merged.apply(calcular_fechas, axis=1)
             df_merged = pd.concat([df_merged, fechas_df], axis=1)
-            
+
             # Renombrar y seleccionar columnas
-            df_base = df_merged.rename(columns={
-                "nombre": "Cliente",
-                "jurisdiccion_clase": "Jurisdiccion",
-                "cuit": "cuit_cliente",
-                "usuario": "Usuario",
-                "password": "Password",
-                "correo_output": "Correo Output",
-                "socio_responsable": "CC: Equipo Deloitte",
-                "zip_password": "ZIP_Password"
-            })
-            
+            df_base = df_merged.rename(
+                columns={
+                    "nombre": "Cliente",
+                    "jurisdiccion_clase": "Jurisdiccion",
+                    "cuit": "cuit_cliente",
+                    "usuario": "Usuario",
+                    "password": "Password",
+                    "correo_output": "Correo Output",
+                    "socio_responsable": "CC: Equipo Deloitte",
+                    "zip_password": "ZIP_Password",
+                }
+            )
+
             # Seleccionar columnas necesarias
             columns_to_keep = [
                 "Cliente",
@@ -332,47 +380,64 @@ class ObtenerDatosClientes:
                 "CC: Equipo Deloitte",
                 "ZIP_Password",
             ]
-            
+
             df_base = df_base[columns_to_keep]
-            
+
             logger.info(f"DataFrame base creado con {len(df_base)} filas")
             return df_base
-            
+
         except Exception as e:
             logger.error(f"Error al crear DataFrame base: {str(e)}")
             return pd.DataFrame()
-    
+
     def transformar_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Aplica transformaciones adicionales al DataFrame.
-        
+
         Args:
             df: DataFrame a transformar
-            
+
         Returns:
             pd.DataFrame: DataFrame transformado
         """
         try:
             # Crear copia para no modificar el original
             df_result = df.copy()
-            
+
             # Asegurarse de que los campos cuit sean strings
             if "cuit_cliente" in df_result.columns:
                 df_result["cuit_cliente"] = df_result["cuit_cliente"].astype(str)
-            
+
             # Rellenar valores nulos en ciertas columnas
             for col in ["Correo Output", "CC: Equipo Deloitte", "ZIP_Password"]:
                 if col in df_result.columns:
                     df_result[col] = df_result[col].fillna("")
-            
+
             # Agregar columnas de configuración si es necesario
             df_result["ZIP_Password"] = df_result["ZIP_Password"]
-            
+
+            # Verificar si estamos en modo desarrollo para usar correos de prueba
+            dev_mode = os.getenv("DEV_MODE", "False").lower()
+            if dev_mode == "true" and not df_result.empty:
+                logger.info(
+                    "Modo desarrollo: Usando correo de prueba para todos los clientes"
+                )
+                test_email = os.getenv(
+                    "CORREO_RECEPTOR_TEST_MAIL", "lmarinaro@deloitte.com"
+                )
+                # Reemplazar correos con el correo de prueba
+                if "Correo Output" in df_result.columns:
+                    df_result["Correo Output"] = test_email
+                if "CC: Equipo Deloitte" in df_result.columns:
+                    df_result["CC: Equipo Deloitte"] = test_email
+
+                logger.info(f"Correos reemplazados por: {test_email}")
+
             # Mantener la compatibilidad con el formato anterior de query_data
             # Esto puede personalizarse según las necesidades específicas
-            
+
             return df_result
-            
+
         except Exception as e:
             logger.error(f"Error al transformar DataFrame: {str(e)}")
             return df
@@ -380,10 +445,10 @@ class ObtenerDatosClientes:
     def _cliente_ejecuta_hoy(self, cliente: Cliente) -> bool:
         """
         Verifica si un cliente debe ejecutarse hoy según su configuración de días.
-        
+
         Args:
             cliente: Objeto Cliente a evaluar
-            
+
         Returns:
             bool: True si el cliente debe ejecutarse hoy, False en caso contrario
         """
@@ -391,19 +456,25 @@ class ObtenerDatosClientes:
             # Si no hay configuración de días, ejecutar siempre
             if not cliente.dias_ejecucion:
                 return True
-                
+
             # Obtener día de la semana (0-6, donde 0 es lunes)
             dia_hoy = datetime.datetime.now().weekday()
-            
+
             # Convertir a números (0-6) los días configurados
             # Formato esperado: "0,1,4" (lunes, martes, viernes)
-            dias_config = [int(d.strip()) for d in cliente.dias_ejecucion.split(',') if d.strip().isdigit()]
-            
+            dias_config = [
+                int(d.strip())
+                for d in cliente.dias_ejecucion.split(",")
+                if d.strip().isdigit()
+            ]
+
             # Verificar si el día actual está en la configuración
             return dia_hoy in dias_config
-            
+
         except Exception as e:
-            logger.error(f"Error al verificar días de ejecución del cliente {cliente.nombre}: {str(e)}")
+            logger.error(
+                f"Error al verificar días de ejecución del cliente {cliente.nombre}: {str(e)}"
+            )
             # En caso de error, permitir ejecución por seguridad
             return True
 
@@ -422,7 +493,7 @@ class ObtenerDatosClientes:
 
         # Crear una copia para no modificar el original durante la iteración
         df_result = df.copy()
-        
+
         # Añadir columnas para el resultado final si no existen
         if "Notificacion" not in df_result.columns:
             df_result["Notificacion"] = None
@@ -498,27 +569,31 @@ class ObtenerDatosClientes:
     def debe_procesar_jurisdiccion(self, cliente_jurisdiccion) -> bool:
         """
         Determina si una jurisdicción debe procesarse basada en fecha_login_error y fecha_actualizacion.
-        
+
         Esta función implementa la lógica de negocio para gestionar los errores de login:
         - Si no hay error de login registrado, siempre procesar
         - Si se actualizaron credenciales después del último error, procesar y resetear error
         - Si el error es más reciente que la última actualización, no procesar
-        
+
         Args:
             cliente_jurisdiccion: Objeto ClienteJurisdiccion a evaluar
-        
+
         Returns:
             bool: True si se debe procesar, False si se debe omitir
         """
         # Si no hay error de login registrado, siempre procesar
         if cliente_jurisdiccion.fecha_login_error is None:
             return True
-            
+
         # Si hay error de login pero se han actualizado las credenciales después, procesar
-        if (cliente_jurisdiccion.fecha_actualizacion and 
-            cliente_jurisdiccion.fecha_login_error < cliente_jurisdiccion.fecha_actualizacion):
+        if (
+            cliente_jurisdiccion.fecha_actualizacion
+            and cliente_jurisdiccion.fecha_login_error
+            < cliente_jurisdiccion.fecha_actualizacion
+        ):
             # En este caso, deberíamos también resetear fecha_login_error
             from sqlalchemy import text
+
             with SessionLocal() as db:
                 try:
                     # Usamos SQL directo para no actualizar fecha_actualizacion
@@ -527,17 +602,21 @@ class ObtenerDatosClientes:
                         SET fecha_login_error = NULL
                         WHERE id = :id
                     """)
-                    
+
                     db.execute(sql, {"id": cliente_jurisdiccion.id})
                     db.commit()
-                    logger.info(f"Reset de fecha_login_error para ClienteJurisdiccion id={cliente_jurisdiccion.id}")
+                    logger.info(
+                        f"Reset de fecha_login_error para ClienteJurisdiccion id={cliente_jurisdiccion.id}"
+                    )
                 except Exception as e:
                     logger.warning(f"Error al resetear fecha_login_error: {str(e)}")
-            
+
             return True
-            
+
         # Si el error de login es más reciente que la actualización de credenciales, no procesar
-        logger.info(f"Saltando jurisdicción {cliente_jurisdiccion.jurisdiccion.clase} por error de login reciente")
+        logger.info(
+            f"Saltando jurisdicción {cliente_jurisdiccion.jurisdiccion.clase} por error de login reciente"
+        )
         return False
 
 
