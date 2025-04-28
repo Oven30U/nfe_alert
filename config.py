@@ -26,6 +26,8 @@ Para ejecutar el script desde `config.py` se toman los valores de:
 Desde main.py estos dos valores son siempre False, pero desde config.py se pueden cambiar a True para probar el envío de correos y los clientes deseados. No actualiza última vez en System-Clientes.
 """
 
+import os
+
 # DEBUG = True
 DEBUG = False
 
@@ -173,9 +175,9 @@ PATH_HTML_SET_PASS = (
 # DATABASE_URL = "mssql+pyodbc://TaxTech:T&LTechnologies@ARBAS0228/RPA/Tecnologia?driver=SQL+Server"
 DATABASE_URL = "mssql+pyodbc://TaxTech:T%26LTechnologies@ARBAS0228/RPA/Tecnologia?driver=SQL+Server"
 
-LIMITES_REINTENTO = 5
-DIAS_VIGENCIA_PASS_ZIP = 90
-CORREO_NOTIFICACION_ERROR = "lmarinaro@deloitte.com"
+LIMITES_REINTENTO = int(os.getenv("LIMITES_REINTENTO", 5))
+DIAS_VIGENCIA_PASS_ZIP = int(os.getenv("DIAS_VIGENCIA_PASS_ZIP", 90))
+CORREO_NOTIFICACION_ERROR = os.getenv("CORREO_NOTIFICACION_ERROR", "rpa-tax-ar@deloitte.com")
 
 if __name__ == "__main__":
     import asyncio

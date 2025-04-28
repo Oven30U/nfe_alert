@@ -19,6 +19,8 @@ from config import (
 from logger import Logger
 from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
+from obtener_datos_clientes.db import SessionLocal
+from obtener_datos_clientes.models import ProcesamientosDiariosGlobal
 
 logger = Logger.get_logger()
 
@@ -649,35 +651,113 @@ class ClienteProcessor:
         self.zip_path = zip_path
         self.zip_name = zip_name
 
-    def enviar_email(self, df_final):
+    def _hay_errores_en_resultados(self, df_final: pd.DataFrame) -> bool:
+        """
+        Verifica si hay errores en los resultados del procesamiento.
+        
+        Args:
+            df_final: DataFrame con los resultados del procesamiento.
+            
+        Returns:
+            bool: True si hay errores, False en caso contrario.
+        """
+        return not df_final["Error"].isna().all()
+
+    def _es_ultimo_procesamiento(self) -> bool:
+        """
+        Determina si el procesamiento actual es el último del día.
+        
+        Returns:
+            bool: True si es el último procesamiento, False en caso contrario.
+        """
+        ultimo_procesamiento_diario = int(os.getenv("PROCESAMIENTOS_DIARIOS", 5))
+        numero_procesamiento = self._obtener_numero_procesamiento()
+        
+        return (numero_procesamiento is not None and 
+                numero_procesamiento >= ultimo_procesamiento_diario)
+
+    def _preparar_dataframe_correo(self, df_final: pd.DataFrame) -> pd.DataFrame:
+        """
+        Prepara el DataFrame para incluirlo en el correo electrónico.
+        
+        Args:
+            df_final: DataFrame con los resultados del procesamiento.
+            
+        Returns:
+            pd.DataFrame: DataFrame formateado para el correo.
+        """
+        return df_final[["Nombre", "Notificacion", "Screenshot"]].rename(
+            columns={
+                "Nombre": "Jurisdicción",
+                "Notificacion": "Notificaciones",
+                "Screenshot": "Screenshot",
+            }
+        )
+
+    def determinar_destinatario(self, df_final: pd.DataFrame) -> tuple[str, Optional[str]]:
+        """
+        Determina el destinatario y CC del correo según la lógica de negocio.
+        
+        Args:
+            df_final: DataFrame con los resultados del procesamiento.
+            
+        Returns:
+            Tupla con (receptor_email, cc_email)
+        """
+        hay_errores = self._hay_errores_en_resultados(df_final)
+        es_ultimo_procesamiento = self._es_ultimo_procesamiento()
+        
+        # Si hay errores y no es el último procesamiento, enviar al correo de notificación
+        if hay_errores and not es_ultimo_procesamiento:
+            receptor = os.getenv("CORREO_NOTIFICACION_ERROR", CORREO_NOTIFICACION_ERROR)
+            cc = None
+            logger.info(f"Redirigiendo correo con errores a {receptor}")
+            return receptor, cc
+        
+        # Mantener los destinatarios normales
+        if not self.correo_output and not self.socio_responsable:
+            receptor = os.getenv("CORREO_NOTIFICACION_ERROR", CORREO_NOTIFICACION_ERROR)
+            cc = None
+        elif self.correo_output:
+            receptor = self.correo_output
+            cc = self.socio_responsable if self.socio_responsable else None
+        elif self.socio_responsable:
+            receptor = self.socio_responsable
+            cc = None
+        else:
+            raise ValueError("No valid email address found for sending the zip email.")
+            
+        return receptor, cc
+
+    def enviar_email(self, df_final: pd.DataFrame) -> bool:
+        """
+        Envía un email con los resultados del procesamiento.
+        
+        Args:
+            df_final: DataFrame con los resultados del procesamiento.
+            
+        Returns:
+            bool: True si el correo fue enviado correctamente, False en caso contrario.
+        """
         try:
-            df_correo = df_final[["Nombre", "Notificacion", "Screenshot"]].rename(
-                columns={
-                    "Nombre": "Jurisdicción",
-                    "Notificacion": "Notificaciones",
-                    "Screenshot": "Screenshot",
-                }
-            )
-
-            if not self.correo_output and not self.socio_responsable:
-                receptor = CORREO_NOTIFICACION_ERROR
-                cc = None
-            elif self.correo_output:
-                receptor = self.correo_output
-                cc = self.socio_responsable if self.socio_responsable else None
-            elif self.socio_responsable:
-                receptor = self.socio_responsable
-                cc = None
-            else:
-                raise ValueError(
-                    "No valid email address found for sending the zip email."
-                )
-
+            # Obtener información sobre el procesamiento
+            hay_errores = self._hay_errores_en_resultados(df_final)
+            es_ultimo_procesamiento = self._es_ultimo_procesamiento()
+            numero_procesamiento = self._obtener_numero_procesamiento()
+            
+            # Preparar el DataFrame para el correo
+            df_correo = self._preparar_dataframe_correo(df_final)
+            
+            # Determinar destinatario usando la lógica encapsulada
+            receptor, cc = self.determinar_destinatario(df_final)
+            
             if receptor is None:
-                raise ValueError(
-                    "Receptor email address is None. Cannot send zip email."
-                )
+                raise ValueError("Receptor email address is None. Cannot send zip email.")
+                
+            if hay_errores and not es_ultimo_procesamiento:
+                logger.info(f"(Hubo errores en el procesamiento #{numero_procesamiento}) de {self.cliente} \n cambio a receptor a: {receptor}")
 
+            # Enviar correo
             enviar_correo(
                 receptor=receptor,
                 cliente=self.cliente,
@@ -693,9 +773,7 @@ class ClienteProcessor:
             )
             return True
         except Exception as e:
-            logger.error(
-                f"Error al enviar correo: receptor:{receptor} cliente: {self.cliente}"
-            )
+            logger.error(f"Error al enviar correo: cliente: {self.cliente}, error: {e}")
             return False
 
     def sort_df_final(self, df_final: pd.DataFrame) -> pd.DataFrame:
@@ -759,3 +837,21 @@ class ClienteProcessor:
             cliente_id=self.cliente_id,
             procesamiento_id=self.procesamiento_id,
         )
+
+    def _obtener_numero_procesamiento(self) -> Optional[int]:
+        """
+        Obtiene el número de procesamiento a partir del ID.
+        
+        Returns:
+            int o None: Número de procesamiento o None si no se puede determinar.
+        """
+        if not self.procesamiento_id:
+            return None
+            
+        with SessionLocal() as db:
+            procesamiento = (
+                db.query(ProcesamientosDiariosGlobal)
+                .filter(ProcesamientosDiariosGlobal.id == self.procesamiento_id)
+                .first()
+            )
+            return procesamiento.numero_procesamiento if procesamiento else None

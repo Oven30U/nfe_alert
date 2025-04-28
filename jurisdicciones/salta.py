@@ -112,12 +112,9 @@ class Salta(Jurisdiccion):
                     "SALTA: El selector de logout apareció después del timeout"
                 )
             else:
-                self.logger.error(
-                    f"SALTA: No se pudo verificar el login exitoso: {str(e)}"
-                )
-                raise LoginError(
-                    self.cliente, f"No se pudo verificar el login: {str(e)}"
-                )
+                self.logger.error("SALTA: No se pudo verificar el login exitoso")
+                # Usar mensaje predefinido en lugar de exponer la excepción
+                raise LoginError(self.cliente, LoginError.SERVICIO_NO_DISPONIBLE)
 
         # Continuar con las acciones en la página (resto del código sin cambios)
         await self.page.wait_for_selector(
