@@ -207,29 +207,25 @@ class ObtenerDatosClientes:
                 # Obtener la fecha actual
                 fecha_hoy = datetime.datetime.now().date()
 
-                # Subquery para obtener los clientes con estado 'Correcto' en MonitoreoBots para el día actual
-                # Usando funciones compatibles con SQL Server para comparar fechas
+                # Subquery para obtener los IDs de cliente con estado 'Correcto' en MonitoreoBots para el día actual
                 subquery = (
-                    db.query(MonitoreoBots.username)
+                    db.query(MonitoreoBots.cliente_id)
                     .filter(
                         func.year(MonitoreoBots.iniciado) == fecha_hoy.year,
                         func.month(MonitoreoBots.iniciado) == fecha_hoy.month,
                         func.day(MonitoreoBots.iniciado) == fecha_hoy.day,
                         MonitoreoBots.proceso == "NFE Alert",
-                        MonitoreoBots.estado
-                        == "Correcto",  # Cambiado a == "Correcto" para excluir los exitosos
+                        MonitoreoBots.estado == "Correcto",
                     )
                     .subquery()
                 )
 
                 # Convertir el subquery a un SELECT explícito
-                subquery_select = select(subquery.c.username)
+                subquery_select = select(subquery.c.cliente_id)
 
-                # Excluir los clientes que están en el subquery
+                # Excluir los clientes que están en el subquery - usando cliente_id en vez de username
                 clientes = (
-                    db.query(Cliente)
-                    .filter(~Cliente.client_folder.in_(subquery_select))
-                    .all()
+                    db.query(Cliente).filter(~Cliente.id.in_(subquery_select)).all()
                 )
 
                 if not clientes:
@@ -246,7 +242,8 @@ class ObtenerDatosClientes:
                                 "nombre": cliente.nombre,
                                 "cuit": cliente.cuit,
                                 "client_folder": cliente.client_folder,
-                                "correo_output": cliente.correo_output,
+                                "correo_output": cliente.correo_output
+                                ,
                                 "socio_responsable": cliente.socio_responsable,
                                 "zip_password": cliente.zip_password,
                                 "rango_consulta_dias": cliente.rango_consulta_dias,
@@ -453,18 +450,19 @@ class ObtenerDatosClientes:
             bool: True si el cliente debe ejecutarse hoy, False en caso contrario
         """
         try:
-            # Si no hay configuración de días, ejecutar siempre
+            # Si no hay configuración de días, no ejecutar
             if not cliente.dias_ejecucion:
-                return True
+                return False
 
             # Obtener día de la semana (0-6, donde 0 es lunes)
             dia_hoy = datetime.datetime.now().weekday()
 
+            separador = ";" if ";" in cliente.dias_ejecucion else ","
+
             # Convertir a números (0-6) los días configurados
-            # Formato esperado: "0,1,4" (lunes, martes, viernes)
             dias_config = [
                 int(d.strip())
-                for d in cliente.dias_ejecucion.split(",")
+                for d in cliente.dias_ejecucion.split(separador)
                 if d.strip().isdigit()
             ]
 
@@ -476,7 +474,7 @@ class ObtenerDatosClientes:
                 f"Error al verificar días de ejecución del cliente {cliente.nombre}: {str(e)}"
             )
             # En caso de error, permitir ejecución por seguridad
-            return True
+            return False
 
     def filtrar_jurisdicciones_por_login_error(self, df: pd.DataFrame) -> pd.DataFrame:
         """

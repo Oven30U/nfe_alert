@@ -224,13 +224,28 @@ class Jurisdiccion(ABC):
         return self
 
     async def AFIP_login(
-        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
-    ):
+        self,
+        URL_AFIP_LOGIN: str = "https://auth.afip.gob.ar/contribuyente_/login.xhtml",
+        success_selector: str = "input#buscadorInput",
+    ) -> None:
+        """
+        Realiza el inicio de sesión en el portal de AFIP.
+
+        Args:
+            URL_AFIP_LOGIN: URL del portal de login de AFIP
+            success_selector: Selector CSS que indica login exitoso (puede variar según URL)
+
+        Raises:
+            LoginErrorAfip: Cuando hay un error en el proceso de login
+        """
         try:
-            await self.page.goto(URL_AFIP_LOGIN)
-            await self.page.get_by_role("spinbutton").click()
-            await self.page.get_by_role("spinbutton").fill(self._cuit)
-            await self.page.get_by_role("button", name="Siguiente").click()
+            # Aumentar timeout para la navegación inicial
+            await self.page.goto(URL_AFIP_LOGIN, timeout=180000)  # 180 segundos
+
+            # Aumentar timeouts para las interacciones de usuario
+            await self.page.get_by_role("spinbutton").click(timeout=18000)
+            await self.page.get_by_role("spinbutton").fill(self._cuit, timeout=18000)
+            await self.page.get_by_role("button", name="Siguiente").click(timeout=18000)
 
             incorrect_login = await self.page.query_selector(
                 ":has-text('Número de CUIL/CUIT incorrecto')"
@@ -238,22 +253,82 @@ class Jurisdiccion(ABC):
             if incorrect_login:
                 raise LoginErrorAfip(self.cliente)
 
-            await self.page.get_by_label("TU CLAVE").click()
-            await self.page.get_by_label("TU CLAVE").fill(self._clave_fiscal)
-            await self.page.get_by_role("button", name="Ingresar").click()
-            await self.page.wait_for_load_state("networkidle")
-
-            # Check for login errors after attempting login
-            error_selector = await self.page.query_selector(".mensajeError")
-            usuario_incorrecto = await self.page.is_visible(
-                "text=Clave o usuario incorrecto"
+            await self.page.get_by_label("TU CLAVE").click(timeout=18000)
+            await self.page.get_by_label("TU CLAVE").fill(
+                self._clave_fiscal, timeout=18000
             )
-            if error_selector or usuario_incorrecto:
-                raise LoginErrorAfip(self.cliente)
+            await self.page.get_by_role("button", name="Ingresar").click(timeout=18000)
+
+            try:
+                # Verificar primero si hay errores (común a todas las URLs)
+                error_selector = None
+                usuario_incorrecto = False
+
+                try:
+                    # Esperar un tiempo prudencial para detectar errores
+                    await self.page.wait_for_selector(
+                        ".mensajeError, text:has-text('Clave o usuario incorrecto')",
+                        timeout=10000,  # 10 segundos para detectar error
+                        state="visible",
+                    )
+
+                    # Si llegamos aquí, se encontró algún selector de error
+                    error_selector = await self.page.query_selector(".mensajeError")
+                    usuario_incorrecto = await self.page.is_visible(
+                        "text=Clave o usuario incorrecto"
+                    )
+                except Exception:
+                    # No se encontraron errores, esto es bueno
+                    pass
+
+                if error_selector or usuario_incorrecto:
+                    raise LoginErrorAfip(self.cliente)
+
+                # Solo verificar el selector de éxito si estamos en la URL estándar de AFIP
+                if (
+                    URL_AFIP_LOGIN
+                    == "https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+                    and success_selector
+                ):
+                    try:
+                        await self.page.wait_for_selector(
+                            success_selector,
+                            timeout=60000,  # 60 segundos para detectar éxito
+                            state="visible",
+                        )
+                        self.logger.info(
+                            "Login en AFIP exitoso (selector de éxito encontrado)"
+                        )
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Selector de éxito no encontrado: {str(e)}"
+                        )
+                        # No lanzar excepción aquí, ya verificamos que no hay errores
+
+                # Si no hay errores detectados, consideramos que el login fue exitoso
+                self.logger.info("Login en AFIP completado sin errores detectados")
+
+            except Exception as e:
+                # Si el timeout expiró o hubo otro error
+                if "Timeout" in str(e):
+                    self.logger.error("Timeout esperando resultado del login")
+
+                # Verificar nuevamente por errores
+                error_selector = await self.page.query_selector(".mensajeError")
+                usuario_incorrecto = await self.page.is_visible(
+                    "text=Clave o usuario incorrecto"
+                )
+                if error_selector or usuario_incorrecto:
+                    raise LoginErrorAfip(self.cliente)
+
+                # Si no se detecta un error específico, asumimos que hay un problema general
+                raise ConsultarNotificacionesError(
+                    self.cliente, "Error indeterminado en el login"
+                ) from e
 
         except Exception as e:
             if not isinstance(e, LoginErrorAfip):
-                raise LoginErrorAfip(self.cliente) from e
+                raise ConsultarNotificacionesError(self.cliente) from e
             raise
 
     @abstractmethod

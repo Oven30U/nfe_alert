@@ -129,7 +129,7 @@ class Agip(Jurisdiccion):
                 "xpath=//button[@class='btnNoLeidas btn btn-default']"  # no_leidas
             )
             await self.page.wait_for_selector(boton_filtro, timeout=100000)
-            await self.page.click(boton_filtro, timeout=100000)  # 15 min
+            await self.page.click(boton_filtro, timeout=100000)  # 10 min
 
         except LoginError as le:
             # Re-lanzar errores de login directamente sin convertirlos

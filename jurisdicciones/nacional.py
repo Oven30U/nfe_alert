@@ -85,16 +85,21 @@ class Nacional(Jurisdiccion):
 
     async def consultar_notificaciones(self):
         try:
+            self.page.set_default_timeout(180000)
+            self.page.set_default_navigation_timeout(180000)
+
             await self.AFIP_login()
             await self.page.fill("input#buscadorInput", "Domicilio Fiscal Electrónico")
-            # Click en la opción de DFE desplegada
             await self.page.click("a.dropdown-item")
             popup_info = await self.page.wait_for_event("popup")
             self.new_page = popup_info
+            
+            self.new_page.set_default_timeout(180000)
+            self.new_page.set_default_navigation_timeout(180000)
+
             await self.new_page.wait_for_load_state("networkidle")
-            # await self.new_page.wait_for_selector('text="Recordar más tarde"')
             await self._click_boton_cerrar()
-            await self.new_page.click('text="Recordar más tarde"')
+            await self._click_recordar_mas_tarde()
             await self.new_page.click('text=" Comunicaciones de mis representados "')
             # await self.new_page.click("#d-select-81")
             await self.new_page.click(
@@ -105,24 +110,28 @@ class Nacional(Jurisdiccion):
             )
             await self.page.wait_for_load_state("networkidle")
 
-             # Intentar esperar el encabezado con un timeout más razonable
+            # Intentar esperar el encabezado con un timeout más razonable
             try:
                 # Usar wait_for_selector en lugar de is_visible para mayor precisión
                 await self.new_page.wait_for_selector(
-                    'h5:has-text("Notificaciones de oficio")', 
+                    'h5:has-text("Notificaciones de oficio")',
                     timeout=10000,
-                    state="visible"
+                    state="visible",
                 )
                 self.logger.info("Encabezado 'Notificaciones de oficio' encontrado")
-                
+
                 # Intentar cerrar el modal si está presente
                 try:
                     await self.new_page.click('text="Cerrar"', timeout=3000)
                     self.logger.info("Botón 'Cerrar' encontrado y clickeado")
                 except Exception as e:
-                    self.logger.info("No se encontró botón 'Cerrar' o no fue necesario clickearlo")
+                    self.logger.info(
+                        "No se encontró botón 'Cerrar' o no fue necesario clickearlo"
+                    )
             except Exception as e:
-                self.logger.info("No se encontró encabezado 'Notificaciones de oficio', continuando normalmente")
+                self.logger.info(
+                    "No se encontró encabezado 'Notificaciones de oficio', continuando normalmente"
+                )
 
             self.fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y").strftime(
                 "%d/%m/%Y"
@@ -164,6 +173,27 @@ class Nacional(Jurisdiccion):
             self.logger.error(f"Error en consulta de Nacional: {str(e)}")
             # Raise with standard message only
             raise ConsultarNotificacionesError(self.cliente)
+
+
+    async def _click_recordar_mas_tarde(self) -> None:
+        """
+        Intenta hacer clic en el botón 'Recordar más tarde' si está visible.
+        
+        No lanza excepciones si el botón no se encuentra.
+        """
+        try:
+            # Verificar si existe el botón antes de intentar hacer clic
+            is_visible = await self.new_page.is_visible('text="Recordar más tarde"', timeout=10000)
+            if is_visible:
+                await self.new_page.click('text="Recordar más tarde"')
+                self.logger.info("Botón 'Recordar más tarde' encontrado y clickeado")
+            else:
+                self.logger.info("Botón 'Recordar más tarde' no está visible, continuando...")
+        except Exception as e:
+            self.logger.info(
+                f"No se pudo interactuar con 'Recordar más tarde', continuando: {str(e)}"
+            )
+
 
     async def buscar_notificacion(self):
         # Use a single selector to get all notification links
@@ -364,7 +394,9 @@ class Nacional(Jurisdiccion):
             await self.new_page.click('text="Cerrar"')
             self.logger.debug("Botón 'Cerrar' encontrado y clickeado")
         except Exception as e:
-            self.logger.debug("No se encontró botón 'Cerrar' o no fue necesario clickearlo")
+            self.logger.debug(
+                "No se encontró botón 'Cerrar' o no fue necesario clickearlo"
+            )
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()

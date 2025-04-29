@@ -117,12 +117,19 @@ class ProcesamientoManager:
                     df_final, jurisdicciones_con_error_login
                 )
 
+            df_final = processor.sort_df_final(df_final)
+
             processor.generar_mapas(df_final)
             processor.crear_zip()
 
             estado = (
                 "Correcto"
-                if df_final["Error"].isna().all()
+                if (
+                    df_final["Error"].isna().all()
+                    and not df_final["Screenshot"]
+                    .str.contains("No se realizó Screenshot")
+                    .any()
+                )
                 else "Proceso terminado con errores"
             )
         except Exception as e:
