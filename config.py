@@ -47,7 +47,7 @@ EJECUTAR_TODOS_CLIENTES = False
 EJECUTAR_CLIENTES_LISTA = False
 # Criterio de self.client_folder
 clientes_si_verificar_config = [
-    # "ABBVIE S.A",
+    "ABBVIE S.A",
     # "ADIDAS ARGENTINA S.A - ARCA",
     # "ADIDAS ARGENTINA S.A - PROVINCIALES",
     # "FACEBOOK ARGENTINA S.R.L",
@@ -59,7 +59,7 @@ clientes_si_verificar_config = [
     # "COMPANIA DE INVERSIONES DE ENERGIA S.A",
     # "GAS LINK S.A",
     # "TELCOSUR S.A",
-    "JOHNSON & JOHNSON MEDICAL S.A",
+    # "JOHNSON & JOHNSON MEDICAL S.A",
     # "JANSSEN CILAG FARMACEUTICA S.A",
     # "PFIZER S.R.L - ARCA",
     # "PFIZER S.R.L - PROVINCIALES",
@@ -105,7 +105,7 @@ CLIENTES_CON_DOCUMENTACION = [
     "GAS LINK S.A",
     "TELCOSUR S.A",
     "THE BRITISH COUNCIL",
-    # "BIOGEN ARGENTINA S.R.L", Activar en Mayo
+    "BIOGEN ARGENTINA S.R.L",
 ]
 
 # Criterio de self.client_folder

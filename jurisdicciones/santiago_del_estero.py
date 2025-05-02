@@ -144,8 +144,17 @@ class SantiagoDelEstero(Jurisdiccion):
 
         return False
 
-    async def tomar_screenshot(self):
-        return await super().tomar_screenshot(self.page)
+    async def tomar_screenshot(self, nombre_extra: str = None) -> str:
+        """
+        Toma una captura de pantalla de la página actual.
+
+        Args:
+            nombre_extra: Texto adicional para incluir en el nombre del archivo de la captura.
+
+        Returns:
+            str: Ruta del archivo de la captura guardada.
+        """
+        return await super().tomar_screenshot(self.page, nombre_extra)
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()

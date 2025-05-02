@@ -7,6 +7,9 @@ from typing import Optional
 
 import pandas as pd
 import pyminizip
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.pdfgen import canvas
+from PIL import Image
 
 import jurisdicciones
 from conectar_db import conectar_db
@@ -104,7 +107,6 @@ class ClienteProcessor:
         from sqlalchemy import text
         from obtener_datos_clientes.db import SessionLocal
         from obtener_datos_clientes.models import (
-            Cliente,
             ClienteJurisdiccion,
             Jurisdiccion,
         )
@@ -451,7 +453,7 @@ class ClienteProcessor:
         from datetime import datetime
         from sqlalchemy import text
         from obtener_datos_clientes.db import SessionLocal
-        from obtener_datos_clientes.models import ClienteJurisdiccion, Jurisdiccion
+        from obtener_datos_clientes.models import Jurisdiccion
 
         # Verificar si hay errores de login
         login_errors = df_final[
@@ -626,38 +628,152 @@ class ClienteProcessor:
             df_final, f"{self.output_folder}/mapa_nacional_{self.cliente}.png"
         )
 
-    def crear_zip(self):
-        now = datetime.now()
-        fecha_actual = now.strftime("%Y%m%d")
-        hora_actual = now.strftime("%H%M")
-        zip_name = f"{self.cliente}_{fecha_actual}_{hora_actual}.zip"
-        zip_path = os.path.join(self.output_folder, zip_name)
-        png_files = glob.glob(os.path.join(self.output_folder, "*.png"))
+    def crear_zip(self) -> tuple[str, str]:
+        """
+        Crea un archivo ZIP que contiene todas las imágenes PNG y el PDF generado.
 
-        pass_zip = self.zip_password
-        # Comprime todos los .png en un solo zip
-        pyminizip.compress_multiple(
-            png_files,
-            [],
-            zip_path,
-            pass_zip,
-            5,  # Nivel de compresión: 1-9 (1 = fastest, 9 = best)
-        )
+        Returns:
+            tuple[str, str]: Ruta y nombre del archivo ZIP generado
+        """
+        try:
+            now = datetime.now()
+            fecha_actual = now.strftime("%Y%m%d")
+            hora_actual = now.strftime("%H%M")
+            zip_name = f"{self.cliente}_{fecha_actual}_{hora_actual}.zip"
+            zip_path = os.path.join(self.output_folder, zip_name)
 
-        if not os.path.exists(zip_path):
+            # Obtener archivos PNG
+            png_files = glob.glob(os.path.join(self.output_folder, "*.png"))
+
+            # Obtener archivos PDF (también están en self.output_folder)
+            pdf_files = glob.glob(os.path.join(self.output_folder, "*.pdf"))
+
+            # Combinar todos los archivos a comprimir
+            all_files = png_files + pdf_files
+
+            pass_zip = self.zip_password
+            # Comprimir todos los archivos
+            pyminizip.compress_multiple(
+                all_files,
+                [],
+                zip_path,
+                pass_zip,
+                5,  # Nivel de compresión: 1-9 (1 = fastest, 9 = best)
+            )
+
+            if not os.path.exists(zip_path):
+                logger.error(f"Error al crear el archivo ZIP: {zip_path}")
+                self.socio_responsable = CORREO_NOTIFICACION_ERROR
+                self.correo_output = []
+            else:
+                logger.info(f"Archivo ZIP creado correctamente: {zip_path}")
+                logger.info(
+                    f"Archivos incluidos en el ZIP: {len(all_files)} - {len(png_files)} PNG y {len(pdf_files)} PDF"
+                )
+
+            self.zip_path = zip_path
+            self.zip_name = zip_name
+            return zip_path, zip_name
+        except Exception as e:
+            logger.error(f"Error al crear el archivo ZIP: {e}")
             self.socio_responsable = CORREO_NOTIFICACION_ERROR
             self.correo_output = []
+            return "", ""
 
-        self.zip_path = zip_path
-        self.zip_name = zip_name
+    def generar_pdf(self) -> str:
+        """
+        Genera un PDF con todas las imágenes PNG del directorio de salida.
+        Las imágenes se ordenan con prioridad para los mapas.
+
+        Returns:
+            str: Ruta al archivo PDF generado
+        """
+        try:
+            fecha_actual = datetime.now().strftime("%d_%m_%Y")
+            nombre_pdf = f"NFE_alert_resume_{self.cliente}_{fecha_actual}.pdf"
+            archivo_salida = os.path.join(self.output_folder, nombre_pdf)
+
+            # Obtener imágenes PNG ordenadas con prioridad
+            imagenes = sorted(
+                [
+                    archivo
+                    for archivo in os.listdir(self.output_folder)
+                    if archivo.lower().endswith(".png")
+                ],
+                key=lambda x: (
+                    not x.startswith("mapa_nacional"),  # Prioridad 1: mapa_nacional%
+                    not x.startswith(
+                        "mapa_jurisdicciones"
+                    ),  # Prioridad 2: mapa_jurisdicciones%
+                    x,  # Orden alfabético para el resto
+                ),
+            )
+
+            if not imagenes:
+                logger.warning(
+                    f"No se encontraron imágenes PNG para generar el PDF en {self.output_folder}"
+                )
+                return ""
+
+            # Crear PDF con orientación horizontal A4
+            pdf = canvas.Canvas(archivo_salida, pagesize=landscape(A4))
+            ancho_pagina, alto_pagina = landscape(A4)
+
+            # Texto para el título y subtítulo
+            titulo = f"NFE Alert - {self.cliente}"
+            subtitulo = f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+
+            for nombre in imagenes:
+                ruta_imagen = os.path.join(self.output_folder, nombre)
+                with Image.open(ruta_imagen) as img:
+                    img_ancho, img_alto = img.size
+
+                    # Escala proporcional para ajustar a la página (dejando margen para el título)
+                    escala = min(
+                        (ancho_pagina - 40) / img_ancho, (alto_pagina - 80) / img_alto
+                    )
+                    nuevo_ancho = img_ancho * escala
+                    nuevo_alto = img_alto * escala
+
+                    # Posición centrada
+                    x = (ancho_pagina - nuevo_ancho) / 2
+                    y = (alto_pagina - nuevo_alto - 60) / 2  # Ajustar por el título
+
+                    # Agregar título en la parte superior
+                    pdf.setFont("Helvetica-Bold", 16)
+                    pdf.drawCentredString(ancho_pagina / 2, alto_pagina - 30, titulo)
+
+                    # Agregar nombre de la imagen como subtítulo de la imagen
+                    pdf.setFont("Helvetica", 10)
+                    nombre_limpio = os.path.splitext(nombre)[0].replace("_", " ")
+                    pdf.drawCentredString(
+                        ancho_pagina / 2, y + nuevo_alto + 15, nombre_limpio
+                    )
+
+                    # Dibujar la imagen
+                    pdf.drawImage(ruta_imagen, x, y, nuevo_ancho, nuevo_alto)
+
+                    # Agregar subtítulo con la fecha en el pie de página
+                    pdf.setFont("Helvetica", 10)
+                    pdf.drawCentredString(ancho_pagina / 2, 20, subtitulo)
+
+                    # Finalizar la página
+                    pdf.showPage()
+
+            pdf.save()
+            logger.info(f"PDF generado correctamente: {archivo_salida}")
+            return archivo_salida
+        except Exception as e:
+            logger.error(f"Error al generar PDF: {e}")
+            return ""
 
     def _hay_errores_en_resultados(self, df_final: pd.DataFrame) -> bool:
         """
         Verifica si hay errores en los resultados del procesamiento.
-        
+
         Args:
             df_final: DataFrame con los resultados del procesamiento.
-            
+
         Returns:
             bool: True si hay errores, False en caso contrario.
         """
@@ -666,23 +782,25 @@ class ClienteProcessor:
     def _es_ultimo_procesamiento(self) -> bool:
         """
         Determina si el procesamiento actual es el último del día.
-        
+
         Returns:
             bool: True si es el último procesamiento, False en caso contrario.
         """
         ultimo_procesamiento_diario = int(os.getenv("PROCESAMIENTOS_DIARIOS", 5))
         numero_procesamiento = self._obtener_numero_procesamiento()
-        
-        return (numero_procesamiento is not None and 
-                numero_procesamiento >= ultimo_procesamiento_diario)
+
+        return (
+            numero_procesamiento is not None
+            and numero_procesamiento >= ultimo_procesamiento_diario
+        )
 
     def _preparar_dataframe_correo(self, df_final: pd.DataFrame) -> pd.DataFrame:
         """
         Prepara el DataFrame para incluirlo en el correo electrónico.
-        
+
         Args:
             df_final: DataFrame con los resultados del procesamiento.
-            
+
         Returns:
             pd.DataFrame: DataFrame formateado para el correo.
         """
@@ -694,26 +812,28 @@ class ClienteProcessor:
             }
         )
 
-    def determinar_destinatario(self, df_final: pd.DataFrame) -> tuple[str, Optional[str]]:
+    def determinar_destinatario(
+        self, df_final: pd.DataFrame
+    ) -> tuple[str, Optional[str]]:
         """
         Determina el destinatario y CC del correo según la lógica de negocio.
-        
+
         Args:
             df_final: DataFrame con los resultados del procesamiento.
-            
+
         Returns:
             Tupla con (receptor_email, cc_email)
         """
         hay_errores = self._hay_errores_en_resultados(df_final)
         es_ultimo_procesamiento = self._es_ultimo_procesamiento()
-        
+
         # Si hay errores y no es el último procesamiento, enviar al correo de notificación
         if hay_errores and not es_ultimo_procesamiento:
             receptor = os.getenv("CORREO_NOTIFICACION_ERROR", CORREO_NOTIFICACION_ERROR)
             cc = None
             logger.info(f"Redirigiendo correo con errores a {receptor}")
             return receptor, cc
-        
+
         # Mantener los destinatarios normales
         if not self.correo_output and not self.socio_responsable:
             receptor = os.getenv("CORREO_NOTIFICACION_ERROR", CORREO_NOTIFICACION_ERROR)
@@ -726,16 +846,17 @@ class ClienteProcessor:
             cc = None
         else:
             raise ValueError("No valid email address found for sending the zip email.")
-            
+
         return receptor, cc
 
     def enviar_email(self, df_final: pd.DataFrame) -> bool:
         """
         Envía un email con los resultados del procesamiento.
-        
+        El archivo ZIP contiene tanto las imágenes PNG como el PDF.
+
         Args:
             df_final: DataFrame con los resultados del procesamiento.
-            
+
         Returns:
             bool: True si el correo fue enviado correctamente, False en caso contrario.
         """
@@ -744,20 +865,27 @@ class ClienteProcessor:
             hay_errores = self._hay_errores_en_resultados(df_final)
             es_ultimo_procesamiento = self._es_ultimo_procesamiento()
             numero_procesamiento = self._obtener_numero_procesamiento()
-            
+
             # Preparar el DataFrame para el correo
             df_correo = self._preparar_dataframe_correo(df_final)
-            
+
             # Determinar destinatario usando la lógica encapsulada
             receptor, cc = self.determinar_destinatario(df_final)
-            
-            if receptor is None:
-                raise ValueError("Receptor email address is None. Cannot send zip email.")
-                
-            if hay_errores and not es_ultimo_procesamiento:
-                logger.info(f"(Hubo errores en el procesamiento #{numero_procesamiento}) de {self.cliente} \n cambio a receptor a: {receptor}")
 
-            # Enviar correo
+            if receptor is None:
+                raise ValueError(
+                    "Receptor email address is None. Cannot send zip email."
+                )
+
+            if hay_errores and not es_ultimo_procesamiento:
+                logger.info(
+                    f"(Hubo errores en el procesamiento #{numero_procesamiento}) de {self.cliente} \n cambio a receptor a: {receptor}"
+                )
+
+            pdf_path = getattr(self, "pdf_path", None)
+            if pdf_path:
+                logger.info(f"PDF incluido en el ZIP: {pdf_path}")
+
             enviar_correo(
                 receptor=receptor,
                 cliente=self.cliente,
@@ -841,13 +969,13 @@ class ClienteProcessor:
     def _obtener_numero_procesamiento(self) -> Optional[int]:
         """
         Obtiene el número de procesamiento a partir del ID.
-        
+
         Returns:
             int o None: Número de procesamiento o None si no se puede determinar.
         """
         if not self.procesamiento_id:
             return None
-            
+
         with SessionLocal() as db:
             procesamiento = (
                 db.query(ProcesamientosDiariosGlobal)

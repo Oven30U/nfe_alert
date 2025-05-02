@@ -1,20 +1,16 @@
 import asyncio
 import os
-from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional, List, Dict
 
 import pandas as pd
 from playwright.async_api import async_playwright
 
 from cliente_processor import ClienteProcessor
-from conectar_db import conectar_db
 from config import jurisdiccion_clases
-from database import get_session, get_sqlite_session
 from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
 from logger import Logger
-from models import MonitoreoBots, MonitoreoBotsBackup
 from obtener_datos_clientes.db import SessionLocal
 from obtener_datos_clientes.obtener_datos_clientes import (
     Cliente,
@@ -42,7 +38,7 @@ class ProcesamientoManager:
 
         async with async_playwright() as playwright:
             df_input = self.obtener_datos_clientes()
-            if df_input.empty:
+            if df_input is None or df_input.empty:
                 logger.info("No se encontraron clientes para procesar.")
                 self.registrar_sin_clientes()
                 return
@@ -120,6 +116,11 @@ class ProcesamientoManager:
             df_final = processor.sort_df_final(df_final)
 
             processor.generar_mapas(df_final)
+            # Generar PDF después de mapas y antes de ZIP
+            pdf_path = processor.generar_pdf()
+            if pdf_path:
+                processor.pdf_path = pdf_path  # Guardar la ruta para usar en el correo
+
             processor.crear_zip()
 
             estado = (
@@ -219,7 +220,7 @@ class ProcesamientoManager:
                 self.procesamiento_id
             )
             logger.info(
-                f"Procesamiento global {self.procesamiento_id} finalizado sin clientes."
+                f"Procesamiento global {self.procesamiento_id} | diario {self.procesamientos_diarios} finalizado sin clientes."
             )
 
 

@@ -32,6 +32,7 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 from smtplib import SMTPNotSupportedError, SMTPException
 from logger import Logger
 from datetime import datetime
@@ -64,27 +65,24 @@ def enviar_correo(
     cc=None,
 ):
     """
-    Esta función envía un correo electrónico
-    con un archivo adjunto y/o un DataFrame en el cuerpo del correo.
+    Esta función envía un correo electrónico con un archivo ZIP adjunto y contenido HTML en el cuerpo del correo.
+    El archivo ZIP contiene imágenes PNG y el PDF generado.
 
     Parámetros:
     receptor (str): El correo electrónico del receptor.
     cliente (str): El nombre del cliente.
-    ruta_archivo_adjunto (str): La ruta al archivo que se adjuntará.
-    nombre_archivo_adjunto (str): El nombre del archivo adjunto.
+    cuit (str): CUIT del cliente.
+    inicio (datetime): Fecha y hora de inicio del procesamiento.
+    ruta_archivo_adjunto (str): La ruta al archivo ZIP que se adjuntará.
+    nombre_archivo_adjunto (str): El nombre del archivo ZIP adjunto.
     df (pandas.DataFrame): El DataFrame que se incluirá en el cuerpo del correo.
-    cc (list): Lista de correos electrónicos para enviar en copia.
+    ruta_imagen_png (str): Ruta a la primera imagen para incluir en el cuerpo.
+    ruta_imagen_png_2 (str): Ruta a la segunda imagen para incluir en el cuerpo.
+    cuerpo_html_plantilla (str): Ruta a la plantilla HTML.
+    cc (list, str): Lista o cadena de correos electrónicos para enviar en copia.
 
     Retorna:
     None
-
-    Ejemplo:
-    enviar_correo("socio@deloitte.com",
-        "Cliente S.R.L.",
-        "mail.zip",
-        df=df_output_final,
-        ruta_mapa_html="map.html",
-        cc=["cc@example.com"])
     """
 
     servidor_smtp = os.getenv("SERVIDOR_SMTP")
@@ -122,7 +120,7 @@ def enviar_correo(
         f"{cliente} - NFE Alert_Revisión de Domicilios Fiscales Electrónicos"
     )
 
-    # Adjuntar el archivo si se proporciona
+    # Adjuntar el archivo ZIP si se proporciona
     if ruta_archivo_adjunto is not None and nombre_archivo_adjunto is not None:
         try:
             part = MIMEBase("application", "zip")
