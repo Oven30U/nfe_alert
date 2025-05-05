@@ -560,6 +560,7 @@ class ClienteProcessor:
                     df_final.loc[df_final["Nombre"] == jurisdiction, "Notificacion"] = (
                         "La página se encuentra caída"
                     )
+        self.limpiar_screenshots_errores()
         return df_final
 
     def renombrar_screenshots_error(self, jurisdiction):
@@ -619,6 +620,49 @@ class ClienteProcessor:
                     )
         except Exception as e:
             logger.error(f"Error al eliminar screenshots: {e}")
+
+    def limpiar_screenshots_errores(self) -> None:
+        """
+        Elimina screenshots de error cuando existen screenshots correctos para la misma jurisdicción.
+        """
+        try:
+            # Obtener todos los archivos PNG en el directorio de salida
+            all_png_files = glob.glob(os.path.join(self.output_folder, "*.png"))
+
+            # Agrupar archivos por jurisdicción
+            jurisdicciones = {}
+            for file_path in all_png_files:
+                file_name = os.path.basename(file_path)
+                parts = file_name.split("_")
+                if len(parts) >= 2:
+                    jurisdiccion = parts[0]
+                    if jurisdiccion not in jurisdicciones:
+                        jurisdicciones[jurisdiccion] = []
+                    jurisdicciones[jurisdiccion].append(file_path)
+
+            # Procesar cada jurisdicción
+            for jurisdiccion, files in jurisdicciones.items():
+                normal_files = [f for f in files if "_error" not in os.path.basename(f)]
+                error_files = [f for f in files if "_error" in os.path.basename(f)]
+
+                # Si hay archivos normales y de error, eliminar los de error
+                if normal_files and error_files:
+                    logger.info(
+                        f"Eliminando {len(error_files)} screenshots de error para {jurisdiccion} porque existen {len(normal_files)} screenshots normales"
+                    )
+                    for file_path in error_files:
+                        try:
+                            os.remove(file_path)
+                            logger.info(
+                                f"Archivo de error eliminado: {os.path.basename(file_path)}"
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                f"No se pudo eliminar el archivo {os.path.basename(file_path)}: {e}"
+                            )
+
+        except Exception as e:
+            logger.error(f"Error al limpiar screenshots de error: {str(e)}")
 
     def generar_mapas(self, df_final):
         crear_mapa(
