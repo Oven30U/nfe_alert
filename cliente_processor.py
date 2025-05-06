@@ -597,17 +597,27 @@ class ClienteProcessor:
 
     def eliminar_screenshots_errores(self, jurisdiction):
         """
-        Elimina screenshots de error filtrando por jurisdicción
+        Elimina screenshots que contienen la palabra "error" en cualquier parte del nombre
+        filtrando por jurisdicción.
 
         Args:
             jurisdiction (str): Solo elimina screenshots de esta jurisdicción
         """
         try:
-            archivos_a_eliminar = glob.glob(
-                os.path.join(self.output_folder, f"*{jurisdiction}*_error.png")
+            # Primero obtenemos todos los archivos PNG relacionados con la jurisdicción
+            archivos_jurisdiccion = glob.glob(
+                os.path.join(self.output_folder, f"*{jurisdiction}*.png")
             )
+
+            # Filtrar solo aquellos que contienen la palabra "error" en cualquier parte del nombre
+            archivos_a_eliminar = [
+                archivo
+                for archivo in archivos_jurisdiccion
+                if "error" in os.path.basename(archivo).lower()
+            ]
+
             logger.info(
-                f"Eliminando {len(archivos_a_eliminar)} screenshots de {jurisdiction}"
+                f"Eliminando {len(archivos_a_eliminar)} screenshots de error de {jurisdiction}"
             )
 
             for file_path in archivos_a_eliminar:

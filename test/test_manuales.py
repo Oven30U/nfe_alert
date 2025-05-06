@@ -18,6 +18,7 @@ from jurisdicciones import (
     Catamarca,
     Chaco,
     Cordoba,
+    Corrientes,
     EntreRios,
     Formosa,
     LaPampa,
@@ -152,6 +153,9 @@ async def rio_negro_test(headless=False, iterations=1):
 async def nacional_test(headless=False, iterations=1):
     await generic_test("NACIONAL", Nacional, headless, iterations)
 
+async def corrientes_test(headless=False, iterations=1):
+    await generic_test("CORRIENTES", Corrientes, headless, iterations)
+
 
 async def entre_rios_test(headless=False, iterations=1):
     await generic_test("ENTRERIOS", EntreRios, headless, iterations)
@@ -255,7 +259,7 @@ if __name__ == "__main__":
     # Ejemplos de cómo ejecutar los tests:
 
     # 1. Ejecutar un test específico:
-    asyncio.run(nacional_test(headless=False))
+    asyncio.run(corrientes_test(headless=False))
 
     # 2. Ejecutar un test con múltiples iteraciones:
     # asyncio.run(santiago_test(headless=False, iterations=5))
@@ -267,4 +271,4 @@ if __name__ == "__main__":
     # send_email_smtp_test()
 
     # Descomentar la línea correspondiente al test que se desea ejecutar
-    pass
+    # pass
