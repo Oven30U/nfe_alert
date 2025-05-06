@@ -68,6 +68,7 @@ class ProcesamientoManager:
     ) -> None:
         """Procesa un cliente específico."""
         cliente = cliente_tuple[0]
+        logger.info(f"Procesando cliente {cliente}")
         estado = "Erróneo"
         inicio = datetime.now()
         df_final = None

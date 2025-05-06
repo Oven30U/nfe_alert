@@ -2,8 +2,6 @@ from datetime import datetime, timedelta
 from time import sleep
 from typing import Union, List
 import os
-import random
-import string
 
 from sqlalchemy import DateTime, func
 from sqlalchemy.exc import OperationalError, DBAPIError
@@ -12,13 +10,7 @@ from dotenv import load_dotenv
 
 from config import PATH_HTML_SET_PASS, DIAS_VIGENCIA_PASS_ZIP, CORREO_NOTIFICACION_ERROR
 from database import get_session, get_sqlite_session
-from correo_cli import send_email_smtp
-from models import (
-    MonitoreoBotsBackup,
-    UsuarioAutorizado,
-    Cliente,
-    UsuarioCliente,
-)
+from models import MonitoreoBotsBackup
 from obtener_datos_clientes.models import (
     MonitoreoBots,
 )  # Importar desde obtener_datos_clientes
