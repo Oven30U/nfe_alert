@@ -242,8 +242,7 @@ class ObtenerDatosClientes:
                                 "nombre": cliente.nombre,
                                 "cuit": cliente.cuit,
                                 "client_folder": cliente.client_folder,
-                                "correo_output": cliente.correo_output
-                                ,
+                                "correo_output": cliente.correo_output,
                                 "socio_responsable": cliente.socio_responsable,
                                 "zip_password": cliente.zip_password,
                                 "rango_consulta_dias": cliente.rango_consulta_dias,
@@ -277,40 +276,108 @@ class ObtenerDatosClientes:
                 for _, cliente_row in df_clientes.iterrows():
                     cliente_id = cliente_row["id"]
 
-                    # Obtener relaciones cliente-jurisdicción
-                    cliente_jurisdicciones = (
-                        db.query(ClienteJurisdiccion, Jurisdiccion)
-                        .join(
-                            Jurisdiccion,
-                            ClienteJurisdiccion.jurisdiccion_id == Jurisdiccion.id,
-                        )
-                        .filter(ClienteJurisdiccion.cliente_id == cliente_id)
-                        .filter(ClienteJurisdiccion.consultar == True)
-                        .all()
+                    # Verificar documentación del cliente
+                    cliente = self._verificar_documentacion_cliente(db, cliente_id)
+                    if not cliente:
+                        continue
+
+                    # Obtener jurisdicciones para este cliente
+                    jurisdicciones = self._obtener_jurisdicciones_para_cliente(
+                        db, cliente_id
                     )
 
-                    for cj, jurisdiccion in cliente_jurisdicciones:
-                        data.append(
-                            {
-                                "cliente_id": cliente_id,
-                                "jurisdiccion_id": jurisdiccion.id,
-                                "jurisdiccion_clase": jurisdiccion.clase,
-                                "jurisdiccion_codigo": jurisdiccion.codigo,
-                                "usuario": cj.usuario,
-                                "password": cj.password,
-                                "headless": jurisdiccion.headless,
-                            }
-                        )
+                    # Transformar a formato de datos
+                    self._agregar_jurisdicciones_a_data(
+                        jurisdicciones, cliente_id, data
+                    )
 
-                df_jurisdicciones = pd.DataFrame(data)
-                logger.info(
-                    f"Se obtuvieron {len(df_jurisdicciones)} jurisdicciones para los clientes"
-                )
-                return df_jurisdicciones
+                # Crear DataFrame final
+                return self._crear_dataframe_jurisdicciones(data)
 
         except Exception as e:
             logger.error(f"Error al obtener jurisdicciones desde DB: {str(e)}")
             return pd.DataFrame()
+
+    def _verificar_documentacion_cliente(
+        self, db, cliente_id: int
+    ) -> Optional[Cliente]:
+        """
+        Verifica si un cliente tiene la documentación habilitada.
+
+        Args:
+            db: Sesión de base de datos
+            cliente_id: ID del cliente a verificar
+
+        Returns:
+            Cliente: Objeto cliente si tiene documentación habilitada, None en caso contrario
+        """
+        cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+        if not cliente or not cliente.documentacion:
+            logger.info(f"Cliente {cliente_id} - {cliente.nombre} - excluido por no tener documentacion")
+            return None
+        return cliente
+
+    def _obtener_jurisdicciones_para_cliente(self, db, cliente_id: int) -> list:
+        """
+        Obtiene las jurisdicciones configuradas para un cliente.
+
+        Args:
+            db: Sesión de base de datos
+            cliente_id: ID del cliente
+
+        Returns:
+            list: Lista de tuplas (ClienteJurisdiccion, Jurisdiccion)
+        """
+        return (
+            db.query(ClienteJurisdiccion, Jurisdiccion)
+            .join(
+                Jurisdiccion,
+                ClienteJurisdiccion.jurisdiccion_id == Jurisdiccion.id,
+            )
+            .filter(ClienteJurisdiccion.cliente_id == cliente_id)
+            .filter(ClienteJurisdiccion.consultar == True)
+            .all()
+        )
+
+    def _agregar_jurisdicciones_a_data(
+        self, jurisdicciones: list, cliente_id: int, data: list
+    ) -> None:
+        """
+        Agrega las jurisdicciones del cliente al listado de datos.
+
+        Args:
+            jurisdicciones: Lista de tuplas (ClienteJurisdiccion, Jurisdiccion)
+            cliente_id: ID del cliente
+            data: Lista donde se agregarán los datos
+        """
+        for cj, jurisdiccion in jurisdicciones:
+            data.append(
+                {
+                    "cliente_id": cliente_id,
+                    "jurisdiccion_id": jurisdiccion.id,
+                    "jurisdiccion_clase": jurisdiccion.clase,
+                    "jurisdiccion_codigo": jurisdiccion.codigo,
+                    "usuario": cj.usuario,
+                    "password": cj.password,
+                    "headless": jurisdiccion.headless,
+                }
+            )
+
+    def _crear_dataframe_jurisdicciones(self, data: list) -> pd.DataFrame:
+        """
+        Crea un DataFrame con los datos de jurisdicciones.
+
+        Args:
+            data: Lista de diccionarios con datos de jurisdicciones
+
+        Returns:
+            pd.DataFrame: DataFrame con las jurisdicciones
+        """
+        df_jurisdicciones = pd.DataFrame(data)
+        logger.info(
+            f"Se obtuvieron {len(df_jurisdicciones)} jurisdicciones para los clientes"
+        )
+        return df_jurisdicciones
 
     def crear_dataframe_base(
         self, df_clientes: pd.DataFrame, df_jurisdicciones: pd.DataFrame

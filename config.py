@@ -43,8 +43,8 @@ if DEBUG:
 # EJECUTAR_TODOS_CLIENTES = True
 EJECUTAR_TODOS_CLIENTES = False
 
-EJECUTAR_CLIENTES_LISTA = True
-# EJECUTAR_CLIENTES_LISTA = False
+# EJECUTAR_CLIENTES_LISTA = True
+EJECUTAR_CLIENTES_LISTA = False
 # Criterio de self.client_folder
 clientes_si_verificar_config = [
     # "ABBVIE S.A",
