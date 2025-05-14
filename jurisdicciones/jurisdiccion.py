@@ -267,22 +267,21 @@ class Jurisdiccion(ABC):
                 try:
                     # Esperar un tiempo prudencial para detectar errores
                     await self.page.wait_for_selector(
-                        ".mensajeError, text:has-text('Clave o usuario incorrecto')",
+                        "text=Clave o usuario incorrecto",  # Selector basado en el contenido del texto
                         timeout=10000,  # 10 segundos para detectar error
                         state="visible",
                     )
 
                     # Si llegamos aquí, se encontró algún selector de error
-                    error_selector = await self.page.query_selector(".mensajeError")
-                    usuario_incorrecto = await self.page.is_visible(
-                        "text=Clave o usuario incorrecto"
-                    )
-                except Exception:
-                    # No se encontraron errores, esto es bueno
-                    pass
+                    error_selector = await self.page.query_selector("#F1\\:msg")  # Usar id escapado si es necesario
+                    usuario_incorrecto = await self.page.is_visible("text=Clave o usuario incorrecto")
 
-                if error_selector or usuario_incorrecto:
-                    raise LoginErrorAfip(self.cliente)
+                    if error_selector or usuario_incorrecto:
+                        mensaje_error = await error_selector.inner_text() if error_selector else "Clave o usuario incorrecto"
+                        raise LoginErrorAfip(self.cliente, mensaje=mensaje_error)
+                except Exception:
+                    # No se encontraron errores, continuar normalmente
+                    pass
 
                 # Solo verificar el selector de éxito si estamos en la URL estándar de AFIP
                 if (
