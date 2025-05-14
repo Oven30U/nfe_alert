@@ -1,7 +1,10 @@
 import os
+import logging
 from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
+from CloudflareBypasser import CloudflareBypasser
+from DrissionPage import ChromiumPage
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
@@ -71,9 +74,45 @@ class Catamarca(Jurisdiccion):
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
-    async def consultar_notificaciones(self):
+    async def consultar_notificaciones(self) -> None:
+        """
+        Consulta las notificaciones en la web de Catamarca, realizando bypass de Cloudflare si es necesario.
+        """
+        # Bypass Cloudflare usando DrissionPage y CloudflareBypasser
+        try:
+            driver = ChromiumPage()
+            driver.get("https://dgrentas.arca.gob.ar/rentascuA/principal.aspx")
+            cf_bypasser = CloudflareBypasser(driver)
+            cf_bypasser.bypass()
+            # Obtener cookies como método (no como propiedad)
+            all_cookies = driver.cookies()
+            # Formatear cookies para Playwright
+            formatted_cookies = []
+            for cookie in all_cookies:
+                formatted_cookies.append(
+                    {
+                        "name": cookie["name"],
+                        "value": cookie["value"],
+                        "domain": cookie.get("domain", ""),
+                        "path": cookie.get("path", "/"),
+                        "expires": cookie.get("expiry", -1),
+                        "httpOnly": cookie.get("httpOnly", False),
+                        "secure": cookie.get("secure", False),
+                        "sameSite": "Lax",  # DrissionPage puede no proporcionar esto
+                    }
+                )
+            driver.quit()
+            # Establecer cookies en Playwright
+            await self.page.context.add_cookies(formatted_cookies)
+            logging.info(
+                "Bypass de Cloudflare realizado y cookies transferidas a Playwright."
+            )
+        except Exception as exc:
+            logging.error(f"Error en el bypass de Cloudflare: {exc}")
+            raise
+        # Continuar con el flujo normal de login
         await self.page.goto("https://dgrentas.arca.gob.ar/rentascuA/principal.aspx")
-        await self.page.wait_for_load_state("networkidle")
+        # await self.page.wait_for_load_state("networkidle")
         await self.page.locator(
             "(//input[@value='Acceder'])[2]"
         ).click()  # https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=arca_dgr_contrib
