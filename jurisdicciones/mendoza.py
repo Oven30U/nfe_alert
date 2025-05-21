@@ -70,6 +70,7 @@ class Mendoza(Jurisdiccion):
             razon_social_cliente_input,
             texto_notificacion,
             headless=headless,
+            slow_mo=600,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self

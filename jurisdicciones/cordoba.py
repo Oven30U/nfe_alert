@@ -46,9 +46,11 @@ class Cordoba(Jurisdiccion):
     async def AFIP_login(
             self,
             URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=afip-gobcba",
+            # success_url="https://www.rentascordoba.gob.ar/nuevorentas/mis-representados"
+            success_url="https://www.rentascordoba.gob.ar/"
     ):
         try:
-            return await super().AFIP_login(URL_AFIP_LOGIN)
+            return await super().AFIP_login(URL_AFIP_LOGIN, success_url=success_url)
         except TimeoutError:
             print("Cordoba AFIP_login excepcion de error de Timeout.")
 

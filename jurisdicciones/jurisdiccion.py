@@ -176,19 +176,42 @@ class Jurisdiccion(ABC):
     async def create(
         cls,
         playwright: Playwright,
-        nombre,
-        codigo,
-        cliente,
-        client_folder,
-        cuit,
-        clave_fiscal,
-        fecha_desde,
-        fecha_hasta,
-        cuit_cliente_input=None,
-        razon_social_cliente_input=None,
-        texto_notificacion=None,
-        headless=True,
-    ):
+        nombre: str,
+        codigo: str,
+        cliente: str,
+        client_folder: str,
+        cuit: str,
+        clave_fiscal: str,
+        fecha_desde: str,
+        fecha_hasta: str,
+        cuit_cliente_input: Optional[str] = None,
+        razon_social_cliente_input: Optional[str] = None,
+        texto_notificacion: Optional[str] = None,
+        headless: bool = True,
+        slow_mo: int = 0,  # Nuevo parámetro para configurar slow motion
+    ) -> "Jurisdiccion":
+        """
+        Crea e inicializa una instancia de Jurisdiccion.
+
+        Args:
+            playwright: Instancia de Playwright.
+            nombre: Nombre de la jurisdicción.
+            codigo: Código de la jurisdicción.
+            cliente: Nombre del cliente.
+            client_folder: Carpeta del cliente.
+            cuit: CUIT del cliente.
+            clave_fiscal: Clave fiscal del cliente.
+            fecha_desde: Fecha de inicio del período.
+            fecha_hasta: Fecha de fin del período.
+            cuit_cliente_input: CUIT del cliente para input (opcional).
+            razon_social_cliente_input: Razón social del cliente para input (opcional).
+            texto_notificacion: Texto de notificación a buscar (opcional).
+            headless: Si el navegador debe ejecutarse en modo headless.
+            slow_mo: Tiempo en milisegundos para ralentizar las acciones de Playwright.
+
+        Returns:
+            Instancia de Jurisdiccion.
+        """
         self = cls(
             nombre,
             codigo,
@@ -204,45 +227,34 @@ class Jurisdiccion(ABC):
             headless,
         )
         self.client_folder = client_folder
-        self.browser = await playwright.chromium.launch(headless=headless)
+        self.browser = await playwright.chromium.launch(headless=headless, slow_mo=slow_mo)
         self.context = await self.browser.new_context()
         self.page = await self.context.new_page()
         self.logger = Logger.get_logger()
-        # if not headless:
-        #     # Minimizar la ventana del navegador usando la API de DevTools
-        #     client = await self.page.context.new_cdp_session(self.page)
-        #     window_info = await client.send('Browser.getWindowForTarget')
-        #     window_id = window_info['windowId']
-        #     await client.send('Browser.setWindowBounds', {
-        #         'windowId': window_id,
-        #         'bounds': {'windowState': 'minimized'}
-        #     })
-
-        # if not headless:
-        # await self.minimizar_ventana()
 
         return self
 
     async def AFIP_login(
         self,
         URL_AFIP_LOGIN: str = "https://auth.afip.gob.ar/contribuyente_/login.xhtml",
-        success_selector: str = "input#buscadorInput",
+        success_selector: Optional[str] = None,
+        success_url: Optional[str] = None,
+        success_title: Optional[str] = None,
     ) -> None:
         """
         Realiza el inicio de sesión en el portal de AFIP.
 
         Args:
-            URL_AFIP_LOGIN: URL del portal de login de AFIP
-            success_selector: Selector CSS que indica login exitoso (puede variar según URL)
+            URL_AFIP_LOGIN: URL del portal de login de AFIP.
+            success_selector: Selector CSS que indica login exitoso (puede variar según URL).
+            success_url: Parte de la URL que indica login exitoso (opcional).
+            success_title: Título de la página que indica login exitoso (opcional).
 
         Raises:
-            LoginErrorAfip: Cuando hay un error en el proceso de login
+            LoginErrorAfip: Cuando hay un error en el proceso de login.
         """
         try:
-            # Aumentar timeout para la navegación inicial
-            await self.page.goto(URL_AFIP_LOGIN, timeout=180000)  # 180 segundos
-
-            # Aumentar timeouts para las interacciones de usuario
+            await self.page.goto(URL_AFIP_LOGIN, timeout=180000)
             await self.page.get_by_role("spinbutton").click(timeout=18000)
             await self.page.get_by_role("spinbutton").fill(self._cuit, timeout=18000)
             await self.page.get_by_role("button", name="Siguiente").click(timeout=18000)
@@ -251,84 +263,42 @@ class Jurisdiccion(ABC):
                 ":has-text('Número de CUIL/CUIT incorrecto')"
             )
             if incorrect_login:
-                raise LoginErrorAfip(self.cliente)
+                raise LoginErrorAfip(self.cliente, "Número de CUIL/CUIT incorrecto")
 
             await self.page.get_by_label("TU CLAVE").click(timeout=18000)
-            await self.page.get_by_label("TU CLAVE").fill(
-                self._clave_fiscal, timeout=18000
-            )
+            await self.page.get_by_label("TU CLAVE").fill(self._clave_fiscal, timeout=18000)
             await self.page.get_by_role("button", name="Ingresar").click(timeout=18000)
+            await self.page.wait_for_load_state("networkidle", timeout=180000)
 
-            try:
-                # Verificar primero si hay errores (común a todas las URLs)
-                error_selector = None
-                usuario_incorrecto = False
+            # Verificar errores comunes solo si la URL actual es la esperada
+            if self.page.url == URL_AFIP_LOGIN:
+                error_selector = await self.page.query_selector("#F1\\:msg")
+                if error_selector:
+                    mensaje_error = await error_selector.inner_text()
+                    raise LoginErrorAfip(self.cliente, mensaje=mensaje_error)
 
-                try:
-                    # Esperar un tiempo prudencial para detectar errores
-                    await self.page.wait_for_selector(
-                        "text=Clave o usuario incorrecto",  # Selector basado en el contenido del texto
-                        timeout=10000,  # 10 segundos para detectar error
-                        state="visible",
-                    )
-
-                    # Si llegamos aquí, se encontró algún selector de error
-                    error_selector = await self.page.query_selector("#F1\\:msg")  # Usar id escapado si es necesario
-                    usuario_incorrecto = await self.page.is_visible("text=Clave o usuario incorrecto")
-
-                    if error_selector or usuario_incorrecto:
-                        mensaje_error = await error_selector.inner_text() if error_selector else "Clave o usuario incorrecto"
-                        raise LoginErrorAfip(self.cliente, mensaje=mensaje_error)
-                except Exception:
-                    # No se encontraron errores, continuar normalmente
-                    pass
-
-                # Solo verificar el selector de éxito si estamos en la URL estándar de AFIP
-                if (
-                    URL_AFIP_LOGIN
-                    == "https://auth.afip.gob.ar/contribuyente_/login.xhtml"
-                    and success_selector
-                ):
-                    try:
-                        await self.page.wait_for_selector(
-                            success_selector,
-                            timeout=60000,  # 60 segundos para detectar éxito
-                            state="visible",
-                        )
-                        self.logger.info(
-                            "Login en AFIP exitoso (selector de éxito encontrado)"
-                        )
-                    except Exception as e:
-                        self.logger.warning(
-                            f"Selector de éxito no encontrado: {str(e)}"
-                        )
-                        # No lanzar excepción aquí, ya verificamos que no hay errores
-
-                # Si no hay errores detectados, consideramos que el login fue exitoso
-                self.logger.info("Login en AFIP completado sin errores detectados")
-
-            except Exception as e:
-                # Si el timeout expiró o hubo otro error
-                if "Timeout" in str(e):
-                    self.logger.error("Timeout esperando resultado del login")
-
-                # Verificar nuevamente por errores
-                error_selector = await self.page.query_selector(".mensajeError")
-                usuario_incorrecto = await self.page.is_visible(
-                    "text=Clave o usuario incorrecto"
+            # Verificar éxito mediante selector, URL o título
+            if success_selector:
+                await self.page.wait_for_selector(success_selector, timeout=60000)
+                self.logger.info("Login en AFIP exitoso confirmado mediante selector.")
+            elif success_url:
+                if success_url in self.page.url:
+                    self.logger.info("Login en AFIP exitoso confirmado mediante URL.")
+            elif success_title:
+                await self.page.wait_for_function(
+                    f"document.title.includes('{success_title}')", timeout=60000
                 )
-                if error_selector or usuario_incorrecto:
-                    raise LoginErrorAfip(self.cliente)
-
-                # Si no se detecta un error específico, asumimos que hay un problema general
-                raise ConsultarNotificacionesError(
-                    self.cliente, "Error indeterminado en el login"
-                ) from e
-
-        except Exception as e:
-            if not isinstance(e, LoginErrorAfip):
-                raise ConsultarNotificacionesError(self.cliente) from e
+                self.logger.info("Login en AFIP exitoso mediante título.")
+            else:
+                raise LoginErrorAfip(
+                    self.cliente, "No se proporcionó un criterio válido para confirmar el login exitoso."
+                )
+        except LoginErrorAfip as e:
+            self.logger.error(f"Error de login en AFIP: {e}")
             raise
+        except Exception as e:
+            self.logger.error(f"Error inesperado en AFIP_login: {e}")
+            raise ConsultarNotificacionesError(self.cliente, f"Error inesperado: {str(e)}") from e
 
     @abstractmethod
     def consultar_notificaciones(self):

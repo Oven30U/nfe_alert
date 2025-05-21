@@ -74,11 +74,14 @@ class RioNegro(Jurisdiccion):
     async def AFIP_login(
         self,
         URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgrrn_sitio_seguro",
+        rio_negro_success_url: str = None,
     ):
-        return await super().AFIP_login(URL_AFIP_LOGIN)
+        return await super().AFIP_login(URL_AFIP_LOGIN, success_url=rio_negro_success_url)
 
     async def consultar_notificaciones(self):
-        await self.AFIP_login()
+        await self.AFIP_login(
+            rio_negro_success_url="https://siatwagencia.rionegro.gov.ar/rn/Extranet/index.php"
+        )
         await self.page.wait_for_load_state("domcontentloaded")
         await self.page.wait_for_selector('xpath=//select[@id="cuit_opera"]')
         await self.page.select_option(

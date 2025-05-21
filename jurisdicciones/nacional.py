@@ -79,9 +79,13 @@ class Nacional(Jurisdiccion):
         return self
 
     async def AFIP_login(
-        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+        self,
+        URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml",
+        success_selector="input#buscadorInput",
     ):
-        return await super().AFIP_login(URL_AFIP_LOGIN)
+        return await super().AFIP_login(
+            URL_AFIP_LOGIN=URL_AFIP_LOGIN, success_selector=success_selector
+        )
 
     async def consultar_notificaciones(self):
         try:
@@ -93,7 +97,7 @@ class Nacional(Jurisdiccion):
             await self.page.click("a.dropdown-item")
             popup_info = await self.page.wait_for_event("popup")
             self.new_page = popup_info
-            
+
             self.new_page.set_default_timeout(180000)
             self.new_page.set_default_navigation_timeout(180000)
 
@@ -174,26 +178,28 @@ class Nacional(Jurisdiccion):
             # Raise with standard message only
             raise ConsultarNotificacionesError(self.cliente)
 
-
     async def _click_recordar_mas_tarde(self) -> None:
         """
         Intenta hacer clic en el botón 'Recordar más tarde' si está visible.
-        
+
         No lanza excepciones si el botón no se encuentra.
         """
         try:
             # Verificar si existe el botón antes de intentar hacer clic
-            is_visible = await self.new_page.is_visible('text="Recordar más tarde"', timeout=10000)
+            is_visible = await self.new_page.is_visible(
+                'text="Recordar más tarde"', timeout=10000
+            )
             if is_visible:
                 await self.new_page.click('text="Recordar más tarde"')
                 self.logger.info("Botón 'Recordar más tarde' encontrado y clickeado")
             else:
-                self.logger.info("Botón 'Recordar más tarde' no está visible, continuando...")
+                self.logger.info(
+                    "Botón 'Recordar más tarde' no está visible, continuando..."
+                )
         except Exception as e:
             self.logger.info(
                 f"No se pudo interactuar con 'Recordar más tarde', continuando: {str(e)}"
             )
-
 
     async def buscar_notificacion(self):
         # Use a single selector to get all notification links

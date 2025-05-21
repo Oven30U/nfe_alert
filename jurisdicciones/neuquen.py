@@ -119,7 +119,7 @@ class Neuquen(Jurisdiccion):
         URL_AFIP_NEUQUEN = "https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgahfneuq_auth_clave_fiscal"
 
         # Reutilizar el método AFIP_login de la clase base
-        await self.AFIP_login(URL_AFIP_NEUQUEN)
+        await self.AFIP_login(URL_AFIP_NEUQUEN, success_selector="select#cuit_opera")
 
         try:
             # Esperar a que se complete el login y la redirección al sistema de Neuquen

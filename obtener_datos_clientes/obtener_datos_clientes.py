@@ -313,7 +313,9 @@ class ObtenerDatosClientes:
         """
         cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
         if not cliente or not cliente.documentacion:
-            logger.info(f"Cliente {cliente_id} - {cliente.nombre} - excluido por no tener documentacion")
+            logger.info(
+                f"Cliente {cliente_id} - {cliente.nombre} - excluido por no tener documentacion"
+            )
             return None
         return cliente
 
@@ -545,8 +547,7 @@ class ObtenerDatosClientes:
 
     def filtrar_jurisdicciones_por_login_error(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Filtra las jurisdicciones que no deben procesarse debido a errores de login recientes,
-        pero las mantiene en el DataFrame con un mensaje indicativo para mostrarlas en el resultado final.
+        Filtra jurisdicciones con errores de login recientes en una sola consulta eficiente.
 
         Args:
             df: DataFrame con datos de jurisdicciones por cliente
@@ -554,9 +555,7 @@ class ObtenerDatosClientes:
         Returns:
             pd.DataFrame: DataFrame con jurisdicciones marcadas pero no eliminadas
         """
-        from sqlalchemy import text
-
-        # Crear una copia para no modificar el original durante la iteración
+        # Crear una copia para no modificar el original
         df_result = df.copy()
 
         # Añadir columnas para el resultado final si no existen
@@ -569,17 +568,60 @@ class ObtenerDatosClientes:
 
         try:
             with SessionLocal() as db:
-                # Para cada fila en el DataFrame
+                # Recolectar todos los client_folder y jurisdicción_nombre únicos
+                client_folders = df["client_folder"].unique().tolist()
+                jurisdiccion_nombres = df["Jurisdiccion"].unique().tolist()
+
+                # Obtener todos los clientes relevantes en una sola consulta
+                clientes_dict = {
+                    cliente.client_folder: cliente
+                    for cliente in db.query(Cliente)
+                    .filter(Cliente.client_folder.in_(client_folders))
+                    .all()
+                }
+
+                # Obtener todas las jurisdicciones relevantes en una sola consulta
+                jurisdicciones_dict = {
+                    jurisdiccion.clase: jurisdiccion
+                    for jurisdiccion in db.query(Jurisdiccion)
+                    .filter(Jurisdiccion.clase.in_(jurisdiccion_nombres))
+                    .all()
+                }
+
+                # Obtener todos los registros cliente_jurisdiccion relevantes
+                cliente_ids = [
+                    cliente.id for cliente in clientes_dict.values() if cliente
+                ]
+                jurisdiccion_ids = [
+                    jurisdiccion.id
+                    for jurisdiccion in jurisdicciones_dict.values()
+                    if jurisdiccion
+                ]
+
+                # Solo hacer la consulta si hay IDs para buscar
+                cj_mapping = {}
+                if cliente_ids and jurisdiccion_ids:
+                    cliente_jurisdicciones = (
+                        db.query(ClienteJurisdiccion)
+                        .filter(
+                            ClienteJurisdiccion.cliente_id.in_(cliente_ids),
+                            ClienteJurisdiccion.jurisdiccion_id.in_(jurisdiccion_ids),
+                        )
+                        .all()
+                    )
+
+                    # Crear un mapa para acceso rápido: (cliente_id, jurisdiccion_id) -> cliente_jurisdiccion
+                    for cj in cliente_jurisdicciones:
+                        cj_mapping[(cj.cliente_id, cj.jurisdiccion_id)] = cj
+
+                # Ahora procesar el DataFrame usando las estructuras de datos en memoria
                 for idx, row in df.iterrows():
                     cliente_folder = row["client_folder"]
                     jurisdiccion_nombre = row["Jurisdiccion"]
 
-                    # Obtener IDs de cliente y jurisdicción
-                    cliente = (
-                        db.query(Cliente)
-                        .filter(Cliente.client_folder == cliente_folder)
-                        .first()
-                    )
+                    # Buscar cliente y jurisdicción en los diccionarios
+                    cliente = clientes_dict.get(cliente_folder)
+                    jurisdiccion = jurisdicciones_dict.get(jurisdiccion_nombre)
 
                     if not cliente:
                         logger.warning(
@@ -587,27 +629,14 @@ class ObtenerDatosClientes:
                         )
                         continue
 
-                    jurisdiccion = (
-                        db.query(Jurisdiccion)
-                        .filter(Jurisdiccion.clase == jurisdiccion_nombre)
-                        .first()
-                    )
-
                     if not jurisdiccion:
                         logger.warning(
                             f"No se encontró jurisdicción con clase={jurisdiccion_nombre}"
                         )
                         continue
 
-                    # Obtener el registro ClienteJurisdiccion
-                    cliente_jurisdiccion = (
-                        db.query(ClienteJurisdiccion)
-                        .filter(
-                            ClienteJurisdiccion.cliente_id == cliente.id,
-                            ClienteJurisdiccion.jurisdiccion_id == jurisdiccion.id,
-                        )
-                        .first()
-                    )
+                    # Buscar cliente_jurisdiccion en el mapa
+                    cliente_jurisdiccion = cj_mapping.get((cliente.id, jurisdiccion.id))
 
                     if not cliente_jurisdiccion:
                         logger.warning(
@@ -615,10 +644,12 @@ class ObtenerDatosClientes:
                         )
                         continue
 
-                    # Verificar si se debe procesar
-                    procesar = self.debe_procesar_jurisdiccion(cliente_jurisdiccion)
+                    # Verificar si se debe procesar usando la misma lógica
+                    procesar = self._debe_procesar_jurisdiccion_local(
+                        cliente_jurisdiccion
+                    )
                     if not procesar:
-                        # En lugar de eliminar, marcar la fila como que debe saltarse
+                        # Marcar la fila como que debe saltarse
                         df_result.loc[idx, "Notificacion"] = "Credenciales inválidas"
                         df_result.loc[idx, "Error"] = "LoginError"
                         df_result.loc[idx, "Saltar"] = True
@@ -626,19 +657,18 @@ class ObtenerDatosClientes:
                             f"Marcando jurisdicción {jurisdiccion_nombre} para cliente {cliente_folder} por error de login reciente"
                         )
 
+                # Actualizar todos los registros que necesitan resetear fecha_login_error en una sola operación
+                self._resetear_errores_login_batch(db, cliente_jurisdicciones)
+
         except Exception as e:
             logger.error(f"Error al filtrar jurisdicciones por login_error: {str(e)}")
 
         return df_result
 
-    def debe_procesar_jurisdiccion(self, cliente_jurisdiccion) -> bool:
+    def _debe_procesar_jurisdiccion_local(self, cliente_jurisdiccion) -> bool:
         """
-        Determina si una jurisdicción debe procesarse basada en fecha_login_error y fecha_actualizacion.
-
-        Esta función implementa la lógica de negocio para gestionar los errores de login:
-        - Si no hay error de login registrado, siempre procesar
-        - Si se actualizaron credenciales después del último error, procesar y resetear error
-        - Si el error es más reciente que la última actualización, no procesar
+        Versión local de debe_procesar_jurisdiccion que no necesita conexión a DB.
+        Solo para evaluación, no resetea fecha_login_error.
 
         Args:
             cliente_jurisdiccion: Objeto ClienteJurisdiccion a evaluar
@@ -650,39 +680,55 @@ class ObtenerDatosClientes:
         if cliente_jurisdiccion.fecha_login_error is None:
             return True
 
-        # Si hay error de login pero se han actualizado las credenciales después, procesar
+        # Si hay error pero se actualizaron credenciales después, procesar
         if (
             cliente_jurisdiccion.fecha_actualizacion
             and cliente_jurisdiccion.fecha_login_error
             < cliente_jurisdiccion.fecha_actualizacion
         ):
-            # En este caso, deberíamos también resetear fecha_login_error
-            from sqlalchemy import text
-
-            with SessionLocal() as db:
-                try:
-                    # Usamos SQL directo para no actualizar fecha_actualizacion
-                    sql = text("""
-                        UPDATE cliente_jurisdiccion
-                        SET fecha_login_error = NULL
-                        WHERE id = :id
-                    """)
-
-                    db.execute(sql, {"id": cliente_jurisdiccion.id})
-                    db.commit()
-                    logger.info(
-                        f"Reset de fecha_login_error para ClienteJurisdiccion id={cliente_jurisdiccion.id}"
-                    )
-                except Exception as e:
-                    logger.warning(f"Error al resetear fecha_login_error: {str(e)}")
-
             return True
 
-        # Si el error de login es más reciente que la actualización de credenciales, no procesar
-        logger.info(
-            f"Saltando jurisdicción {cliente_jurisdiccion.jurisdiccion.clase} por error de login reciente"
-        )
+        # Error de login más reciente que la actualización de credenciales
         return False
+
+    def _resetear_errores_login_batch(self, db, cliente_jurisdicciones: list) -> None:
+        """
+        Resetea fecha_login_error para múltiples registros en una sola operación.
+
+        Args:
+            db: Sesión de base de datos activa
+            cliente_jurisdicciones: Lista de objetos ClienteJurisdiccion a evaluar
+        """
+        try:
+            # Identificar IDs que necesitan reset
+            ids_to_reset = []
+            for cj in cliente_jurisdicciones:
+                if (
+                    cj.fecha_login_error
+                    and cj.fecha_actualizacion
+                    and cj.fecha_login_error < cj.fecha_actualizacion
+                ):
+                    ids_to_reset.append(cj.id)
+
+            if not ids_to_reset:
+                return
+
+            # Ejecutar actualización en lote
+            from sqlalchemy import text
+
+            sql = text("""
+                UPDATE cliente_jurisdiccion
+                SET fecha_login_error = NULL
+                WHERE id IN :ids
+            """)
+
+            db.execute(sql, {"ids": tuple(ids_to_reset)})
+            db.commit()
+            logger.info(
+                f"Reset de fecha_login_error para {len(ids_to_reset)} registros"
+            )
+        except Exception as e:
+            logger.warning(f"Error al resetear fecha_login_error en lote: {str(e)}")
 
 
 if __name__ == "__main__":

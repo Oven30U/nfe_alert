@@ -72,6 +72,9 @@ class LaRioja(Jurisdiccion):
             "https://www.dgiplarioja.gob.ar/frontend51/page?1,principal,LR-Aplicacion,O,es,0,"
         )
         frame = self.page.frame_locator('iframe[name="gxpea000098000025"]')
+        await self.page.wait_for_load_state("domcontentloaded")
+        await self.page.wait_for_load_state("networkidle")
+
         await frame.locator("#vUSRLOGIN").fill(f"{self._cuit}")
         await frame.locator("#vPWDLOGIN").fill(f"{self._clave_fiscal}")
         await frame.locator("input[name='BUTTON1']").click()

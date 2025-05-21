@@ -75,11 +75,12 @@ class Tucuman(Jurisdiccion):
     async def AFIP_login(
         self,
         URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgrtuc_ddjj",
+        tucuman_success_url: str = None
     ):
-        return await super().AFIP_login(URL_AFIP_LOGIN)
+        return await super().AFIP_login(URL_AFIP_LOGIN, success_url=tucuman_success_url)
 
     async def consultar_notificaciones(self):
-        await self.AFIP_login()
+        await self.AFIP_login(tucuman_success_url="rentastucuman")
         await self.page.locator("xpath=//button[@class='close']").click()
         radio_buttons = await self.page.query_selector_all(
             'input[name="radio_cuit_sele"]'

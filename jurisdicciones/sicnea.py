@@ -79,12 +79,12 @@ class Sicnea(Jurisdiccion):
         return self
 
     async def AFIP_login(
-        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml", success_selector=None
     ):
-        return await super().AFIP_login(URL_AFIP_LOGIN)
+        return await super().AFIP_login(URL_AFIP_LOGIN, success_selector=success_selector)
 
     async def consultar_notificaciones(self):
-        await self.AFIP_login()
+        await self.AFIP_login(success_selector="input#buscadorInput")
         await self.page.fill(
             "input#buscadorInput",
             "SICNEA - Gestion de comunicacion y notificacion electronica aduanera",

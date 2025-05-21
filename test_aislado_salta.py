@@ -1,8 +1,10 @@
 import os
 from datetime import datetime
+
 # import requests
 from playwright_stealth import stealth_async
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, async_playwright, TimeoutError as PlaywrightTimeoutError, Page, Frame
+
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
@@ -81,15 +83,12 @@ class Salta(Jurisdiccion):
     async def AFIP_login(
         self,
         URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgrsalta_rentas",
-        salta_success_url: str = None,
     ):
-        return await super().AFIP_login(URL_AFIP_LOGIN, success_url=salta_success_url)
+        return await super().AFIP_login(URL_AFIP_LOGIN)
 
     async def consultar_notificaciones(self):
         if int(str(self._cuit)[0]) != 3:
-            await self.AFIP_login(
-                salta_success_url="https://www.dgrsalta.gov.ar/rentassalta/form.login"
-            )
+            await self.AFIP_login()
         else:
             await self.login()
 
@@ -144,11 +143,69 @@ class Salta(Jurisdiccion):
         await self.page.fill("input#usuario", self._cuit)
         await self.page.fill("input#password", self._clave_fiscal)
         # await stealth_async(self.page)
+        frame = next((f for f in self.page.frames if 'recaptcha' in f.url), None)
+        if not frame:
+            print("No se encontró el iframe de reCAPTCHA.")
+        else:
+            try:
+                await self.humanoid_click(self.page, frame, '.recaptcha-checkbox-border')
+                print("Clic en reCAPTCHA realizado con éxito.")
+            except RuntimeError as e:
+                print(f"Hubo un error al intentar hacer clic en reCAPTCHA: {e}")
+
         await self.page.click("a#enviaLogin")
         await self.page.wait_for_load_state("domcontentloaded")
         error_selector = "//div[@class='error_text' and contains(text(), 'Usuario o Password Incorrecto')]"
         if await self.page.is_visible(error_selector):
             raise LoginError(self.cliente)
+        
+    async def humanoid_click(page: Page, frame: Frame, selector: str, retries: int = 2):
+        """
+        Simula un clic humano en un elemento dentro de un frame.
+
+        Args:
+            page (Page): Página principal de Playwright.
+            frame (Frame): Frame donde se encuentra el elemento.
+            selector (str): Selector CSS del elemento.
+            retries (int): Número de reintentos en caso de fallo.
+
+        Raises:
+            RuntimeError: Si no se puede hacer clic en el elemento después de los reintentos.
+        """
+        try:
+            # Esperar que el selector esté visible en el frame
+            await frame.locator(selector).wait_for(state="visible", timeout=10000)
+
+            # Obtener la posición del elemento en el frame
+            element = frame.locator(selector)
+            box = await element.bounding_box()
+            if not box:
+                raise ValueError(f"No se pudo obtener la posición del elemento: {selector}")
+            x = box["x"] + box["width"] / 2
+            y = box["y"] + box["height"] / 2
+
+            # Ajustar las coordenadas del elemento al contexto de la página principal
+            frame_box = await frame.evaluate("document.body.getBoundingClientRect()")
+            x += frame_box["x"]
+            y += frame_box["y"]
+
+            # Mover mouse desde una posición superior izquierda simulando desplazamiento humano
+            await page.mouse.move(x - 120, y - 120)
+            await asyncio.sleep(0.2)
+            await page.mouse.move(x, y, steps=20)
+            await asyncio.sleep(0.4)
+
+            # Hover y clic
+            await page.mouse.click(x, y, delay=80)  # Delay para simular tiempo de reacción de clic
+            await asyncio.sleep(0.4)
+
+        except (PlaywrightTimeoutError, ValueError) as e:
+            if retries > 0:
+                print(f"Fallo al hacer clic en {selector}, reintentando... ({retries} restantes)")
+                await asyncio.sleep(1)  # Espera antes de reintentar
+                await humanoid_click(page, frame, selector, retries - 1)
+            else:
+                raise RuntimeError(f"Error al intentar hacer clic en {selector}") from e
 
     async def buscar_notificacion(self):
         elements = await self.page.locator(
@@ -171,6 +228,7 @@ if __name__ == "__main__":
             fecha_desde = os.getenv("FECHA_DESDE")
             fecha_hasta = os.getenv("FECHA_HASTA")
             client = os.getenv("TEST_SALTA_CLIENT")
+            client_folder = os.getenv("TEST_SALTA_CLIENT_FOLDER")
             cuit_Salta = os.getenv("TEST_SALTA_CUIT")
             clave_fiscal_Salta = os.getenv("TEST_SALTA_CLAVE_FISCAL")
             cuit_cliente_input = os.getenv("TEST_SALTA_CUIT_CLIENTE_INPUT")
@@ -178,6 +236,7 @@ if __name__ == "__main__":
             salta = await Salta.create(
                 playwright,
                 client,
+                client_folder,
                 cuit_Salta,
                 clave_fiscal_Salta,
                 fecha_desde,
@@ -186,5 +245,6 @@ if __name__ == "__main__":
                 headless=False,
             )
             await salta.procesar_jurisdiccion()
+
 
     asyncio.run(main())

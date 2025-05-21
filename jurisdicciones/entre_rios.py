@@ -70,8 +70,8 @@ class EntreRios(Jurisdiccion):
         return self
 
     # Existing methods...
-    async def AFIP_login(self):
-        return await super().AFIP_login()
+    async def AFIP_login(self, success_selector: str = None):
+        return await super().AFIP_login(success_selector=success_selector)
 
     async def formatear_cuit(self, cuit):
         """
@@ -93,7 +93,7 @@ class EntreRios(Jurisdiccion):
         return cuit_str
 
     async def consultar_notificaciones(self):
-        await self.AFIP_login()
+        await self.AFIP_login(success_selector="input#buscadorInput")
         await self.page.fill(
             "input#buscadorInput", "Servicios Administradora Tributaria de Entre Ríos"
         )
