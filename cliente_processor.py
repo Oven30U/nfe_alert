@@ -13,12 +13,6 @@ from PIL import Image
 
 import jurisdicciones
 from conectar_db import conectar_db
-from config import (
-    CORREO_NOTIFICACION_ERROR,
-    CORREO_TEST,
-    ENVIAR_CORREO_TEST,
-    LIMITES_REINTENTO,
-)
 from logger import Logger
 from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
@@ -26,6 +20,11 @@ from obtener_datos_clientes.db import SessionLocal
 from obtener_datos_clientes.models import ProcesamientosDiariosGlobal
 
 logger = Logger.get_logger()
+
+CORREO_NOTIFICACION_ERROR = os.getenv("CORREO_NOTIFICACION_ERROR", "rpa-tax-ar@deloitte.com")
+CORREO_TEST = os.getenv("CORREO_TEST", "lmarinaro@deloitte.com")
+ENVIAR_CORREO_TEST = os.getenv("ENVIAR_CORREO_TEST", "False").lower() == "true"
+LIMITES_REINTENTO = int(os.getenv("LIMITES_REINTENTO", 5))
 
 
 class ClienteProcessor:
@@ -315,6 +314,18 @@ class ClienteProcessor:
     async def crear_instancia_jurisdiccion(
         self, playwright, row, jurisdiction, retry=False
     ):
+        """
+        Crea una instancia de la clase jurisdicción especificada.
+        
+        Args:
+            playwright: Instancia de Playwright
+            row: Fila del DataFrame con los datos de la jurisdicción
+            jurisdiction: Nombre de la clase de jurisdicción a instanciar
+            retry: Indica si es un reintento (default: False)
+            
+        Returns:
+            Instancia de la jurisdicción
+        """
         JurisdictionClass = getattr(jurisdicciones, jurisdiction)
 
         instancia_visible = os.getenv("MODO_VISIBLE", "False").lower() == "true"
@@ -334,6 +345,12 @@ class ClienteProcessor:
             "cuit_cliente_input": int(row["cuit_cliente"]),
             "headless": headless,
         }
+        
+        # Añadir filtro_fce solo para la jurisdicción Nacional
+        if jurisdiction == "Nacional" and "filtro_fce" in row:
+            create_args["filtro_fce"] = bool(row["filtro_fce"])
+            logger.debug(f"Aplicando filtro_fce={row['filtro_fce']} para jurisdicción Nacional")
+        
         return await JurisdictionClass.create(**create_args)
 
     async def ejecutar_jurisdicciones(

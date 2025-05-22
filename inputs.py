@@ -6,19 +6,20 @@ from win32com.client import Dispatch
 from conectar_db import (
     get_clientes_ejecutados_hoy_with_retries,
 )
-from config import (
-    EJECUTAR_CLIENTES_LISTA,
-    NOMBRE_ARCHIVO_CLIENTE,
-    PATH_ESTRUCTURA_ROBOT,
-    SHEET_ARCHIVO_CLIENTE,
-    clientes_si_verificar_config,
-    log_file_path,
-    CLIENTES_CON_DOCUMENTACION,
-)
 from jurisdicciones.jurisdiccion import LoggedException
 from logger import Logger
 
 logger = Logger.get_logger()
+
+EJECUTAR_CLIENTES_LISTA = (
+    os.getenv("EJECUTAR_CLIENTES_LISTA", "False").lower() == "true"
+)
+NOMBRE_ARCHIVO_CLIENTE = os.getenv("NOMBRE_ARCHIVO_CLIENTE", "Carga Jurisdicciones")
+PATH_ESTRUCTURA_ROBOT = os.getenv("PATH_ESTRUCTURA_ROBOT", "Estructura-robot")
+SHEET_ARCHIVO_CLIENTE = os.getenv("SHEET_ARCHIVO_CLIENTE", "Carga de datos")
+log_file_path = os.getenv("LOG_FILE_PATH", "bot.log")
+clientes_si_verificar_config = os.getenv("clientes_si_verificar_config", "").split(",")
+CLIENTES_CON_DOCUMENTACION = os.getenv("CLIENTES_CON_DOCUMENTACION", "").split(",")
 
 
 class InputException(LoggedException):

@@ -7,9 +7,9 @@ from jurisdicciones.jurisdiccion import (
     Jurisdiccion,
     LoginErrorAfip,
     ConsultarNotificacionesError,
+    LoginError,
 )
 
-from config import CLIENTES_EXLUIR_NACIONAL_FCE
 import unicodedata
 
 
@@ -28,6 +28,7 @@ class Nacional(Jurisdiccion):
         razon_social_cliente_input=None,
         texto_notificacion=None,
         headless=True,
+        filtro_fce=True,  # Valor por defecto True
     ):
         super().__init__(
             nombre,
@@ -44,6 +45,7 @@ class Nacional(Jurisdiccion):
             headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
+        self.filtro_fce = filtro_fce
 
     @classmethod
     async def create(
@@ -59,6 +61,7 @@ class Nacional(Jurisdiccion):
         razon_social_cliente_input=None,
         texto_notificacion=None,
         headless=True,
+        filtro_fce=True,  # Valor por defecto True
     ):
         self = await super().create(
             playwright,
@@ -76,6 +79,7 @@ class Nacional(Jurisdiccion):
             headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
+        self.filtro_fce = filtro_fce  # Guardar el valor de filtro_fce
         return self
 
     async def AFIP_login(
@@ -109,9 +113,7 @@ class Nacional(Jurisdiccion):
             await self.new_page.click(
                 "(//div[@class='input-group'])[5]//div[@class='form-control dropdown-toggle']"
             )
-            await self.new_page.click(
-                f'xpath=//button[@id="{self.cuit_cliente_input}"]'
-            )
+            await self._seleccionar_cuit_cliente()
             await self.page.wait_for_load_state("networkidle")
 
             # Intentar esperar el encabezado con un timeout más razonable
@@ -144,7 +146,6 @@ class Nacional(Jurisdiccion):
                 "xpath=(//label[contains(text(), 'Desde')]/following::input[1])[2]",
                 f"{self.fecha_desde}",
             )
-            # await self.new_page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}") #\t\n
             self.fecha_hasta = datetime.strptime(self.fecha_hasta, "%d%m%Y").strftime(
                 "%d/%m/%Y"
             )
@@ -157,16 +158,7 @@ class Nacional(Jurisdiccion):
                 .nth(1)
                 .click()
             )
-            # await self.new_page.keyboard.press("Tab")
-            # await self.new_page.keyboard.press("Enter")
 
-            # async def completar_fechas(page, fecha_desde, fecha_hasta):
-            # await self.page.fill("xpath=(//input)[5]", f"{self.fecha_desde}")
-            # await self.page.fill("xpath=(//input)[6]", f"{self.fecha_hasta}")
-            # await self.page.wait_for_load_state("networkidle")
-            # await self.page.keyboard.press("Tab")
-            # await self.page.keyboard.press("Enter")
-            # await self.page.wait_for_load_state("networkidle")
             await self.new_page.select_option("select[name='filtroEstado']", "No Leída")
 
             # await completar_fechas(self.new_page, self.fecha_desde, self.fecha_hasta)
@@ -177,6 +169,41 @@ class Nacional(Jurisdiccion):
             self.logger.error(f"Error en consulta de Nacional: {str(e)}")
             # Raise with standard message only
             raise ConsultarNotificacionesError(self.cliente)
+
+    async def _seleccionar_cuit_cliente(self) -> None:
+        """
+        Selecciona el CUIT del cliente en el dropdown de contribuyentes representados.
+
+        Raises:
+            LoginError: Si la CUIT no se encuentra delegada o no está disponible para selección.
+        """
+        try:
+            selector = f'xpath=//button[@id="{self.cuit_cliente_input}"]'
+            is_visible = await self.new_page.is_visible(selector, timeout=5000)
+
+            if not is_visible:
+                self.logger.error(
+                    f"La CUIT {self.cuit_cliente_input} no se encuentra delegada"
+                )
+                raise LoginErrorAfip(self.cliente, "PENDIENTE_DELEGACION")
+
+            await self.new_page.click(selector)
+            self.logger.debug(
+                f"CUIT {self.cuit_cliente_input} seleccionada correctamente en ARCA"
+            )
+        except Exception as e:
+            if isinstance(e, LoginErrorAfip):
+                await self.new_page.click(
+                   "(//div[@class='input-group'])[5]//div[@class='form-control dropdown-toggle']"
+                )
+                self.page = self.new_page
+                raise
+            self.logger.error(
+                f"Error al seleccionar CUIT {self.cuit_cliente_input}: {e}"
+            )
+            raise ConsultarNotificacionesError(
+                self.cliente, f"Error al seleccionar CUIT en ARCA"
+            )
 
     async def _click_recordar_mas_tarde(self) -> None:
         """
@@ -229,13 +256,13 @@ class Nacional(Jurisdiccion):
                 try:
                     texto_enlace = await enlace.inner_text()
 
-                    # Skip FCE notifications for excluded clients
-                    if "Factura de Crédito Electrónica" in texto_enlace and (
-                        self.cliente in CLIENTES_EXLUIR_NACIONAL_FCE
-                        or self.client_folder in CLIENTES_EXLUIR_NACIONAL_FCE
+                    # Skip FCE notifications if filtro_fce is True
+                    if (
+                        "Factura de Crédito Electrónica" in texto_enlace
+                        and self.filtro_fce
                     ):
                         self.logger.info(
-                            f"Saltando FCE para cliente excluido: {texto_enlace}"
+                            f"Saltando FCE según configuración de cliente: {texto_enlace}"
                         )
                         continue
 

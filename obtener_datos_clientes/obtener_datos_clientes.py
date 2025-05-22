@@ -195,7 +195,10 @@ class ObtenerDatosClientes:
 
     def obtener_clientes_desde_db(self) -> pd.DataFrame:
         """
-        Obtiene los clientes activos desde la base de datos, excluyendo aquellos con estado 'Correcto' en MonitoreoBots para el día actual.
+        Obtiene los clientes activos desde la base de datos.
+
+        Si la variable de entorno TEST_CLIENT_FOLDERS está definida, filtra solo los clientes
+        especificados y omite los filtros estándar de procesamiento diario y ejecución programada.
 
         Returns:
             pd.DataFrame: DataFrame con la información de los clientes
@@ -204,29 +207,54 @@ class ObtenerDatosClientes:
             from sqlalchemy import select
 
             with SessionLocal() as db:
-                # Obtener la fecha actual
-                fecha_hoy = datetime.datetime.now().date()
+                # Verificar si existe la variable de entorno TEST_CLIENT_FOLDERS
+                test_clients_str = os.getenv("TEST_CLIENT_FOLDERS")
 
-                # Subquery para obtener los IDs de cliente con estado 'Correcto' en MonitoreoBots para el día actual
-                subquery = (
-                    db.query(MonitoreoBots.cliente_id)
-                    .filter(
-                        func.year(MonitoreoBots.iniciado) == fecha_hoy.year,
-                        func.month(MonitoreoBots.iniciado) == fecha_hoy.month,
-                        func.day(MonitoreoBots.iniciado) == fecha_hoy.day,
-                        MonitoreoBots.proceso == "NFE Alert",
-                        MonitoreoBots.estado == "Correcto",
+                if test_clients_str:
+                    # Modo test: obtener solo los clientes especificados
+                    test_clients = [
+                        client.strip() for client in test_clients_str.split(",")
+                    ]
+                    logger.info(
+                        f"Modo test activado: procesando únicamente los clientes: {test_clients}"
                     )
-                    .subquery()
-                )
 
-                # Convertir el subquery a un SELECT explícito
-                subquery_select = select(subquery.c.cliente_id)
+                    # Filtrar por client_folder
+                    clientes = (
+                        db.query(Cliente)
+                        .filter(Cliente.client_folder.in_(test_clients))
+                        .all()
+                    )
 
-                # Excluir los clientes que están en el subquery - usando cliente_id en vez de username
-                clientes = (
-                    db.query(Cliente).filter(~Cliente.id.in_(subquery_select)).all()
-                )
+                    if not clientes:
+                        logger.warning(
+                            f"No se encontraron los clientes de prueba: {test_clients}"
+                        )
+                        return pd.DataFrame()
+                else:
+                    # Modo normal: aplicar filtros estándar
+                    fecha_hoy = datetime.datetime.now().date()
+
+                    # Subquery para obtener los IDs de cliente con estado 'Correcto' en MonitoreoBots
+                    subquery = (
+                        db.query(MonitoreoBots.cliente_id)
+                        .filter(
+                            func.year(MonitoreoBots.iniciado) == fecha_hoy.year,
+                            func.month(MonitoreoBots.iniciado) == fecha_hoy.month,
+                            func.day(MonitoreoBots.iniciado) == fecha_hoy.day,
+                            MonitoreoBots.proceso == "NFE Alert",
+                            MonitoreoBots.estado == "Correcto",
+                        )
+                        .subquery()
+                    )
+
+                    # Convertir el subquery a un SELECT explícito
+                    subquery_select = select(subquery.c.cliente_id)
+
+                    # Excluir los clientes que están en el subquery
+                    clientes = (
+                        db.query(Cliente).filter(~Cliente.id.in_(subquery_select)).all()
+                    )
 
                 if not clientes:
                     logger.warning("No se encontraron clientes en la base de datos")
@@ -235,7 +263,8 @@ class ObtenerDatosClientes:
                 # Convertir a DataFrame
                 data = []
                 for cliente in clientes:
-                    if self._cliente_ejecuta_hoy(cliente):
+                    # Si estamos en modo test, omitir verificación de días de ejecución
+                    if test_clients_str or self._cliente_ejecuta_hoy(cliente):
                         data.append(
                             {
                                 "id": cliente.id,
@@ -246,6 +275,7 @@ class ObtenerDatosClientes:
                                 "socio_responsable": cliente.socio_responsable,
                                 "zip_password": cliente.zip_password,
                                 "rango_consulta_dias": cliente.rango_consulta_dias,
+                                "filtro_fce": cliente.filtro_fce,
                             }
                         )
 
@@ -445,6 +475,7 @@ class ObtenerDatosClientes:
                 "Correo Output",
                 "CC: Equipo Deloitte",
                 "ZIP_Password",
+                "filtro_fce",
             ]
 
             df_base = df_base[columns_to_keep]

@@ -8,7 +8,6 @@ from sqlalchemy.exc import OperationalError, DBAPIError
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
-from config import PATH_HTML_SET_PASS, DIAS_VIGENCIA_PASS_ZIP, CORREO_NOTIFICACION_ERROR
 from database import get_session, get_sqlite_session
 from models import MonitoreoBotsBackup
 from obtener_datos_clientes.models import (
@@ -336,7 +335,9 @@ def get_clientes_ejecutados_hoy(clientes: List[str]) -> List[str]:
 def read_and_modify_html(
     cliente: str, new_pass: str, dias: int, username: str = "usuario"
 ) -> str:
-    html_template_path = PATH_HTML_SET_PASS
+    html_template_path = os.getenv(
+        "PATH_HTML_SET_PASS", "C:/Users/lmarinaro/Documents/dfe/DFEPW/html/mail_plantilla_set_pass.html"
+    )
     with open(html_template_path, "r", encoding="utf-8") as file:
         html_content = file.read()
     fecha_actual = datetime.now().strftime("%d/%m/%Y")

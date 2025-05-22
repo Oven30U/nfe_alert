@@ -68,6 +68,7 @@ class LoginErrorAfip(LoginError):
     """Excepción específica para errores de login en AFIP."""
 
     DEFAULT_MESSAGE = "Credenciales ARCA inválidas"
+    PENDIENTE_DELEGACION = "Servicio pendiente de delegación"
 
     def __init__(self, cliente, message=None):
         super().__init__(cliente, message or self.DEFAULT_MESSAGE)
