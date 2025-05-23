@@ -79,9 +79,13 @@ class Sicnea(Jurisdiccion):
         return self
 
     async def AFIP_login(
-        self, URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml", success_selector=None
+        self,
+        URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml",
+        success_selector=None,
     ):
-        return await super().AFIP_login(URL_AFIP_LOGIN, success_selector=success_selector)
+        return await super().AFIP_login(
+            URL_AFIP_LOGIN, success_selector=success_selector
+        )
 
     async def consultar_notificaciones(self):
         await self.AFIP_login(success_selector="input#buscadorInput")
@@ -103,34 +107,10 @@ class Sicnea(Jurisdiccion):
             "xpath=//td[contains(text(), 'CONEXION')]"
         )
         if conexion_selector:
-            # Verificar si el CUIT existe en las opciones antes de seleccionarlo
-            dropdown = await self.new_page_2.query_selector("xpath=//select[@id='cmbEmpresa']")
-            if dropdown:
-                # Obtener todas las opciones disponibles
-                options = await dropdown.evaluate('''(dropdown) => {
-                    return Array.from(dropdown.options).map(option => option.value);
-                }''')
-                
-                # Verificar si el CUIT del cliente está en las opciones
-                if self.cuit_cliente_input not in options:
-                    raise LoginError(self.cliente, LoginError.PENDIENTE_DELEGACION)
-                    
-            await self.new_page_2.select_option(
-                "xpath=//select[@id='cmbEmpresa']", value=self.cuit_cliente_input
-            )
+            await self._select_cuit_from_dropdown()
 
         await self.new_page_2.wait_for_load_state("domcontentloaded")
-        try:
-            ingresar_button = await self.new_page_2.query_selector(
-                "xpath=//input[@value='Ingresar']"
-            )
-            if ingresar_button:
-                await ingresar_button.click()
-        except Exception as e:
-            print(
-                "El botón 'Ingresar' en Sicnea no se encontró, esperando la carga de la documentación..."
-                f"Warning: {e}"
-            )
+        await self._handle_ingresar_button()
 
         await self.new_page_2.wait_for_load_state("domcontentloaded")
         await self.new_page_2.wait_for_selector(
@@ -140,15 +120,8 @@ class Sicnea(Jurisdiccion):
         await self.new_page_2.hover(
             "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]"
         )
-        # Cambiar al frame iframeAreaMenuLateral
         frame = self.new_page_2.frame(name="iframeAreaMenuLateral")
         if frame is not None:
-            # Realizar hover sobre el elemento del menú
-            # await frame.hover("xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]")
-            # Esperar un momento para asegurarse de que el menú se despliegue
-            # await self.new_page_2.hover.wait_for_timeout(1000)
-            # Hacer clic en el enlace "Ver Notificacion/Comunicacion"
-            # await frame.click("a:has-text('Ver Notificacion/Comunicacion')")
             await frame.click("a:has-text(' Consulta')")
             await self.new_page_2.wait_for_load_state("networkidle")
             await self.new_page_2.wait_for_load_state("domcontentloaded")
@@ -164,10 +137,126 @@ class Sicnea(Jurisdiccion):
             await self.frame.click("input[name='btnBuscar']")
             await self.new_page_2.wait_for_load_state("networkidle")
             await self.frame.wait_for_load_state("networkidle")
-            # await frame.wait_for_selector("input#btnBuscar")
-            # await frame.wait_for_selector("xpath=//div[@id='pnlProcesando' and @style='width:100%;display:none;']")
-            # await frame.wait_for_selector("div#pnlProcesando", state='hidden')
-            # await frame.wait_for_selector("div#pnlSinDatos")
+
+    async def _select_cuit_from_dropdown(self) -> None:
+        """
+        Select client CUIT from dropdown if available.
+
+        Validates the client's CUIT exists in the dropdown options before selecting it.
+        Raises a LoginError if the CUIT is not found, indicating the service is not
+        properly delegated to the user.
+
+        Raises:
+            LoginError: When the client's CUIT is not available in the dropdown options.
+        """
+        try:
+            # Check if dropdown exists and is accessible
+            dropdown_selector = "xpath=//select[@id='cmbEmpresa']"
+            dropdown = await self.new_page_2.query_selector(dropdown_selector)
+
+            if not dropdown:
+                self.logger.warning("CUIT dropdown not found in SICNEA interface")
+                return
+
+            # Get available options in the dropdown
+            options = await dropdown.evaluate("""(dropdown) => {
+                return Array.from(dropdown.options).map(option => option.value);
+            }""")
+
+            # Verify client's CUIT exists in options
+            if self.cuit_cliente_input not in options:
+                self.logger.error(
+                    f"Client CUIT {self.cuit_cliente_input} not found in dropdown options. "
+                    "Service may not be delegated properly."
+                )
+                raise LoginError(self.cliente, LoginError.PENDIENTE_DELEGACION)
+
+            # Select client's CUIT from dropdown
+            await self.new_page_2.select_option(
+                dropdown_selector, value=self.cuit_cliente_input
+            )
+            self.logger.info(
+                f"Successfully selected client CUIT: {self.cuit_cliente_input}"
+            )
+
+        except LoginError:
+            # Re-raise login errors without wrapping
+            raise
+        except Exception as e:
+            self.logger.error(f"Error selecting client CUIT: {str(e)}")
+            raise LoginError(self.cliente, f"Failed to select client CUIT: {str(e)}")
+
+    async def _handle_ingresar_button(self) -> None:
+        """
+        Handle the optional "Ingresar" button that may appear in the SICNEA interface.
+
+        The button may or may not be present depending on the system state.
+        This method checks for its presence and clicks it if found, otherwise continues.
+
+        Handles navigation events by ensuring the page is stable before querying elements.
+        """
+        try:
+            await self.new_page_2.wait_for_load_state("networkidle")
+            await self.new_page_2.wait_for_load_state("domcontentloaded")
+
+            try:
+                ingresar_button = await self.new_page_2.wait_for_selector(
+                    "xpath=//input[@value='Ingresar']", timeout=5000, state="visible"
+                )
+
+                if ingresar_button:
+                    self.logger.info(
+                        "Botón 'Ingresar' en SICNEA encontrado, haciendo clic"
+                    )
+                    await ingresar_button.click()
+                    await self.new_page_2.wait_for_load_state("networkidle")
+                    await self.new_page_2.wait_for_load_state("domcontentloaded")
+            except Exception as e:
+                self.logger.info(
+                    f"Botón 'Ingresar' en SICNEA no encontrado, continuando el flujo: {str(e)}"
+                )
+
+            # Esperar a que el elemento MENU esté visible
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    await self.new_page_2.wait_for_selector(
+                        "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]",
+                        timeout=20000,
+                        state="visible",
+                    )
+                    self.logger.info("Elemento MENU encontrado correctamente")
+                    break  # Salir del bucle si se encuentra el elemento
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        self.logger.error(
+                            f"No se pudo encontrar el elemento MENU después de {max_retries} intentos: {str(e)}"
+                        )
+                        raise  # Re-raise la excepción si se alcanzó el máximo de reintentos
+                    self.logger.warning(
+                        f"Reintentando búsqueda del elemento MENU (intento {attempt + 1}/{max_retries})"
+                    )
+                    # esperar un tiempo antes de reintentar
+                    await self.new_page_2.wait_for_timeout(1000)
+
+        except Exception as e:
+            self.logger.error(f"Error en _handle_ingresar_button: {str(e)}")
+            # Check specifically for navigation/context errors
+            if (
+                "Execution context was destroyed" in str(e)
+                or "navigation" in str(e).lower()
+            ):
+                self.logger.warning(
+                    "Detectada navegación durante la operación, esperando a que la página se estabilice"
+                )
+                # Add recovery actions for navigation interruptions
+                await self.new_page_2.wait_for_load_state("networkidle", timeout=30000)
+                await self.new_page_2.wait_for_load_state(
+                    "domcontentloaded", timeout=30000
+                )
+            else:
+                # For other errors, re-raise to be handled by the caller
+                raise
 
     async def buscar_notificacion(self):
         # Inicializar una variable para controlar el bucle
