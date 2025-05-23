@@ -7,7 +7,7 @@ from jurisdicciones.jurisdiccion import (
     Jurisdiccion,
     LoginErrorAfip,
     ConsultarNotificacionesError,
-    LoginError,
+    DelegacionError,
 )
 
 import unicodedata
@@ -162,7 +162,7 @@ class Nacional(Jurisdiccion):
             await self.new_page.select_option("select[name='filtroEstado']", "No Leída")
 
             # await completar_fechas(self.new_page, self.fecha_desde, self.fecha_hasta)
-        except LoginErrorAfip as e:
+        except (LoginErrorAfip, DelegacionError) as e:
             raise
         except Exception as e:
             # Log the actual error details for debugging
@@ -175,7 +175,7 @@ class Nacional(Jurisdiccion):
         Selecciona el CUIT del cliente en el dropdown de contribuyentes representados.
 
         Raises:
-            LoginError: Si la CUIT no se encuentra delegada o no está disponible para selección.
+            DelegacionError: Si la CUIT no se encuentra delegada o no está disponible para selección.
         """
         try:
             selector = f'xpath=//button[@id="{self.cuit_cliente_input}"]'
@@ -185,18 +185,14 @@ class Nacional(Jurisdiccion):
                 self.logger.error(
                     f"La CUIT {self.cuit_cliente_input} no se encuentra delegada"
                 )
-                raise LoginErrorAfip(self.cliente, "PENDIENTE_DELEGACION")
+                raise DelegacionError(self.cliente, "PENDIENTE_DELEGACION")
 
             await self.new_page.click(selector)
             self.logger.debug(
                 f"CUIT {self.cuit_cliente_input} seleccionada correctamente en ARCA"
             )
         except Exception as e:
-            if isinstance(e, LoginErrorAfip):
-                await self.new_page.click(
-                   "(//div[@class='input-group'])[5]//div[@class='form-control dropdown-toggle']"
-                )
-                self.page = self.new_page
+            if isinstance(e, DelegacionError):
                 raise
             self.logger.error(
                 f"Error al seleccionar CUIT {self.cuit_cliente_input}: {e}"

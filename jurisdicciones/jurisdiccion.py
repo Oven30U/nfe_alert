@@ -101,6 +101,19 @@ class TomarScreenshotError(LoggedException):
         super().__init__(cliente, message or self.DEFAULT_MESSAGE)
 
 
+class DelegacionError(LoggedException):
+    """Excepción lanzada por errores de delegación.
+    Esta excepción NO realiza screenshot para evitar visualizar otras CUIT.
+    No registra fecha_login_error porque no es necesario actualizar
+    credenciales sino sólo delegar el servicio.
+    """
+
+    DEFAULT_MESSAGE = "Servicio pendiente de delegación"
+
+    def __init__(self, cliente: str, message: Optional[str] = None) -> None:
+        super().__init__(cliente, message or self.DEFAULT_MESSAGE)
+
+
 class Jurisdiccion(ABC):
     """
     Clase base abstracta para representar una jurisdicción.
@@ -228,7 +241,9 @@ class Jurisdiccion(ABC):
             headless,
         )
         self.client_folder = client_folder
-        self.browser = await playwright.chromium.launch(headless=headless, slow_mo=slow_mo)
+        self.browser = await playwright.chromium.launch(
+            headless=headless, slow_mo=slow_mo
+        )
         self.context = await self.browser.new_context()
         self.page = await self.context.new_page()
         self.logger = Logger.get_logger()
@@ -267,7 +282,9 @@ class Jurisdiccion(ABC):
                 raise LoginErrorAfip(self.cliente, "Número de CUIL/CUIT incorrecto")
 
             await self.page.get_by_label("TU CLAVE").click(timeout=18000)
-            await self.page.get_by_label("TU CLAVE").fill(self._clave_fiscal, timeout=18000)
+            await self.page.get_by_label("TU CLAVE").fill(
+                self._clave_fiscal, timeout=18000
+            )
             await self.page.get_by_role("button", name="Ingresar").click(timeout=18000)
             await self.page.wait_for_load_state("networkidle", timeout=180000)
 
@@ -292,14 +309,17 @@ class Jurisdiccion(ABC):
                 self.logger.info("Login en AFIP exitoso mediante título.")
             else:
                 raise LoginErrorAfip(
-                    self.cliente, "No se proporcionó un criterio válido para confirmar el login exitoso."
+                    self.cliente,
+                    "No se proporcionó un criterio válido para confirmar el login exitoso.",
                 )
         except LoginErrorAfip as e:
             self.logger.error(f"Error de login en AFIP: {e}")
             raise
         except Exception as e:
             self.logger.error(f"Error inesperado en AFIP_login: {e}")
-            raise ConsultarNotificacionesError(self.cliente, f"Error inesperado: {str(e)}") from e
+            raise ConsultarNotificacionesError(
+                self.cliente, f"Error inesperado: {str(e)}"
+            ) from e
 
     @abstractmethod
     def consultar_notificaciones(self):
@@ -551,6 +571,10 @@ class Jurisdiccion(ABC):
             self.error = e
             self.hay_notificacion = e.message
             return "LoginErrorAfip"
+        except DelegacionError as e:
+            self.error = e
+            self.hay_notificacion = e.message
+            return "DelegacionError"
         except ConsultarNotificacionesError as e:
             self.error = e
             self.hay_notificacion = e.message
@@ -576,14 +600,32 @@ class Jurisdiccion(ABC):
     async def _ejecutar_tomar_screenshot(self) -> Optional[str]:
         """Ejecuta la toma de capturas de pantalla y maneja los errores."""
         try:
-            # Si hay un error previo, intentar usar tomar_screenshot_error si está disponible
+            # Si hay un error previo, verificar si debemos saltear el screenshot
             if self.error:
-                error_type = None
-                # Determinar el tipo de error si existe
+                error_type = (
+                    self.error.__class__.__name__
+                    if hasattr(self.error, "__class__")
+                    else None
+                )
+
+                # Lista de tipos de error que no requieren screenshot
+                errores_sin_screenshot = ["DelegacionError"]
+
+                if error_type in errores_sin_screenshot:
+                    self.logger.info(
+                        f"Saltando screenshot para error tipo {error_type} en {self.nombre}"
+                    )
+                    self.hay_screenshot = (
+                        "No se tomó screenshot (error de credenciales/delegación)"
+                    )
+                    return None
+
+                # Para otros errores, continuar con el flujo normal de screenshot
+                error_type_name = None
                 if hasattr(self.error, "__class__") and hasattr(
                     self.error.__class__, "__name__"
                 ):
-                    error_type = self.error.__class__.__name__
+                    error_type_name = self.error.__class__.__name__
 
                 # Comprobar si la instancia tiene implementado el método tomar_screenshot_error
                 if hasattr(self, "tomar_screenshot_error") and callable(
@@ -594,7 +636,7 @@ class Jurisdiccion(ABC):
                             f"Usando método específico tomar_screenshot_error para {self.nombre}"
                         )
                         screenshot = await self.tomar_screenshot_error(
-                            error_type=error_type
+                            error_type=error_type_name
                         )
                         self.hay_screenshot = (
                             "Se realizó Screenshot"

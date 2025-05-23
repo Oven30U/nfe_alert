@@ -4,7 +4,7 @@ from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
 
-from jurisdicciones.jurisdiccion import Jurisdiccion
+from jurisdicciones.jurisdiccion import Jurisdiccion, DelegacionError
 
 
 class Tucuman(Jurisdiccion):
@@ -79,17 +79,32 @@ class Tucuman(Jurisdiccion):
     ):
         return await super().AFIP_login(URL_AFIP_LOGIN, success_url=tucuman_success_url)
 
-    async def consultar_notificaciones(self):
+    async def consultar_notificaciones(self) -> None:
+        """
+        Consulta las notificaciones en el portal de Tucumán.
+        
+        Raises:
+            DelegacionError: Cuando el CUIT del cliente no está autorizado
+            LoginError: Para otros errores de login que sí requieren screenshot
+        """
         await self.AFIP_login(tucuman_success_url="rentastucuman")
         await self.page.locator("xpath=//button[@class='close']").click()
+        
         radio_buttons = await self.page.query_selector_all(
             'input[name="radio_cuit_sele"]'
         )
+        
         for radio in radio_buttons:
             radio_value = await self.page.evaluate("(element) => element.value", radio)
             if radio_value == self._cuit_cliente_input:
                 await radio.check()
                 break
+        else:
+            # Si no se encontró el CUIT, lanza excepción de delegación (sin screenshot)
+            raise DelegacionError(
+                self.cliente
+            )
+        
         await self.page.locator("text='Confirmar'").click()
         await self.page.click("//a[text()='Domicilio Fiscal Electrónico']")
         await self.page.locator("text='Notificaciones'").click()
