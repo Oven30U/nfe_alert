@@ -185,7 +185,8 @@ class Nacional(Jurisdiccion):
                 self.logger.error(
                     f"La CUIT {self.cuit_cliente_input} no se encuentra delegada"
                 )
-                raise DelegacionError(self.cliente, "PENDIENTE_DELEGACION")
+                # Cambiar para usar el mensaje por defecto de DelegacionError
+                raise DelegacionError(self.cliente)
 
             await self.new_page.click(selector)
             self.logger.debug(

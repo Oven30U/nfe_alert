@@ -274,11 +274,12 @@ class ClienteProcessor:
                 result = await nacional_instance.procesar_jurisdiccion()
                 instances.append(nacional_instance)
 
-                # Verificar si hubo error de login
+                # Verificar si hubo error que afecta jurisdicciones dependientes
+                # NOTA: DelegacionError NO saltea jurisdicciones dependientes
                 error_type = result[3]
-                if error_type == "LoginError" or error_type == "LoginErrorAfip":
+                if error_type in ["LoginError", "LoginErrorAfip"]:
                     logger.warning(
-                        "Error de login en Nacional. Filtrando jurisdicciones dependientes."
+                        f"Error en Nacional ({error_type}). Filtrando jurisdicciones dependientes."
                     )
                     error_nacional = True
                     login_error_nacional = error_type
@@ -294,7 +295,7 @@ class ClienteProcessor:
                 saltadas_por_dependencia.append((instance, login_error_nacional))
                 no_encontradas.append(instance.nombre)
                 logger.info(
-                    f"Saltando {instance.nombre} debido a error de login en Nacional"
+                    f"Saltando {instance.nombre} debido a error ({login_error_nacional}) en Nacional"
                 )
         else:
             instances.extend(jurisdicciones_dependientes_instances)
@@ -419,10 +420,20 @@ class ClienteProcessor:
         # Añadir jurisdicciones saltadas por dependencia
         if saltadas_por_dependencia:
             for instance, error_type in saltadas_por_dependencia:
+                # Determinar el mensaje de notificación según el tipo de error
+                if error_type == "LoginErrorAfip":
+                    from jurisdicciones.jurisdiccion import LoginErrorAfip
+                    mensaje_notificacion = LoginErrorAfip.DEFAULT_MESSAGE
+                elif error_type == "LoginError":
+                    mensaje_notificacion = "Credenciales ARCA inválidas"
+                else:
+                    # Para otros tipos de error, usar mensaje por defecto
+                    mensaje_notificacion = "Credenciales ARCA inválidas"
+                
                 resultados.append(
                     (
                         instance.nombre,
-                        "Credenciales ARCA inválidas",
+                        mensaje_notificacion,
                         "No procesada",
                         error_type,
                     )
@@ -527,32 +538,46 @@ class ClienteProcessor:
             logger.error(f"Error al actualizar fecha_login_error: {str(e)}")
             # No propagamos la excepción para que el flujo principal del programa continúe
 
-    async def reintentar_errores(self, playwright, df_final):
+    async def reintentar_errores(self, playwright, df_final: pd.DataFrame) -> pd.DataFrame:
+        """
+        Reintenta el procesamiento de jurisdicciones que presentaron errores,
+        excluyendo ciertos tipos de error que no deben reintentarse.
+    
+        Args:
+            playwright: Instancia de Playwright para crear nuevas instancias
+            df_final: DataFrame con los resultados del procesamiento inicial
+        
+        Returns:
+            pd.DataFrame: DataFrame actualizado con los resultados de los reintentos
+        """
         errores = df_final[
             (df_final["Error"].notna())
             | (df_final["Screenshot"] != "Se realizó Screenshot")
             | (df_final["Notificacion"] == "La página se encuentra caída")
         ]
+        
         for _, error_row in errores.iterrows():
             jurisdiction = error_row["Nombre"]
-            error_type = error_row["Error"]  # Error ahora contiene el tipo de error
+            error_type = error_row["Error"]
 
             # Evitar reintento para ciertos tipos de error
-            if error_type == "LoginError":
+            tipos_error_sin_reintento = ["LoginError", "LoginErrorAfip", "DelegacionError"]
+            if error_type in tipos_error_sin_reintento:
                 logger.info(
-                    f"Saltando reintento de {jurisdiction} porque es un LoginError"
+                    f"Saltando reintento de {jurisdiction} porque es un {error_type}"
                 )
                 continue
 
             self.renombrar_screenshots_error(jurisdiction)
             row = self.group[self.group["Jurisdiccion"] == jurisdiction].iloc[0]
-            for _ in range(LIMITES_REINTENTO):
+            
+            for intento in range(LIMITES_REINTENTO):
                 instance = await self.crear_instancia_jurisdiccion(
                     playwright, row, jurisdiction, retry=True
                 )
                 resultado = await instance.procesar_jurisdiccion()
                 logger.debug(
-                    f"Resultado del reintento para la jurisdicción '{jurisdiction}': {resultado}"
+                    f"Resultado del reintento #{intento + 1} para la jurisdicción '{jurisdiction}': {resultado}"
                 )
                 df_final.loc[df_final["Nombre"] == jurisdiction] = list(resultado)
 
@@ -564,19 +589,28 @@ class ClienteProcessor:
                     break
 
                 # Verificar ciertos tipos de error que no deberían reintentarse
-                nuevo_error_type = resultado[
-                    3
-                ]  # El tipo de error después del reintento
-                if nuevo_error_type in ["LoginError", "LoginErrorAfip"]:
+                nuevo_error_type = resultado[3]
+                if nuevo_error_type in tipos_error_sin_reintento:
                     logger.info(
-                        f"Deteniendo reintentos de {jurisdiction} por error de credenciales"
+                        f"Deteniendo reintentos de {jurisdiction} por error de credenciales/delegación: {nuevo_error_type}"
                     )
                     break
-                if _ == LIMITES_REINTENTO - 1:
-                    # Error por default luego de reintentar 5 veces
-                    df_final.loc[df_final["Nombre"] == jurisdiction, "Notificacion"] = (
-                        "La página se encuentra caída"
-                    )
+                
+                if intento == LIMITES_REINTENTO - 1:
+                    # Solo cambiar a "La página se encuentra caída" si NO es DelegacionError
+                    current_error = df_final.loc[df_final["Nombre"] == jurisdiction, "Error"].iloc[0]
+                    if current_error != "DelegacionError":
+                        df_final.loc[df_final["Nombre"] == jurisdiction, "Notificacion"] = (
+                            "La página se encuentra caída"
+                        )
+                        logger.info(
+                            f"Jurisdicción {jurisdiction} marcada como 'página caída' después de {LIMITES_REINTENTO} reintentos"
+                        )
+                    else:
+                        logger.info(
+                            f"Manteniendo mensaje original de DelegacionError para {jurisdiction}"
+                        )
+                    
         self.limpiar_screenshots_errores()
         return df_final
 
