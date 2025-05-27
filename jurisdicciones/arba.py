@@ -75,15 +75,30 @@ class Arba(Jurisdiccion):
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
-    async def consultar_notificaciones(self):
+    async def _login(self) -> None:
+        """
+        Perform login to ARBA website.
+
+        Raises:
+            LoginError: If credentials are invalid.
+            ConsultarNotificacionesError: If service is busy or unexpected error occurs.
+        """
         self.page.set_default_timeout(90000)
         await self.page.goto("https://www.arba.gov.ar/Gestionar/PanelAutogestion.asp")
         await self.page.wait_for_load_state("load")
         await self.page.fill("#CUIT", f"{self._cuit}")
         await self.page.fill("#clave_Cuit", f"{self._clave_fiscal}")
         await self.page.locator("//button[@value='Ingresar']").click()
+        await self.page.wait_for_load_state("networkidle", timeout=60000)
 
-        # Verificar diferentes tipos de errores con mensajes personalizados
+        page_content = await self.page.content()
+        if (
+            "el usuario ingresado y/o la contraseña no son válidos"
+            in page_content.lower()
+        ):
+            self.logger.info("ARBA: Se encontró mensaje de error en el contenido HTML")
+            raise LoginError(self.cliente, LoginError.CREDENCIALES_INVALIDAS)
+
         if await self.page.is_visible(
             "text=El usuario ingresado y/o la contraseña no son válidos."
         ):
@@ -100,6 +115,18 @@ class Arba(Jurisdiccion):
             )
 
         await self.page.wait_for_load_state("load")
+        await self.page.wait_for_load_state("networkidle")
+
+    async def consultar_notificaciones(self) -> None:
+        """
+        Query notifications from ARBA website.
+
+        Raises:
+            LoginError: If login fails.
+            ConsultarNotificacionesError: If there's an error during consultation.
+        """
+        await self._login()
+
         await self.page.click("xpath=//span[contains(text(), 'DFE')]")
         await self.page.wait_for_load_state("load")
 
