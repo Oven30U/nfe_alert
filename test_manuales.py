@@ -28,6 +28,7 @@ from jurisdicciones import (
     RioNegro,
     Salta,
     SanLuis,
+    SantaCruz,
     SantiagoDelEstero,
     Sicnea,
     Tucuman,
@@ -120,6 +121,10 @@ async def catamarca_test(headless=False, iterations=1):
 
 async def santiago_test(headless=False, iterations=1):
     await generic_test("SANTIAGO_DEL_ESTERO", SantiagoDelEstero, headless, iterations)
+
+
+async def santa_cruz_test(headless=False, iterations=1):
+    await generic_test("SANTA_CRUZ", SantaCruz, headless, iterations)
 
 
 async def cordoba_test(headless=False, iterations=1):
@@ -245,6 +250,7 @@ async def run_test_by_name(test_name, headless=False, iterations=1):
         "mendoza": mendoza_test,
         "formosa": formosa_test,
         "neuquen": neuquen_test,
+        "santa_cruz": santa_cruz_test,
     }
 
     if test_name.lower() in tests:
@@ -259,7 +265,7 @@ if __name__ == "__main__":
     # Ejemplos de cómo ejecutar los tests:
 
     # 1. Ejecutar un test específico:
-    asyncio.run(arba_test(headless=False))
+    asyncio.run(santa_cruz_test(headless=False))
 
     # 2. Ejecutar un test con múltiples iteraciones:
     # asyncio.run(santiago_test(headless=False, iterations=5))

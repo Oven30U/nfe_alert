@@ -32,3 +32,4 @@ from .san_luis import SanLuis  # 21
 from .santiago_del_estero import SantiagoDelEstero  # 22
 from .sicnea import Sicnea  # 2
 from .tucuman import Tucuman  # 23
+from .santa_cruz import SantaCruz
