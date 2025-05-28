@@ -56,11 +56,12 @@ class ProcesamientoGlobalManager:
                 finalizado=None,
                 procesamiento_correcto=True,
             )
-            db.add(nuevo_procesamiento)
-            db.commit()
-            db.refresh(
-                nuevo_procesamiento
-            )  # Refrescar para obtener el ID y otros datos actualizados
+            if os.getenv("GRABAR_EJECUCIONES", "True").lower() == "true":
+                db.add(nuevo_procesamiento)
+                db.commit()
+                db.refresh(
+                    nuevo_procesamiento
+                )  # Refrescar para obtener el ID y otros datos actualizados
 
             # Incrementar el número de procesamiento para futuras iteraciones
             return nuevo_procesamiento
