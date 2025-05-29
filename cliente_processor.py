@@ -346,12 +346,12 @@ class ClienteProcessor:
             "cuit_cliente_input": int(row["cuit_cliente"]),
             "headless": headless,
         }
-        
+
         # Añadir filtro_fce solo para la jurisdicción Nacional
         if jurisdiction == "Nacional" and "filtro_fce" in row:
             create_args["filtro_fce"] = bool(row["filtro_fce"])
             logger.debug(f"Aplicando filtro_fce={row['filtro_fce']} para jurisdicción Nacional")
-        
+
         return await JurisdictionClass.create(**create_args)
 
     async def ejecutar_jurisdicciones(
@@ -429,7 +429,7 @@ class ClienteProcessor:
                 else:
                     # Para otros tipos de error, usar mensaje por defecto
                     mensaje_notificacion = "Credenciales ARCA inválidas"
-                
+
                 resultados.append(
                     (
                         instance.nombre,
@@ -555,7 +555,7 @@ class ClienteProcessor:
             | (df_final["Screenshot"] != "Se realizó Screenshot")
             | (df_final["Notificacion"] == "La página se encuentra caída")
         ]
-        
+
         for _, error_row in errores.iterrows():
             jurisdiction = error_row["Nombre"]
             error_type = error_row["Error"]
@@ -570,7 +570,7 @@ class ClienteProcessor:
 
             self.renombrar_screenshots_error(jurisdiction)
             row = self.group[self.group["Jurisdiccion"] == jurisdiction].iloc[0]
-            
+
             for intento in range(LIMITES_REINTENTO):
                 instance = await self.crear_instancia_jurisdiccion(
                     playwright, row, jurisdiction, retry=True
@@ -595,7 +595,7 @@ class ClienteProcessor:
                         f"Deteniendo reintentos de {jurisdiction} por error de credenciales/delegación: {nuevo_error_type}"
                     )
                     break
-                
+
                 if intento == LIMITES_REINTENTO - 1:
                     # Solo cambiar a "La página se encuentra caída" si NO es DelegacionError
                     current_error = df_final.loc[df_final["Nombre"] == jurisdiction, "Error"].iloc[0]
@@ -610,7 +610,7 @@ class ClienteProcessor:
                         logger.info(
                             f"Manteniendo mensaje original de DelegacionError para {jurisdiction}"
                         )
-                    
+
         self.limpiar_screenshots_errores()
         return df_final
 
@@ -882,7 +882,17 @@ class ClienteProcessor:
         Returns:
             bool: True si hay errores, False en caso contrario.
         """
-        return not df_final["Error"].isna().all()
+        # Filtro las jurisdicciones que están deshabilitadas desde el entorno virtual
+        jurisdicciones_deshabilitadas: str = os.getenv("JURISDICCIONES_DESHABILITADAS")
+        lista_jurisdicciones_deshabilitadas = jurisdicciones_deshabilitadas.split(',')
+
+        df_filtrado = df_final.copy()
+        if lista_jurisdicciones_deshabilitadas:
+            df_filtrado = df_filtrado[
+                ~df_filtrado["Nombre"].isin(lista_jurisdicciones_deshabilitadas)
+            ]
+
+        return not df_filtrado["Error"].isna().all()
 
     def _es_ultimo_procesamiento(self) -> bool:
         """
@@ -918,20 +928,18 @@ class ClienteProcessor:
         )
 
     def determinar_destinatario(
-        self, df_final: pd.DataFrame
+        self, hay_errores: bool, es_ultimo_procesamiento: bool
     ) -> tuple[str, Optional[str]]:
         """
         Determina el destinatario y CC del correo según la lógica de negocio.
 
         Args:
-            df_final: DataFrame con los resultados del procesamiento.
+            hay_errores (bool): Si hubieron errores registrados en df_final
+            es_ultimo_procesamiento (bool): Si es el último procesamiento para el cliente
 
         Returns:
             Tupla con (receptor_email, cc_email)
         """
-        hay_errores = self._hay_errores_en_resultados(df_final)
-        es_ultimo_procesamiento = self._es_ultimo_procesamiento()
-
         # Si hay errores y no es el último procesamiento, enviar al correo de notificación
         if hay_errores and not es_ultimo_procesamiento:
             receptor = os.getenv("CORREO_NOTIFICACION_ERROR", CORREO_NOTIFICACION_ERROR)
@@ -975,7 +983,7 @@ class ClienteProcessor:
             df_correo = self._preparar_dataframe_correo(df_final)
 
             # Determinar destinatario usando la lógica encapsulada
-            receptor, cc = self.determinar_destinatario(df_final)
+            receptor, cc = self.determinar_destinatario(hay_errores, es_ultimo_procesamiento)
 
             if receptor is None:
                 raise ValueError(

@@ -4,14 +4,14 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
-
 from config import mapa_jurisdiccion_clases
+import pandas as pd
 
 # Define a constant for the legend location
 LEGEND_LOCATION = "lower right"
 
 
-def crear_mapa(df, output_file):
+def crear_mapa(df: pd.DataFrame, output_file: str) -> None:
     # Preservar el orden original creando una columna de orden
     df = df.copy()  # Crear copia para no modificar el DataFrame original
     df["orden_original"] = range(len(df))

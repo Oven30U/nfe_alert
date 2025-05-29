@@ -74,19 +74,20 @@ class ProcesamientoGlobalManager:
             procesamiento: El objeto procesamiento a finalizar
             procesamiento_correcto: True si el procesamiento fue exitoso, False en caso de error (default: True)
         """
-        with SessionLocal() as db:
-            procesamiento.finalizado = datetime.datetime.now(
-                timezone.utc
-            )  # Use timezone-aware datetime
-            procesamiento.procesamiento_correcto = procesamiento_correcto
-            db.merge(
-                procesamiento
-            )  # Aseguramos que el objeto esté sincronizado con la sesión
-            db.commit()
-            estado = (
-                "finalizado" if procesamiento_correcto else "finalizado con errores"
-            )
-            print(f"Procesamiento {procesamiento.numero_procesamiento} {estado}.")
+        if os.getenv("GRABAR_EJECUCIONES", "True").lower() == "true":
+            with SessionLocal() as db:
+                procesamiento.finalizado = datetime.datetime.now(
+                    timezone.utc
+                )  # Use timezone-aware datetime
+                procesamiento.procesamiento_correcto = procesamiento_correcto
+                db.merge(
+                    procesamiento
+                )  # Aseguramos que el objeto esté sincronizado con la sesión
+                db.commit()
+                estado = (
+                    "finalizado" if procesamiento_correcto else "finalizado con errores"
+                )
+                print(f"Procesamiento {procesamiento.numero_procesamiento} {estado}.")
 
     @staticmethod
     def finalizar_procesamiento_sin_clientes(procesamiento_id):
@@ -96,20 +97,21 @@ class ProcesamientoGlobalManager:
         Args:
             procesamiento_id: ID del procesamiento global a finalizar
         """
-        with SessionLocal() as db:
-            procesamiento = (
-                db.query(ProcesamientosDiariosGlobal)
-                .filter(ProcesamientosDiariosGlobal.id == procesamiento_id)
-                .first()
-            )
+        if os.getenv("GRABAR_EJECUCIONES", "True").lower() == "true":
+            with SessionLocal() as db:
+                procesamiento = (
+                    db.query(ProcesamientosDiariosGlobal)
+                    .filter(ProcesamientosDiariosGlobal.id == procesamiento_id)
+                    .first()
+                )
 
-            if procesamiento:
-                procesamiento.finalizado = datetime.datetime.now(timezone.utc)
-                procesamiento.procesamiento_correcto = True
-                db.commit()
-                return True
-            else:
-                return False
+                if procesamiento:
+                    procesamiento.finalizado = datetime.datetime.now(timezone.utc)
+                    procesamiento.procesamiento_correcto = True
+                    db.commit()
+                    return True
+                else:
+                    return False
 
 
 class CorreoManager:
