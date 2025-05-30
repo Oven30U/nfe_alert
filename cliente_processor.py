@@ -3,7 +3,7 @@ import glob
 import os
 import shutil
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List  # Asegúrate de que List esté importado
 
 import pandas as pd
 import pyminizip
@@ -21,10 +21,23 @@ from obtener_datos_clientes.models import ProcesamientosDiariosGlobal
 
 logger = Logger.get_logger()
 
-CORREO_NOTIFICACION_ERROR = os.getenv("CORREO_NOTIFICACION_ERROR", "rpa-tax-ar@deloitte.com")
+CORREO_NOTIFICACION_ERROR = os.getenv(
+    "CORREO_NOTIFICACION_ERROR", "rpa-tax-ar@deloitte.com"
+)
 CORREO_TEST = os.getenv("CORREO_TEST", "lmarinaro@deloitte.com")
 ENVIAR_CORREO_TEST = os.getenv("ENVIAR_CORREO_TEST", "False").lower() == "true"
 LIMITES_REINTENTO = int(os.getenv("LIMITES_REINTENTO", 5))
+
+CLIENTES_ENVIAR_AUNQUE_ERROR_RAW: str = os.getenv("CLIENTES_ENVIAR_AUNQUE_ERROR", "")
+CLIENTES_ENVIAR_AUNQUE_ERROR_LIST: List[str] = [
+    cliente.strip()
+    for cliente in CLIENTES_ENVIAR_AUNQUE_ERROR_RAW.split(",")
+    if cliente.strip()
+]
+if CLIENTES_ENVIAR_AUNQUE_ERROR_LIST:
+    logger.info(
+        f"Los siguientes clientes recibirán correo a su destinatario habitual aunque haya errores (si no es el último procesamiento): {CLIENTES_ENVIAR_AUNQUE_ERROR_LIST}"
+    )
 
 
 class ClienteProcessor:
@@ -317,13 +330,13 @@ class ClienteProcessor:
     ):
         """
         Crea una instancia de la clase jurisdicción especificada.
-        
+
         Args:
             playwright: Instancia de Playwright
             row: Fila del DataFrame con los datos de la jurisdicción
             jurisdiction: Nombre de la clase de jurisdicción a instanciar
             retry: Indica si es un reintento (default: False)
-            
+
         Returns:
             Instancia de la jurisdicción
         """
@@ -350,7 +363,9 @@ class ClienteProcessor:
         # Añadir filtro_fce solo para la jurisdicción Nacional
         if jurisdiction == "Nacional" and "filtro_fce" in row:
             create_args["filtro_fce"] = bool(row["filtro_fce"])
-            logger.debug(f"Aplicando filtro_fce={row['filtro_fce']} para jurisdicción Nacional")
+            logger.debug(
+                f"Aplicando filtro_fce={row['filtro_fce']} para jurisdicción Nacional"
+            )
 
         return await JurisdictionClass.create(**create_args)
 
@@ -423,6 +438,7 @@ class ClienteProcessor:
                 # Determinar el mensaje de notificación según el tipo de error
                 if error_type == "LoginErrorAfip":
                     from jurisdicciones.jurisdiccion import LoginErrorAfip
+
                     mensaje_notificacion = LoginErrorAfip.DEFAULT_MESSAGE
                 elif error_type == "LoginError":
                     mensaje_notificacion = "Credenciales ARCA inválidas"
@@ -538,15 +554,17 @@ class ClienteProcessor:
             logger.error(f"Error al actualizar fecha_login_error: {str(e)}")
             # No propagamos la excepción para que el flujo principal del programa continúe
 
-    async def reintentar_errores(self, playwright, df_final: pd.DataFrame) -> pd.DataFrame:
+    async def reintentar_errores(
+        self, playwright, df_final: pd.DataFrame
+    ) -> pd.DataFrame:
         """
         Reintenta el procesamiento de jurisdicciones que presentaron errores,
         excluyendo ciertos tipos de error que no deben reintentarse.
-    
+
         Args:
             playwright: Instancia de Playwright para crear nuevas instancias
             df_final: DataFrame con los resultados del procesamiento inicial
-        
+
         Returns:
             pd.DataFrame: DataFrame actualizado con los resultados de los reintentos
         """
@@ -561,7 +579,11 @@ class ClienteProcessor:
             error_type = error_row["Error"]
 
             # Evitar reintento para ciertos tipos de error
-            tipos_error_sin_reintento = ["LoginError", "LoginErrorAfip", "DelegacionError"]
+            tipos_error_sin_reintento = [
+                "LoginError",
+                "LoginErrorAfip",
+                "DelegacionError",
+            ]
             if error_type in tipos_error_sin_reintento:
                 logger.info(
                     f"Saltando reintento de {jurisdiction} porque es un {error_type}"
@@ -598,11 +620,13 @@ class ClienteProcessor:
 
                 if intento == LIMITES_REINTENTO - 1:
                     # Solo cambiar a "La página se encuentra caída" si NO es DelegacionError
-                    current_error = df_final.loc[df_final["Nombre"] == jurisdiction, "Error"].iloc[0]
+                    current_error = df_final.loc[
+                        df_final["Nombre"] == jurisdiction, "Error"
+                    ].iloc[0]
                     if current_error != "DelegacionError":
-                        df_final.loc[df_final["Nombre"] == jurisdiction, "Notificacion"] = (
-                            "La página se encuentra caída"
-                        )
+                        df_final.loc[
+                            df_final["Nombre"] == jurisdiction, "Notificacion"
+                        ] = "La página se encuentra caída"
                         logger.info(
                             f"Jurisdicción {jurisdiction} marcada como 'página caída' después de {LIMITES_REINTENTO} reintentos"
                         )
@@ -827,6 +851,7 @@ class ClienteProcessor:
             # Texto para el título y subtítulo
             titulo = f"NFE Alert - {self.cliente}"
             subtitulo = f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            pagina_actual = 0  # Contador de páginas
 
             for nombre in imagenes:
                 ruta_imagen = os.path.join(self.output_folder, nombre)
@@ -865,6 +890,15 @@ class ClienteProcessor:
                     # Finalizar la página
                     pdf.showPage()
 
+                    pagina_actual += 1
+
+            # Agregar página en blanco si no se ha agregado ninguna página
+            if pagina_actual == 0:
+                logger.warning(
+                    f"No se agregaron páginas al PDF, se generará una página en blanco como placeholder."
+                )
+                pdf.showPage()
+
             pdf.save()
             logger.info(f"PDF generado correctamente: {archivo_salida}")
             return archivo_salida
@@ -884,7 +918,7 @@ class ClienteProcessor:
         """
         # Filtro las jurisdicciones que están deshabilitadas desde el entorno virtual
         jurisdicciones_deshabilitadas: str = os.getenv("JURISDICCIONES_DESHABILITADAS")
-        lista_jurisdicciones_deshabilitadas = jurisdicciones_deshabilitadas.split(',')
+        lista_jurisdicciones_deshabilitadas = jurisdicciones_deshabilitadas.split(",")
 
         df_filtrado = df_final.copy()
         if lista_jurisdicciones_deshabilitadas:
@@ -929,7 +963,9 @@ class ClienteProcessor:
 
     def determinar_destinatario(
         self, hay_errores: bool, es_ultimo_procesamiento: bool
-    ) -> tuple[str, Optional[str]]:
+    ) -> tuple[
+        Optional[str], Optional[str]
+    ]:  # Modificado para que receptor pueda ser Optional[str]
         """
         Determina el destinatario y CC del correo según la lógica de negocio.
 
@@ -944,22 +980,44 @@ class ClienteProcessor:
         if hay_errores and not es_ultimo_procesamiento:
             receptor = os.getenv("CORREO_NOTIFICACION_ERROR", CORREO_NOTIFICACION_ERROR)
             cc = None
-            logger.info(f"Redirigiendo correo con errores a {receptor}")
+            logger.info(
+                f"Cliente {self.cliente}: Redirigiendo correo con errores (no es último procesamiento) a {receptor}"
+            )
             return receptor, cc
 
         # Mantener los destinatarios normales
         if not self.correo_output and not self.socio_responsable:
+            # Si no hay correos configurados, y no estamos en el caso de error anterior,
+            # podría ser un problema de configuración o un caso donde no se deba enviar.
+            # Por seguridad, si se llega aquí sin destinatario, se podría enviar a error o loggear severamente.
+            # Opcionalmente, devolver None para que enviar_email lo maneje.
+            logger.warning(
+                f"Cliente {self.cliente}: No se encontró Correo Output ni Socio Responsable. "
+                f"Se intentará enviar a CORREO_NOTIFICACION_ERROR como fallback."
+            )
             receptor = os.getenv("CORREO_NOTIFICACION_ERROR", CORREO_NOTIFICACION_ERROR)
             cc = None
+            # Considerar si este es el comportamiento deseado o si debería lanzar un error.
+            # raise ValueError(f"Cliente {self.cliente}: No se encontraron direcciones de correo válidas (Output o Socio).")
         elif self.correo_output:
             receptor = self.correo_output
             cc = self.socio_responsable if self.socio_responsable else None
-        elif self.socio_responsable:
+        elif self.socio_responsable:  # Solo socio, sin correo_output
             receptor = self.socio_responsable
             cc = None
         else:
-            raise ValueError("No valid email address found for sending the zip email.")
+            # Este caso teóricamente no debería alcanzarse si la lógica anterior es exhaustiva.
+            # Pero por si acaso, para asegurar que receptor siempre tenga un valor o se maneje el error.
+            logger.error(
+                f"Cliente {self.cliente}: Condición inesperada en la determinación de destinatarios."
+            )
+            receptor = os.getenv("CORREO_NOTIFICACION_ERROR", CORREO_NOTIFICACION_ERROR)
+            cc = None
 
+        if receptor:
+            logger.info(
+                f"Cliente {self.cliente}: Destinatario determinado: {receptor}, CC: {cc}"
+            )
         return receptor, cc
 
     def enviar_email(self, df_final: pd.DataFrame) -> bool:
@@ -975,29 +1033,47 @@ class ClienteProcessor:
         """
         try:
             # Obtener información sobre el procesamiento
-            hay_errores = self._hay_errores_en_resultados(df_final)
+            hay_errores_original = self._hay_errores_en_resultados(df_final)
             es_ultimo_procesamiento = self._es_ultimo_procesamiento()
             numero_procesamiento = self._obtener_numero_procesamiento()
+
+            # Evaluar errores para la lógica de destinatario
+            hay_errores_para_destinatario = self._evaluar_errores_para_destinatario(
+                hay_errores_original
+            )
 
             # Preparar el DataFrame para el correo
             df_correo = self._preparar_dataframe_correo(df_final)
 
             # Determinar destinatario usando la lógica encapsulada
-            receptor, cc = self.determinar_destinatario(hay_errores, es_ultimo_procesamiento)
+            receptor, cc = self.determinar_destinatario(
+                hay_errores_para_destinatario, es_ultimo_procesamiento
+            )
 
             if receptor is None:
-                raise ValueError(
-                    "Receptor email address is None. Cannot send zip email."
+                logger.error(
+                    f"Cliente {self.cliente}: El destinatario del correo es None. "
+                    "No se puede enviar el correo."
                 )
+                return False
 
-            if hay_errores and not es_ultimo_procesamiento:
+            # Log informativo sobre el estado original de errores
+            if hay_errores_original:
                 logger.info(
-                    f"(Hubo errores en el procesamiento #{numero_procesamiento}) de {self.cliente} \n cambio a receptor a: {receptor}"
+                    f"Cliente {self.cliente}: Procesamiento #{numero_procesamiento} "
+                    "finalizado con errores."
+                )
+            else:
+                logger.info(
+                    f"Cliente {self.cliente}: Procesamiento #{numero_procesamiento} "
+                    "finalizado sin errores."
                 )
 
-            pdf_path = getattr(self, "pdf_path", None)
-            if pdf_path:
-                logger.info(f"PDF incluido en el ZIP: {pdf_path}")
+            if not self.zip_path or not os.path.exists(self.zip_path):
+                logger.warning(
+                    f"Cliente {self.cliente}: Archivo ZIP no encontrado en {self.zip_path} "
+                    "o no generado. El correo se intentará enviar sin el adjunto ZIP."
+                )
 
             enviar_correo(
                 receptor=receptor,
@@ -1012,7 +1088,11 @@ class ClienteProcessor:
                 cuerpo_html_plantilla="html/mail_plantilla.html",
                 cc=cc,
             )
+            logger.info(
+                f"Correo enviado para el cliente {self.cliente} a {receptor} (CC: {cc})"
+            )
             return True
+
         except Exception as e:
             logger.error(f"Error al enviar correo: cliente: {self.cliente}, error: {e}")
             return False
@@ -1096,3 +1176,32 @@ class ClienteProcessor:
                 .first()
             )
             return procesamiento.numero_procesamiento if procesamiento else None
+
+    def _evaluar_errores_para_destinatario(
+        self, hay_errores_original: bool, es_ultimo_procesamiento: bool
+    ) -> bool:
+        """
+        Evalúa si se deben tratar los errores como tal para la determinación del destinatario.
+
+        Para ciertos clientes en la lista CLIENTES_ENVIAR_AUNQUE_ERROR, si hay errores
+        pero no es el último procesamiento, se tratará como si no hubiera errores
+        para efectos del destinatario del correo.
+
+        Args:
+            hay_errores_original: Resultado original de la detección de errores
+            es_ultimo_procesamiento: Si es el último procesamiento del día
+
+        Returns:
+            bool: True si se deben tratar como errores para destinatario, False en caso contrario
+        """
+        if (
+            hay_errores_original
+            and self.client_folder in CLIENTES_ENVIAR_AUNQUE_ERROR_LIST
+        ):
+            logger.info(
+                f"Cliente {self.client_folder} está en la lista CLIENTES_ENVIAR_AUNQUE_ERROR. "
+                f"se tratará como si no hubiera errores para la determinación del destinatario."
+            )
+            return False
+
+        return hay_errores_original
