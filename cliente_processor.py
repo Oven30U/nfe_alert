@@ -36,7 +36,7 @@ CLIENTES_ENVIAR_AUNQUE_ERROR_LIST: List[str] = [
 ]
 if CLIENTES_ENVIAR_AUNQUE_ERROR_LIST:
     logger.info(
-        f"Los siguientes clientes recibirán correo a su destinatario habitual aunque haya errores (si no es el último procesamiento): {CLIENTES_ENVIAR_AUNQUE_ERROR_LIST}"
+        f"Los siguientes clientes recibirán correo a su destinatario habitual aunque haya errores: {CLIENTES_ENVIAR_AUNQUE_ERROR_LIST}"
     )
 
 
@@ -1177,9 +1177,7 @@ class ClienteProcessor:
             )
             return procesamiento.numero_procesamiento if procesamiento else None
 
-    def _evaluar_errores_para_destinatario(
-        self, hay_errores_original: bool, es_ultimo_procesamiento: bool
-    ) -> bool:
+    def _evaluar_errores_para_destinatario(self, hay_errores_original: bool) -> bool:
         """
         Evalúa si se deben tratar los errores como tal para la determinación del destinatario.
 

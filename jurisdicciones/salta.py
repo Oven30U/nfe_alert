@@ -131,6 +131,14 @@ class Salta(Jurisdiccion):
             if await self.page.is_visible("div.error_text"):
                 error_text = await self.page.locator("div.error_text").text_content()
                 raise LoginErrorAfip(self.cliente, f"Error de login: {error_text}")
+            
+            if "https://www.dgrsalta.gov.ar/Inicio" in self.page.url:
+                self.logger.warning(
+                    f"SALTA: Detectada URL de inicio sin delegación: {self.page.url}"
+                )
+                raise DelegacionError(
+                    self.cliente,
+                )
             else:
                 raise LoginErrorAfip(
                     self.cliente, "No se pudo verificar el login exitoso en AFIP"
