@@ -1,4 +1,5 @@
 import os
+import time
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Playwright, async_playwright
 
@@ -74,6 +75,83 @@ class Mendoza(Jurisdiccion):
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
+    
+    async def is_logged_in(self) -> bool:
+        """
+        Verifica si el usuario ya ha iniciado sesión.
+
+        Args:
+            page: El objeto page de Playwright
+
+        Returns:
+            bool: True si el usuario ha iniciado sesión, False en caso contrario
+        """
+        try:
+            logout_element = await self.page.wait_for_selector(
+                "//a[contains(text(), 'Cerrar Sesión')]", timeout=3000
+            )
+            return logout_element is not None
+        except Exception:
+            return False
+        
+    async def perform_login(self) -> None:
+        """
+        Realiza el proceso de inicio de sesión en el portal ATM Mendoza con un enfoque flexible.
+
+        Prueba diferentes métodos de inicio de sesión según sea necesario, primero con la evaluación de funciones JS,
+        luego con un clic en el botón si es necesario.
+
+        Args:
+            page: El objeto page de Playwright
+        """
+        try:
+            # Esperar al selector del formulario de login
+            await self.page.wait_for_selector("#cuit")
+
+            # Completar el formulario de login
+            # await self.page.fill("#cuit", "30712399623")
+            # await self.page.fill("#password", "AbbVie2025.")
+            await self.page.wait_for_load_state("domcontentloaded")
+            await self.page.fill("#cuit", f"{self._cuit}")
+            await self.page.fill("#password", f"{self._clave_fiscal}")
+            await self.page.wait_for_load_state("networkidle")
+            await self.page.wait_for_load_state("domcontentloaded")
+            await self.page.wait_for_selector("#ingresar")
+
+            # Esperar a que la función de login esté definida
+            await self.page.wait_for_function("typeof window.entrar === 'function'")
+            time.sleep(1.5)
+
+            # Primer intento: Usar evaluate para invocar JavaScript function
+            self.logger.info("Intentando iniciar sesión usando evaluación de función JS")
+            await self.page.evaluate("entrar()")
+
+            # Verificar si esto fue suficiente para iniciar sesión
+            await self.page.wait_for_timeout(
+                2000
+            )  # Dar tiempo para que se complete el inicio de sesión
+            if await self.is_logged_in():
+                self.logger.info("Inicio de sesión exitoso con función JS")
+                return
+
+            # Segundo intento: Hacer clic en el botón de login
+            self.logger.info(
+                "La función JS no fue suficiente, haciendo clic en el botón de inicio de sesión"
+            )
+            await self.page.click("#ingresar")
+
+            # Verificar si el login fue exitoso
+            await self.page.wait_for_timeout(2000)
+            if await self.is_logged_in():
+                self.logger.info("Inicio de sesión exitoso después de hacer clic en el botón")
+            else:
+                self.logger.warning(
+                    "El inicio de sesión podría haber fallado - 'Cerrar Sesión' no encontrado"
+                )
+
+        except Exception as e:
+            self.logger.error(f"El proceso de inicio de sesión falló: {str(e)}")
+            raise
 
     async def consultar_notificaciones(self):
         max_retries = 5
@@ -89,12 +167,20 @@ class Mendoza(Jurisdiccion):
                     continue
                 else:
                     raise
+        
+        if await self.is_logged_in():
+            self.logger.info("Sesión ya iniciada. Saltando proceso de inicio de sesión.")
+        else:
+            self.logger.info(
+                "No se ha iniciado sesión. Iniciando proceso de inicio de sesión."
+            )
+            await self.perform_login()
 
-        await self.page.wait_for_load_state("domcontentloaded")
-        await self.page.fill("#cuit", f"{self._cuit}")
-        await self.page.fill("#password", f"{self._clave_fiscal}")
-        await self.page.locator("#ingresar").click()
-        await self.page.wait_for_load_state("domcontentloaded")
+        # await self.page.wait_for_load_state("domcontentloaded")
+        # await self.page.fill("#cuit", f"{self._cuit}")
+        # await self.page.fill("#password", f"{self._clave_fiscal}")
+        # await self.page.locator("#ingresar").click()
+        # await self.page.wait_for_load_state("domcontentloaded")
 
         try:
             await self.page.wait_for_selector(
