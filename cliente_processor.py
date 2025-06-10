@@ -906,27 +906,92 @@ class ClienteProcessor:
             logger.error(f"Error al generar PDF: {e}")
             return ""
 
+    def evaluar_estado_por_destinatario(self, df_final: pd.DataFrame) -> str:
+        """
+        Método público para determinar el estado basándose en el destinatario.
+
+        Args:
+            df_final: DataFrame con los resultados del procesamiento
+
+        Returns:
+            str: Estado del procesamiento ('Correcto' o 'Proceso terminado con errores')
+        """
+        try:
+            # Obtener información sobre el procesamiento
+            hay_errores_original = self._hay_errores_en_resultados(df_final)
+            es_ultimo_procesamiento = self._es_ultimo_procesamiento()
+
+            # Evaluar errores para la lógica de destinatario
+            hay_errores_para_destinatario = self._evaluar_errores_para_destinatario(
+                hay_errores_original
+            )
+
+            # Determinar destinatario usando la misma lógica que enviar_email
+            receptor, _ = self.determinar_destinatario(
+                hay_errores_para_destinatario, es_ultimo_procesamiento
+            )
+
+            # Si el receptor es el correo de error, marcar como erróneo
+            correo_error = os.getenv(
+                "CORREO_NOTIFICACION_ERROR", CORREO_NOTIFICACION_ERROR
+            )
+
+            if receptor == correo_error:
+                return "Proceso terminado con errores"
+            else:
+                return "Correcto"
+
+        except Exception as e:
+            logger.error(f"Error al evaluar estado por destinatario: {e}")
+            return "Erróneo"
+
     def _hay_errores_en_resultados(self, df_final: pd.DataFrame) -> bool:
         """
-        Verifica si hay errores en los resultados del procesamiento.
+        Verifica si hay errores técnicos en los resultados del procesamiento.
+        
+        Excluye errores de credenciales (LoginError, LoginErrorAfip) y delegación (DelegacionError)
+        ya que estos no representan problemas técnicos del sistema sino configuraciones pendientes.
 
         Args:
             df_final: DataFrame con los resultados del procesamiento.
 
         Returns:
-            bool: True si hay errores, False en caso contrario.
+            bool: True si hay errores técnicos, False en caso contrario.
         """
-        # Filtro las jurisdicciones que están deshabilitadas desde el entorno virtual
-        jurisdicciones_deshabilitadas: str = os.getenv("JURISDICCIONES_DESHABILITADAS")
-        lista_jurisdicciones_deshabilitadas = jurisdicciones_deshabilitadas.split(",")
+        # Filtrar las jurisdicciones que están deshabilitadas desde el entorno virtual
+        jurisdicciones_deshabilitadas: str = os.getenv("JURISDICCIONES_DESHABILITADAS", "")
+        
+        if jurisdicciones_deshabilitadas:
+            lista_jurisdicciones_deshabilitadas = jurisdicciones_deshabilitadas.split(",")
+            df_filtrado = df_final[
+                ~df_final["Nombre"].isin(lista_jurisdicciones_deshabilitadas)
+            ].copy()
+        else:
+            df_filtrado = df_final.copy()
 
-        df_filtrado = df_final.copy()
-        if lista_jurisdicciones_deshabilitadas:
-            df_filtrado = df_filtrado[
-                ~df_filtrado["Nombre"].isin(lista_jurisdicciones_deshabilitadas)
-            ]
-
-        return not df_filtrado["Error"].isna().all()
+        # Tipos de error que NO se consideran como errores técnicos
+        errores_excluidos = ["LoginError", "LoginErrorAfip", "DelegacionError"]
+        
+        # Filtrar errores que no sean de credenciales/delegación
+        errores_tecnicos = df_filtrado[
+            df_filtrado["Error"].notna() & 
+            ~df_filtrado["Error"].isin(errores_excluidos)
+        ]
+        
+        # Evaluar si hay errores técnicos
+        tiene_errores_tecnicos = len(errores_tecnicos) > 0
+        
+        # Log informativo para debugging
+        if tiene_errores_tecnicos:
+            logger.debug(
+                f"Cliente {self.cliente}: Se detectaron {len(errores_tecnicos)} errores técnicos"
+            )
+        else:
+            logger.debug(
+                f"Cliente {self.cliente}: No se detectaron errores técnicos"
+            )
+        
+        return tiene_errores_tecnicos
 
     def _es_ultimo_procesamiento(self) -> bool:
         """
@@ -1187,7 +1252,6 @@ class ClienteProcessor:
 
         Args:
             hay_errores_original: Resultado original de la detección de errores
-            es_ultimo_procesamiento: Si es el último procesamiento del día
 
         Returns:
             bool: True si se deben tratar como errores para destinatario, False en caso contrario
@@ -1196,10 +1260,12 @@ class ClienteProcessor:
             hay_errores_original
             and self.client_folder in CLIENTES_ENVIAR_AUNQUE_ERROR_LIST
         ):
-            logger.info(
-                f"Cliente {self.client_folder} está en la lista CLIENTES_ENVIAR_AUNQUE_ERROR. "
-                f"se tratará como si no hubiera errores para la determinación del destinatario."
-            )
-            return False
+            es_ultimo_procesamiento = self._es_ultimo_procesamiento()
+            if not es_ultimo_procesamiento:
+                logger.info(
+                    f"Cliente {self.client_folder} está en la lista CLIENTES_ENVIAR_AUNQUE_ERROR. "
+                    f"Como no es el último procesamiento, se tratará como si no hubiera errores para la determinación del destinatario."
+                )
+                return False
 
         return hay_errores_original

@@ -124,16 +124,9 @@ class ProcesamientoManager:
 
             processor.crear_zip()
 
-            estado = (
-                "Correcto"
-                if (
-                    df_final["Error"].isna().all()
-                    and not df_final["Screenshot"]
-                    .str.contains("No se realizó Screenshot")
-                    .any()
-                )
-                else "Proceso terminado con errores"
-            )
+            # Determinar estado basado en el destinatario del correo
+            estado = self._determinar_estado_por_destinatario(processor, df_final)
+
         except Exception as e:
             logger.error(
                 f"Error general en el procesamiento del cliente {cliente}: {e}"
@@ -196,6 +189,25 @@ class ProcesamientoManager:
             inplace=True,
         )
         return pd.concat([df_final, df_error_login], ignore_index=True)
+
+    def _determinar_estado_por_destinatario(
+        self, processor: ClienteProcessor, df_final: pd.DataFrame
+    ) -> str:
+        """
+        Determina el estado del procesamiento basándose en el destinatario del correo.
+
+        Args:
+            processor: Instancia del procesador del cliente
+            df_final: DataFrame con los resultados del procesamiento
+
+        Returns:
+            str: Estado del procesamiento ('Correcto' o 'Proceso terminado con errores')
+        """
+        try:
+            return processor.evaluar_estado_por_destinatario(df_final)
+        except Exception as e:
+            logger.error(f"Error al determinar estado por destinatario: {e}")
+            return "Erróneo"
 
     def finalizar_cliente(
         self,
