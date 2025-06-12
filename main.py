@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 from datetime import datetime
 from typing import Optional, List, Dict
 
@@ -28,6 +29,10 @@ class ProcesamientoManager:
         self.procesamiento_id = procesamiento_id
         self.procesamiento_global = None
         self.procesamientos_diarios = int(os.getenv("PROCESAMIENTOS_DIARIOS", 3))
+        self.sin_clientes = False  # Flag para controlar el bucle
+        self.intervalo_espera = (
+            int(os.getenv("INTERVALO_ESPERA_MINUTOS", 30)) * 60
+        )  # segundos
 
     async def run(self) -> None:
         """Ejecuta el procesamiento principal."""
@@ -40,6 +45,9 @@ class ProcesamientoManager:
             df_input = self.obtener_datos_clientes()
             if df_input is None or df_input.empty:
                 logger.info("No se encontraron clientes para procesar.")
+                # Solo establecer sin_clientes si es un DataFrame vacío, no si hay error de DB
+                if df_input is not None and df_input.empty:
+                    self.sin_clientes = True
                 self.registrar_sin_clientes()
                 return
 
@@ -54,14 +62,18 @@ class ProcesamientoManager:
 
         delete_zip_files_in_backup(os.getenv("PATH_ESTRUCTURA_ROBOT"))
 
-    def obtener_datos_clientes(self) -> pd.DataFrame:
+    def obtener_datos_clientes(self) -> Optional[pd.DataFrame]:
         """Obtiene los datos de clientes desde la base de datos o archivo de configuración."""
-        if os.getenv("INPUT_DATA_FROM_DB", "false").lower() == "true":
-            obtener_datos = ObtenerDatosClientes()
-            obtener_datos.run()
-            return obtener_datos.data
-        else:
-            return obtener_clientes(jurisdiccion_clases=jurisdiccion_clases)
+        try:
+            if os.getenv("INPUT_DATA_FROM_DB", "false").lower() == "true":
+                obtener_datos = ObtenerDatosClientes()
+                obtener_datos.run()
+                return obtener_datos.data
+            else:
+                return obtener_clientes(jurisdiccion_clases=jurisdiccion_clases)
+        except Exception as e:
+            logger.error(f"Error al obtener datos de clientes: {e}")
+            return None
 
     async def procesar_cliente(
         self, cliente_tuple: tuple, group: pd.DataFrame, playwright
@@ -136,15 +148,19 @@ class ProcesamientoManager:
 
     def obtener_cliente_id(self, client_folder: str) -> Optional[int]:
         """Obtiene el ID del cliente desde la base de datos."""
-        if os.getenv("INPUT_DATA_FROM_DB", "false").lower() == "true":
-            with SessionLocal() as db:
-                cliente_record = (
-                    db.query(Cliente)
-                    .filter(Cliente.client_folder == client_folder)
-                    .first()
-                )
-                return cliente_record.id if cliente_record else None
-        return None
+        try:
+            if os.getenv("INPUT_DATA_FROM_DB", "false").lower() == "true":
+                with SessionLocal() as db:
+                    cliente_record = (
+                        db.query(Cliente)
+                        .filter(Cliente.client_folder == client_folder)
+                        .first()
+                    )
+                    return cliente_record.id if cliente_record else None
+            return None
+        except Exception as e:
+            logger.error(f"Error al obtener cliente_id para {client_folder}: {e}")
+            return None
 
     async def procesar_jurisdicciones(
         self, processor: ClienteProcessor, playwright
@@ -227,15 +243,95 @@ class ProcesamientoManager:
             logger.error(f"Error al finalizar cliente: {e}")
 
     def registrar_sin_clientes(self) -> None:
-        """Registra que no hay clientes para procesar."""
-        if self.procesamiento_id:
-            ProcesamientoGlobalManager.finalizar_procesamiento_sin_clientes(
-                self.procesamiento_id
-            )
-            logger.info(
-                f"Procesamiento global {self.procesamiento_id} | diario {self.procesamientos_diarios} finalizado sin clientes."
-            )
+        """Registra que no hay clientes para procesar y establece el flag para detener el bucle."""
+        # NO establecer sin_clientes = True aquí para errores de DB
+        # Solo establecer el flag cuando realmente no hay clientes para procesar
+
+        try:
+            if self.procesamiento_id:
+                ProcesamientoGlobalManager.finalizar_procesamiento_sin_clientes(
+                    self.procesamiento_id
+                )
+                logger.info(
+                    f"Procesamiento global {self.procesamiento_id} | diario {self.procesamientos_diarios} finalizado sin clientes."
+                )
+        except Exception as e:
+            logger.error(f"Error al registrar procesamiento sin clientes: {e}")
+            # No propagar la excepción para que el bucle continuo no se detenga
+
+    def verificar_fin_procesamiento(self) -> bool:
+        """
+        Verifica si se debe finalizar el procesamiento continuo.
+
+        Returns:
+            bool: True si se debe detener el procesamiento continuo
+        """
+        try:
+            # Aquí puedes agregar lógica específica para determinar
+            # cuándo realmente no hay más clientes para procesar
+            # Por ejemplo, consultar directamente la DB o verificar condiciones específicas
+
+            if os.getenv("INPUT_DATA_FROM_DB", "false").lower() == "true":
+                # Lógica específica para base de datos
+                with SessionLocal() as db:
+                    # Verificar si hay clientes pendientes
+                    clientes_pendientes = (
+                        db.query(Cliente)
+                        .filter(
+                            # Agregar aquí las condiciones específicas para clientes pendientes
+                            Cliente.id.isnot(None)  # Ejemplo básico
+                        )
+                        .count()
+                    )
+                    return clientes_pendientes == 0
+            else:
+                # Para archivos de configuración, verificar si hay datos
+                df_clientes = obtener_clientes(jurisdiccion_clases=jurisdiccion_clases)
+                return df_clientes is None or df_clientes.empty
+
+        except Exception as e:
+            logger.error(f"Error al verificar fin de procesamiento: {e}")
+            # En caso de error, continuar procesando (no detener)
+            return False
+
+    async def run_continuous(self) -> None:
+        """Ejecuta el procesamiento de forma continua hasta que no haya clientes."""
+        logger.info("Iniciando procesamiento continuo...")
+
+        while not self.sin_clientes:
+            try:
+                logger.info("Iniciando nueva iteración de procesamiento...")
+                await self.run()
+
+                if not self.sin_clientes:
+                    logger.info(
+                        f"Esperando {self.intervalo_espera // 60} minutos antes de la siguiente iteración..."
+                    )
+                    await asyncio.sleep(self.intervalo_espera)
+                else:
+                    logger.info(
+                        "No hay más clientes para procesar. Finalizando procesamiento continuo."
+                    )
+
+            except Exception as e:
+                logger.error(f"Error en el procesamiento continuo: {e}")
+                logger.info(
+                    f"Esperando {self.intervalo_espera // 60} minutos antes de reintentar..."
+                )
+                await asyncio.sleep(self.intervalo_espera)
+
+
+async def main() -> None:
+    """Función principal que ejecuta el procesamiento continuo."""
+    modo_continuo = os.getenv("MODO_CONTINUO", "false").lower() == "true"
+
+    manager = ProcesamientoManager()
+
+    if modo_continuo:
+        await manager.run_continuous()
+    else:
+        await manager.run()
 
 
 if __name__ == "__main__":
-    asyncio.run(ProcesamientoManager().run())
+    asyncio.run(main())
