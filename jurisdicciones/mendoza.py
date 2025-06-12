@@ -80,18 +80,35 @@ class Mendoza(Jurisdiccion):
         """
         Verifica si el usuario ya ha iniciado sesión.
 
-        Args:
-            page: El objeto page de Playwright
-
         Returns:
             bool: True si el usuario ha iniciado sesión, False en caso contrario
         """
         try:
+            # Asegurar que la página haya terminado de cargar
+            await self.page.wait_for_load_state("domcontentloaded")
+            await self.page.wait_for_load_state("networkidle")
+            
+            # Buscar el elemento de logout con timeout reducido
             logout_element = await self.page.wait_for_selector(
-                "//a[contains(text(), 'Cerrar Sesión')]", timeout=3000
+                "//a[contains(text(), 'Cerrar Sesión')]", 
+                timeout=60000
             )
-            return logout_element is not None
-        except Exception:
+            
+            # Variable explícita para el resultado
+            is_logged_in_result: bool = logout_element is not None
+            
+            if is_logged_in_result:
+                self.logger.info("Usuario ya ha iniciado sesión")
+            else:
+                self.logger.info("Usuario no ha iniciado sesión")
+                
+            return is_logged_in_result
+            
+        except TimeoutError:
+            self.logger.info("Elemento 'Cerrar Sesión' no encontrado - usuario no logueado")
+            return False
+        except Exception as e:
+            self.logger.error(f"Error verificando estado de login: {str(e)}")
             return False
         
     async def perform_login(self) -> None:
@@ -168,13 +185,13 @@ class Mendoza(Jurisdiccion):
                 else:
                     raise
         
-        if await self.is_logged_in():
-            self.logger.info("Sesión ya iniciada. Saltando proceso de inicio de sesión.")
-        else:
-            self.logger.info(
-                "No se ha iniciado sesión. Iniciando proceso de inicio de sesión."
-            )
-            await self.perform_login()
+        # if await self.is_logged_in():
+        #     self.logger.info("Sesión ya iniciada. Saltando proceso de inicio de sesión.")
+        # else:
+        #     self.logger.info(
+        #         "No se ha iniciado sesión. Iniciando proceso de inicio de sesión."
+        #     )
+        await self.perform_login()
 
         # await self.page.wait_for_load_state("domcontentloaded")
         # await self.page.fill("#cuit", f"{self._cuit}")
