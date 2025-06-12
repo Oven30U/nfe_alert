@@ -150,12 +150,18 @@ class ObtenerDatosClientes:
             df_clientes = self.obtener_clientes_desde_db()
             if df_clientes.empty:
                 logger.warning("No se encontraron clientes en la base de datos")
+                self.data = (
+                    pd.DataFrame()
+                )  # DataFrame vacío para indicar que no hay clientes
                 return
 
             # Obtener datos de jurisdicciones para estos clientes
             df_jurisdicciones = self.obtener_jurisdicciones_desde_db(df_clientes)
             if df_jurisdicciones.empty:
                 logger.warning("No se encontraron jurisdicciones para los clientes")
+                self.data = (
+                    pd.DataFrame()
+                )  # DataFrame vacío para indicar que no hay jurisdicciones válidas
                 return
 
             # Crear DataFrame base con todos los datos
@@ -171,8 +177,8 @@ class ObtenerDatosClientes:
 
         except Exception as e:
             logger.error(f"Error al obtener datos de clientes: {str(e)}")
-            # En caso de error, asignar DataFrame vacío
-            self.data = pd.DataFrame()
+            # En caso de error de conexión o similar, asignar None para indicar error
+            self.data = None
 
     def display_data(self):
         """Muestra los datos obtenidos."""

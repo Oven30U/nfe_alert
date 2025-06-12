@@ -3,6 +3,7 @@ import os
 import time
 from datetime import datetime
 from typing import Optional, List, Dict
+from enum import Enum
 
 import pandas as pd
 from playwright.async_api import async_playwright
@@ -20,6 +21,14 @@ from obtener_datos_clientes.obtener_datos_clientes import (
 )
 
 logger = Logger.get_logger()
+
+
+class ResultadoObtenerDatos(Enum):
+    """Enum para representar los diferentes tipos de resultado al obtener datos."""
+
+    EXITO = "exito"
+    SIN_CLIENTES_VALIDOS = "sin_clientes_validos"
+    ERROR_CONEXION = "error_conexion"
 
 
 class ProcesamientoManager:
@@ -43,17 +52,58 @@ class ProcesamientoManager:
 
         async with async_playwright() as playwright:
             df_input = self.obtener_datos_clientes()
-            if df_input is None or df_input.empty:
-                logger.info("No se encontraron clientes para procesar.")
-                # Solo establecer sin_clientes si es un DataFrame vacío, no si hay error de DB
-                if df_input is not None and df_input.empty:
-                    self.sin_clientes = True
+
+            # Si obtener_datos_clientes devuelve None, es un error de conexión - no establece sin_clientes
+            if df_input is None:
+                logger.error(
+                    "Error de conexión a la base de datos. Reintentando en la próxima iteración."
+                )
+                self.registrar_sin_clientes()
+                return
+
+            # Si obtener_datos_clientes devuelve DataFrame vacío, no hay clientes válidos - establece sin_clientes
+            if df_input.empty:
+                logger.info("No se encontraron clientes válidos para procesar.")
+                self.sin_clientes = True
                 self.registrar_sin_clientes()
                 return
 
             df_por_cliente = df_input.groupby(["client_folder", "Cliente"])
+            clientes_procesados = 0
+            clientes_totales = len(df_por_cliente)
+            logger.info(
+                f"Se encontraron {clientes_totales} grupos de clientes para evaluar"
+            )
+
+            jurisdicciones_procesadas = 0
+
             for cliente_tuple, group in df_por_cliente:
+                cliente_nombre = (
+                    cliente_tuple[1] if len(cliente_tuple) > 1 else cliente_tuple[0]
+                )
+                logger.info(f"Evaluando cliente: {cliente_nombre}")
+
+                # Contar jurisdicciones antes del procesamiento
+                jurisdicciones_antes = len(group)
+                jurisdicciones_procesadas += jurisdicciones_antes
+
                 await self.procesar_cliente(cliente_tuple, group, playwright)
+                clientes_procesados += 1
+
+            logger.info(
+                f"Clientes procesados: {clientes_procesados} de {clientes_totales}"
+            )
+            logger.info(
+                f"Se obtuvieron {jurisdicciones_procesadas} jurisdicciones para los clientes"
+            )
+
+            # Si se obtuvieron jurisdicciones pero todas fueron excluidas, establecer flag
+            if jurisdicciones_procesadas == 0:
+                logger.warning("No se encontraron jurisdicciones para los clientes")
+                logger.info(
+                    "No hay jurisdicciones válidas para procesar. Finalizando procesamiento."
+                )
+                self.sin_clientes = True
 
         if self.procesamiento_global:
             ProcesamientoGlobalManager.finalizar_procesamiento(
@@ -68,7 +118,21 @@ class ProcesamientoManager:
             if os.getenv("INPUT_DATA_FROM_DB", "false").lower() == "true":
                 obtener_datos = ObtenerDatosClientes()
                 obtener_datos.run()
-                return obtener_datos.data
+
+                # Verificar si hay datos válidos
+                if obtener_datos.data is not None and not obtener_datos.data.empty:
+                    return obtener_datos.data
+                else:
+                    # Si hay datos pero es un DataFrame vacío, significa que no hay clientes válidos
+                    # Si obtener_datos.data es None, significa que hubo un error de conexión
+                    if obtener_datos.data is not None:
+                        logger.info(
+                            "No se encontraron clientes válidos para procesar (todos excluidos)"
+                        )
+                        self.sin_clientes = True  # Solo establecer aquí si realmente no hay clientes válidos
+                    else:
+                        logger.warning("Error de conexión a la base de datos")
+                    return obtener_datos.data
             else:
                 return obtener_clientes(jurisdiccion_clases=jurisdiccion_clases)
         except Exception as e:
@@ -303,15 +367,17 @@ class ProcesamientoManager:
                 logger.info("Iniciando nueva iteración de procesamiento...")
                 await self.run()
 
-                if not self.sin_clientes:
-                    logger.info(
-                        f"Esperando {self.intervalo_espera // 60} minutos antes de la siguiente iteración..."
-                    )
-                    await asyncio.sleep(self.intervalo_espera)
-                else:
+                # Verificar el flag después de ejecutar run()
+                if self.sin_clientes:
                     logger.info(
                         "No hay más clientes para procesar. Finalizando procesamiento continuo."
                     )
+                    break
+
+                logger.info(
+                    f"Esperando {self.intervalo_espera // 60} minutos antes de la siguiente iteración..."
+                )
+                await asyncio.sleep(self.intervalo_espera)
 
             except Exception as e:
                 logger.error(f"Error en el procesamiento continuo: {e}")
