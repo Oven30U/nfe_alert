@@ -374,15 +374,17 @@ class ProcesamientoManager:
                     )
                     break
 
+                hora_actual = datetime.now().strftime("%H:%M:%S")
                 logger.info(
-                    f"Esperando {self.intervalo_espera // 60} minutos antes de la siguiente iteración..."
+                    f"Esperando {self.intervalo_espera // 60} minutos antes de la siguiente iteración... [{hora_actual}]"
                 )
                 await asyncio.sleep(self.intervalo_espera)
 
             except Exception as e:
                 logger.error(f"Error en el procesamiento continuo: {e}")
+                hora_actual = datetime.now().strftime("%H:%M:%S")
                 logger.info(
-                    f"Esperando {self.intervalo_espera // 60} minutos antes de reintentar..."
+                    f"Esperando {self.intervalo_espera // 60} minutos antes de reintentar... [{hora_actual}]"
                 )
                 await asyncio.sleep(self.intervalo_espera)
 
