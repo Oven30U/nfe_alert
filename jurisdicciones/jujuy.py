@@ -126,6 +126,25 @@ class Jujuy(Jurisdiccion):
         fecha_columna = datetime.strptime(fecha_columna, "%d/%m/%Y")
         fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
 
+        # Verificar si la notificación ya fue leída (columna 9 - Fecha Leído)
+        fecha_leido_element = self.page.locator(
+            'xpath=//table[@id="Grid1ContainerTbl"]//tbody//tr[1]/td[9]'
+        )
+        fecha_leido_text = await fecha_leido_element.inner_text()
+        
+        # Si hay una fecha en la columna "Fecha Leído", verificar si es menor a hoy
+        if fecha_leido_text and fecha_leido_text.strip():
+            try:
+                fecha_leido = datetime.strptime(fecha_leido_text.strip(), "%d/%m/%Y")
+                fecha_hoy = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                
+                # Si la fecha de lectura es menor a hoy, la notificación ya fue procesada
+                if fecha_leido < fecha_hoy:
+                    return False
+            except ValueError:
+                # Si no se puede parsear la fecha, continuar con la validación normal
+                pass
+
         if fecha_columna > fecha_desde:
             self.hay_notificaciones = True
 
