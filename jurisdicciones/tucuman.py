@@ -1,6 +1,7 @@
 import os
 import re
 from datetime import datetime
+from typing import Optional
 
 from playwright.async_api import Playwright, async_playwright
 
@@ -74,9 +75,9 @@ class Tucuman(Jurisdiccion):
 
     async def AFIP_login(
         self,
-        URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgrtuc_ddjj",
+        URL_AFIP_LOGIN: str = "https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgrtuc_ddjj",
         tucuman_success_url: str = None
-    ):
+    ) -> None:
         return await super().AFIP_login(URL_AFIP_LOGIN, success_url=tucuman_success_url)
 
     async def consultar_notificaciones(self) -> None:
@@ -88,7 +89,22 @@ class Tucuman(Jurisdiccion):
             LoginError: Para otros errores de login que sí requieren screenshot
         """
         await self.AFIP_login(tucuman_success_url="rentastucuman")
-        await self.page.locator("xpath=//button[@class='close']").click()
+        
+        # Esperar a que la página esté completamente cargada
+        await self.page.wait_for_load_state("networkidle", timeout=30000)
+        await self.page.wait_for_load_state("domcontentloaded", timeout=30000)
+        
+        # Esperar a que el botón de cerrar esté visible y hacer clic
+        try:
+            close_button = self.page.locator("xpath=//button[@class='close']")
+            await close_button.wait_for(state="visible", timeout=10000)
+            await close_button.click()
+        except Exception:
+            # Si no se encuentra el botón, continuar (puede que no esté presente)
+            pass
+        
+        # Esperar a que los radio buttons estén cargados
+        await self.page.wait_for_selector('input[name="radio_cuit_sele"]', state="visible", timeout=30000)
         
         radio_buttons = await self.page.query_selector_all(
             'input[name="radio_cuit_sele"]'
@@ -105,12 +121,31 @@ class Tucuman(Jurisdiccion):
                 self.cliente
             )
         
-        await self.page.locator("text='Confirmar'").click()
-        await self.page.click("//a[text()='Domicilio Fiscal Electrónico']")
-        await self.page.locator("text='Notificaciones'").click()
-        await self.page.wait_for_load_state("networkidle")
+        # Esperar a que el botón "Confirmar" esté visible y hacer clic
+        confirm_button = self.page.locator("text='Confirmar'")
+        await confirm_button.wait_for(state="visible", timeout=10000)
+        await confirm_button.click()
+        
+        # Esperar a que la página se cargue después del clic en confirmar
+        await self.page.wait_for_load_state("networkidle", timeout=30000)
+        
+        # Esperar a que el enlace "Domicilio Fiscal Electrónico" esté visible
+        dfe_link = self.page.locator("//a[text()='Domicilio Fiscal Electrónico']")
+        await dfe_link.wait_for(state="visible", timeout=30000)
+        await dfe_link.click()
+        
+        # Esperar a que la página se cargue después del clic en DFE
+        await self.page.wait_for_load_state("networkidle", timeout=30000)
+        
+        # Esperar a que el enlace "Notificaciones" esté visible
+        notifications_link = self.page.locator("text='Notificaciones'")
+        await notifications_link.wait_for(state="visible", timeout=30000)
+        await notifications_link.click()
+        
+        # Esperar a que la página de notificaciones se cargue completamente
+        await self.page.wait_for_load_state("networkidle", timeout=30000)
 
-    async def buscar_notificacion(self):
+    async def buscar_notificacion(self) -> bool:
         """
         Busca notificaciones en la tabla de Tucumán.
 
@@ -119,6 +154,18 @@ class Tucuman(Jurisdiccion):
         2. Hay al menos una notificación con fecha posterior o igual a self.fecha_desde
         """
         try:
+            # Garantizar que la página esté completamente cargada
+            await self.page.wait_for_load_state("networkidle", timeout=30000)
+            await self.page.wait_for_load_state("domcontentloaded", timeout=30000)
+            
+            # Esperar a que el contenido principal esté presente
+            await self.page.wait_for_selector("body", state="visible", timeout=30000)
+            
+            # Esperar un poco más para asegurar que todos los elementos dinámicos se hayan cargado
+            await self.page.wait_for_timeout(2000)
+            
+            self.logger.debug("TUCUMAN: Página completamente cargada, iniciando búsqueda de notificaciones")
+            
             # Verificar si existe el mensaje de no hay notificaciones
             no_hay_notificaciones = await self.page.is_visible(
                 "text=En este momento no hay nuevas notificaciones para mostrar."
@@ -137,6 +184,14 @@ class Tucuman(Jurisdiccion):
             fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
             self.logger.debug(f"TUCUMAN: Fecha desde para comparar: {fecha_desde}")
 
+            # Esperar a que la tabla esté presente y visible antes de buscar filas
+            try:
+                await self.page.wait_for_selector("table#miTabla", state="visible", timeout=10000)
+                await self.page.wait_for_selector("table#miTabla tbody tr", timeout=10000)
+            except Exception as e:
+                self.logger.warning(f"TUCUMAN: No se encontró la tabla o no tiene filas: {str(e)}")
+                return False
+
             # Obtener todas las filas de la tabla
             filas = await self.page.query_selector_all(
                 "xpath=//table[@id='miTabla']/tbody/tr"
@@ -152,7 +207,10 @@ class Tucuman(Jurisdiccion):
                 fecha_td = await fila.query_selector("td:first-child")
                 if fecha_td:
                     fecha_texto_original = await fecha_td.text_content()
-                    fecha_texto_original = fecha_texto_original.strip()
+                    if fecha_texto_original:
+                        fecha_texto_original = fecha_texto_original.strip()
+                    else:
+                        continue  # Si no hay contenido de texto, continuar con la siguiente fila
 
                     # NUEVO: Detectar y corregir duplicación de fecha
                     fecha_texto = fecha_texto_original
@@ -231,11 +289,75 @@ class Tucuman(Jurisdiccion):
             return True
 
     async def tomar_screenshot(self):
-        await self.page.wait_for_load_state("networkidle")
+        """
+        Toma una captura de pantalla de la página actual.
+        Garantiza que la página esté completamente cargada antes de tomar la captura.
+        """
+        # Esperar a que la página esté completamente cargada
+        await self.page.wait_for_load_state("networkidle", timeout=30000)
+        await self.page.wait_for_load_state("domcontentloaded", timeout=30000)
+        
+        # Esperar a que el body esté visible
+        await self.page.wait_for_selector("body", state="visible", timeout=30000)
+        
+        # Esperar un poco más para asegurar que todos los elementos estén renderizados
+        await self.page.wait_for_timeout(2000)
+        
         return await super().tomar_screenshot()
 
     async def procesar_jurisdiccion(self):
+        """
+        Procesa la jurisdicción de Tucumán con manejo robusto de carga de página.
+        """
+        # Garantizar que la página esté completamente cargada antes de procesar
+        await self.page.wait_for_load_state("networkidle", timeout=30000)
+        await self.page.wait_for_load_state("domcontentloaded", timeout=30000)
+        
+        # Esperar un poco más para asegurar estabilidad
+        await self.page.wait_for_timeout(1000)
+        
         return await super().procesar_jurisdiccion()
+
+    async def _wait_for_element_and_ensure_loaded(
+        self, 
+        selector: str, 
+        timeout: int = 30000, 
+        retry_attempts: int = 3
+    ) -> bool:
+        """
+        Espera a que un elemento esté presente y visible, con reintentos.
+        
+        Args:
+            selector: Selector del elemento a esperar
+            timeout: Tiempo máximo de espera en milisegundos
+            retry_attempts: Número de intentos de reintento
+            
+        Returns:
+            bool: True si el elemento fue encontrado, False en caso contrario
+        """
+        for attempt in range(retry_attempts):
+            try:
+                # Esperar a que la página esté estable
+                await self.page.wait_for_load_state("networkidle", timeout=timeout)
+                await self.page.wait_for_load_state("domcontentloaded", timeout=timeout)
+                
+                # Esperar al elemento específico
+                await self.page.wait_for_selector(selector, state="visible", timeout=timeout)
+                
+                # Verificar que el elemento realmente está visible
+                is_visible = await self.page.is_visible(selector)
+                if is_visible:
+                    return True
+                    
+            except Exception:
+                if attempt < retry_attempts - 1:
+                    # Esperar antes del siguiente intento
+                    await self.page.wait_for_timeout(2000)
+                    continue
+                else:
+                    return False
+        
+        return False
 
 
 async def main():
@@ -251,6 +373,7 @@ async def main():
         tucuman = await Tucuman.create(
             playwright,
             client,
+            client,  # client_folder
             cuit_Tucuman,
             clave_fiscal_Tucuman,
             fecha_desde,
