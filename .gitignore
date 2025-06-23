@@ -20,3 +20,4 @@ git
 database.db
 .env
 .venv/
+.env_dev
