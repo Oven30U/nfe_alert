@@ -118,7 +118,7 @@ class SantiagoDelEstero(Jurisdiccion):
                 "document.querySelector('#proceed-button').click();"
             )
             await self.page.wait_for_selector(
-                "//h3[contains(text(), 'Bandeja de Entrada')]", timeout=5000
+                "//h3[contains(text(), 'Bandeja de Entrada')]", timeout=60000
             )
             # await new_page.goto(
             #     "https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml"
