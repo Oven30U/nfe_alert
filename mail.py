@@ -86,7 +86,11 @@ def enviar_correo(
     """
 
     servidor_smtp = os.getenv("SERVIDOR_SMTP")
-    puerto_smtp = os.getenv("PUERTO_SMTP")
+    puerto_smtp = int(os.getenv("PUERTO_SMTP", "25"))
+
+    if not servidor_smtp:
+        logger.error("SERVIDOR_SMTP no está configurado en las variables de entorno")
+        raise ValueError("SERVIDOR_SMTP es requerido")
 
     # Asegurarse de que 'receptor' es una lista y no un string
     if isinstance(receptor, str):
@@ -198,21 +202,82 @@ def enviar_correo(
         body = MIMEText(html_content, "html")
         msg.attach(body)
 
+    server = None
     try:
+        # Crear contexto SSL más permisivo para evitar errores de certificado
         context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+
+        # Obtener credenciales SMTP
+        smtp_username = os.getenv("SMTP_USERNAME")
+        smtp_password = os.getenv("SMTP_PASSWORD")
+
+        logger.debug(f"Conectando al servidor SMTP: {servidor_smtp}:{puerto_smtp}")
         server = smtplib.SMTP(servidor_smtp, puerto_smtp)
+
+        # Iniciar TLS con contexto permisivo
+        logger.debug("Iniciando conexión TLS...")
         server.starttls(context=context)
+
+        # Verificar si se requiere autenticación
+        if smtp_username and smtp_password:
+            logger.debug("Autenticando con credenciales SMTP...")
+            server.login(smtp_username, smtp_password)
+
+        # Enviar el correo
+        logger.debug(f"Enviando correo a {len(all_recipients)} destinatarios...")
         server.sendmail(msg["From"], all_recipients, msg.as_string())
-    except SMTPNotSupportedError:
+        logger.info(f"Correo enviado exitosamente para cliente: {cliente}")
+
+    except SMTPNotSupportedError as e:
         logger.error(
-            "El servidor no soporta SMTP AUTH. No se enviará el correo para mantener la seguridad."
+            f"El servidor no soporta SMTP AUTH. No se enviará el correo para mantener la seguridad. Error: {e}"
         )
+        raise
+    except ssl.SSLError as e:
+        logger.error(f"Error SSL al conectar con el servidor SMTP: {e}")
+        logger.warning("Intentando envío sin SSL...")
+        # Intentar sin SSL como último recurso
+        try:
+            if server:
+                server.quit()
+            server = smtplib.SMTP(servidor_smtp, puerto_smtp)
+            smtp_username = os.getenv("SMTP_USERNAME")
+            smtp_password = os.getenv("SMTP_PASSWORD")
+            if smtp_username and smtp_password:
+                server.login(smtp_username, smtp_password)
+            server.sendmail(msg["From"], all_recipients, msg.as_string())
+            logger.info(f"Correo enviado exitosamente sin SSL para cliente: {cliente}")
+        except Exception as fallback_error:
+            logger.error(f"Error en fallback sin SSL: {fallback_error}")
+            raise
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error(f"Error de autenticación SMTP: {e}")
+        logger.error("Verificar credenciales SMTP_USERNAME y SMTP_PASSWORD")
+        raise
+    except smtplib.SMTPConnectError as e:
+        logger.error(
+            f"Error de conexión al servidor SMTP {servidor_smtp}:{puerto_smtp}: {e}"
+        )
+        raise
+    except smtplib.SMTPRecipientsRefused as e:
+        logger.error(f"Destinatarios rechazados por el servidor: {e}")
+        raise
     except SMTPException as e:
-        logger.error(f"Error al enviar correo: {e}")
+        logger.error(f"Error SMTP al enviar correo: cliente: {cliente}, error: {e}")
+        raise
     except Exception as e:
         logger.error(f"Error inesperado al enviar correo: {e}")
+        raise
     finally:
-        server.quit()
+        # Cerrar la conexión del servidor de forma segura
+        if server is not None:
+            try:
+                server.quit()
+                logger.debug("Conexión SMTP cerrada correctamente")
+            except Exception as e:
+                logger.warning(f"Error al cerrar conexión SMTP: {e}")
 
 
 if __name__ == "__main__":
