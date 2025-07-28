@@ -5,6 +5,7 @@ from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import (
     ConsultarNotificacionesError,
+    DelegacionError,
     Jurisdiccion,
     LoginError,
 )
@@ -107,15 +108,35 @@ class Agip(Jurisdiccion):
                 await self.page.click(
                     "xpath=//*[@onclick='ir_servicio(54, 0)']", timeout=100000
                 )
-                # Clickear en Representados
-                await self.page.wait_for_selector(
-                    f"xpath=//li[@id='opRepresentados']//a[@class='dropdown-toggle']",
-                    timeout=900000,
-                )
-                await self.page.click(
-                    f"xpath=//li[@id='opRepresentados']//a[@class='dropdown-toggle']",
-                    timeout=900000,
-                )
+                # Intentar clickear en Representados
+                try:
+                    await self.page.wait_for_selector(
+                        f"xpath=//li[@id='opRepresentados']//a[@class='dropdown-toggle']",
+                        timeout=20000,
+                    )
+                    await self.page.click(
+                        f"xpath=//li[@id='opRepresentados']//a[@class='dropdown-toggle']",
+                        timeout=10000,
+                    )
+                except Exception:
+                    # Si no se puede hacer click en Representados, verificar si lblCuit contiene el mismo CUIT
+                    try:
+                        lbl_cuit_element = await self.page.wait_for_selector(
+                            "xpath=//*[@class='lblCuit']", timeout=5000
+                        )
+                        if lbl_cuit_element:
+                            lbl_cuit_text = await lbl_cuit_element.text_content()
+                            if lbl_cuit_text and lbl_cuit_text.strip() == self._cuit:
+                                raise DelegacionError(self.cliente)
+                    except DelegacionError:
+                        # Re-lanzar DelegacionError sin modificaciones
+                        raise
+                    except Exception:
+                        # Si no se puede verificar lblCuit, continuar con el error original
+                        pass
+                    # Re-lanzar el error original del click en Representados
+                    raise
+
                 # Seleccionar el DFE del CUIT representado
                 await self.page.wait_for_selector(
                     f"a[data-id='{self._cuit_cliente_input}']", timeout=100000
@@ -133,6 +154,9 @@ class Agip(Jurisdiccion):
 
         except LoginError as le:
             # Re-lanzar errores de login directamente sin convertirlos
+            raise
+        except DelegacionError:
+            # Re-lanzar errores de delegación directamente sin convertirlos
             raise
         except Exception as e:
             # Otros errores se convierten a ConsultarNotificacionesError
