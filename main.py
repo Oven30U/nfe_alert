@@ -286,8 +286,91 @@ class ProcesamientoManager:
         try:
             return processor.evaluar_estado_por_destinatario(df_final)
         except Exception as e:
-            logger.error(f"Error al determinar estado por destinatario: {e}")
-            return "Erróneo"
+            logger.error(f"Error al evaluar estado por destinatario: {e}")
+            # En caso de error de DB, evaluar estado basándose en los resultados locales
+            try:
+                return self._evaluar_estado_fallback(processor, df_final)
+            except Exception as fallback_error:
+                logger.error(
+                    f"Error en evaluación de estado fallback: {fallback_error}"
+                )
+                return "Erróneo"
+
+    def _evaluar_estado_fallback(
+        self, processor: ClienteProcessor, df_final: pd.DataFrame
+    ) -> str:
+        """
+        Evaluación de estado alternativa cuando falla la conexión a DB.
+
+        Args:
+            processor: Instancia del procesador del cliente
+            df_final: DataFrame con los resultados del procesamiento
+
+        Returns:
+            str: Estado del procesamiento
+        """
+        logger.info("Usando evaluación de estado alternativa por fallo de conectividad")
+
+        # Verificar si hay errores técnicos en el DataFrame
+        hay_errores = self._hay_errores_tecnicos_fallback(df_final)
+
+        # Si no hay errores técnicos, considerarlo como correcto
+        if not hay_errores:
+            logger.info(
+                f"Cliente {processor.cliente}: Sin errores técnicos detectados - Estado: Correcto"
+            )
+            return "Correcto"
+
+        # Si hay errores, verificar si es el último procesamiento usando variable de entorno
+        try:
+            # Asumir que es el último procesamiento si no podemos verificarlo
+            # Esto es más conservador para asegurar que se envíe al cliente
+            logger.warning(
+                f"Cliente {processor.cliente}: Hay errores pero no se pudo verificar número de procesamiento. "
+                f"Asumiendo último procesamiento - Estado: Proceso terminado con errores"
+            )
+            return "Proceso terminado con errores"
+        except Exception as e:
+            logger.error(f"Error al evaluar estado fallback: {e}")
+            return "Correcto"  # En caso de duda, marcar como correcto
+
+    def _hay_errores_tecnicos_fallback(self, df_final: pd.DataFrame) -> bool:
+        """
+        Versión simplificada para verificar errores técnicos sin depender de DB.
+
+        Args:
+            df_final: DataFrame con los resultados del procesamiento
+
+        Returns:
+            bool: True si hay errores técnicos
+        """
+        if df_final is None or (hasattr(df_final, "empty") and df_final.empty):
+            return False
+
+        # Filtrar jurisdicciones deshabilitadas
+        jurisdicciones_deshabilitadas = os.getenv("JURISDICCIONES_DESHABILITADAS", "")
+        if jurisdicciones_deshabilitadas:
+            lista_jurisdicciones_deshabilitadas = jurisdicciones_deshabilitadas.split(
+                ","
+            )
+            df_filtrado = df_final[
+                ~df_final["Nombre"].isin(lista_jurisdicciones_deshabilitadas)
+            ].copy()
+        else:
+            df_filtrado = df_final.copy()
+
+        # Errores que NO se consideran técnicos
+        errores_excluidos = ["LoginError", "LoginErrorAfip", "DelegacionError"]
+
+        # Verificar si hay errores técnicos
+        if "Error" in df_filtrado.columns:
+            errores_tecnicos = df_filtrado[
+                df_filtrado["Error"].notna()
+                & ~df_filtrado["Error"].isin(errores_excluidos)
+            ]
+            return len(errores_tecnicos) > 0
+
+        return False
 
     def finalizar_cliente(
         self,

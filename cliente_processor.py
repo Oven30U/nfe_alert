@@ -948,7 +948,7 @@ class ClienteProcessor:
     def _hay_errores_en_resultados(self, df_final: pd.DataFrame) -> bool:
         """
         Verifica si hay errores técnicos en los resultados del procesamiento.
-        
+
         Excluye errores de credenciales (LoginError, LoginErrorAfip) y delegación (DelegacionError)
         ya que estos no representan problemas técnicos del sistema sino configuraciones pendientes.
 
@@ -959,10 +959,14 @@ class ClienteProcessor:
             bool: True si hay errores técnicos, False en caso contrario.
         """
         # Filtrar las jurisdicciones que están deshabilitadas desde el entorno virtual
-        jurisdicciones_deshabilitadas: str = os.getenv("JURISDICCIONES_DESHABILITADAS", "")
-        
+        jurisdicciones_deshabilitadas: str = os.getenv(
+            "JURISDICCIONES_DESHABILITADAS", ""
+        )
+
         if jurisdicciones_deshabilitadas:
-            lista_jurisdicciones_deshabilitadas = jurisdicciones_deshabilitadas.split(",")
+            lista_jurisdicciones_deshabilitadas = jurisdicciones_deshabilitadas.split(
+                ","
+            )
             df_filtrado = df_final[
                 ~df_final["Nombre"].isin(lista_jurisdicciones_deshabilitadas)
             ].copy()
@@ -971,26 +975,23 @@ class ClienteProcessor:
 
         # Tipos de error que NO se consideran como errores técnicos
         errores_excluidos = ["LoginError", "LoginErrorAfip", "DelegacionError"]
-        
+
         # Filtrar errores que no sean de credenciales/delegación
         errores_tecnicos = df_filtrado[
-            df_filtrado["Error"].notna() & 
-            ~df_filtrado["Error"].isin(errores_excluidos)
+            df_filtrado["Error"].notna() & ~df_filtrado["Error"].isin(errores_excluidos)
         ]
-        
+
         # Evaluar si hay errores técnicos
         tiene_errores_tecnicos = len(errores_tecnicos) > 0
-        
+
         # Log informativo para debugging
         if tiene_errores_tecnicos:
             logger.debug(
                 f"Cliente {self.cliente}: Se detectaron {len(errores_tecnicos)} errores técnicos"
             )
         else:
-            logger.debug(
-                f"Cliente {self.cliente}: No se detectaron errores técnicos"
-            )
-        
+            logger.debug(f"Cliente {self.cliente}: No se detectaron errores técnicos")
+
         return tiene_errores_tecnicos
 
     def _es_ultimo_procesamiento(self) -> bool:
@@ -1003,10 +1004,16 @@ class ClienteProcessor:
         ultimo_procesamiento_diario = int(os.getenv("PROCESAMIENTOS_DIARIOS", 5))
         numero_procesamiento = self._obtener_numero_procesamiento()
 
-        return (
-            numero_procesamiento is not None
-            and numero_procesamiento >= ultimo_procesamiento_diario
-        )
+        # Si no se puede obtener el número por problemas de DB, asumir que es el último
+        # Esto es más conservador y asegura que el correo llegue al cliente
+        if numero_procesamiento is None:
+            logger.warning(
+                "No se pudo determinar el número de procesamiento. "
+                "Asumiendo que es el último procesamiento para asegurar entrega al cliente."
+            )
+            return True
+
+        return numero_procesamiento >= ultimo_procesamiento_diario
 
     def _preparar_dataframe_correo(self, df_final: pd.DataFrame) -> pd.DataFrame:
         """
@@ -1234,13 +1241,20 @@ class ClienteProcessor:
         if not self.procesamiento_id:
             return None
 
-        with SessionLocal() as db:
-            procesamiento = (
-                db.query(ProcesamientosDiariosGlobal)
-                .filter(ProcesamientosDiariosGlobal.id == self.procesamiento_id)
-                .first()
+        try:
+            with SessionLocal() as db:
+                procesamiento = (
+                    db.query(ProcesamientosDiariosGlobal)
+                    .filter(ProcesamientosDiariosGlobal.id == self.procesamiento_id)
+                    .first()
+                )
+                return procesamiento.numero_procesamiento if procesamiento else None
+        except Exception as e:
+            logger.warning(
+                f"Error al obtener número de procesamiento desde DB: {e}. "
+                f"Retornando None para usar lógica fallback."
             )
-            return procesamiento.numero_procesamiento if procesamiento else None
+            return None
 
     def _evaluar_errores_para_destinatario(self, hay_errores_original: bool) -> bool:
         """
