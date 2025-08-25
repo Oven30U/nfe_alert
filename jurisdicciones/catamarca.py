@@ -76,86 +76,56 @@ class Catamarca(Jurisdiccion):
 
     async def consultar_notificaciones(self) -> None:
         """
-        Consulta las notificaciones en la web de Catamarca, realizando bypass de Cloudflare si es necesario.
+        Consulta las notificaciones en la web de Catamarca.
         """
-        # Bypass Cloudflare usando DrissionPage y CloudflareBypasser
-        try:
-            driver = ChromiumPage()
-            driver.get("https://dgrentas.arca.gob.ar/rentascuA/principal.aspx")
-            cf_bypasser = CloudflareBypasser(driver)
-            cf_bypasser.bypass()
-            # Obtener cookies como método (no como propiedad)
-            all_cookies = driver.cookies()
-            # Formatear cookies para Playwright
-            formatted_cookies = []
-            for cookie in all_cookies:
-                formatted_cookies.append(
-                    {
-                        "name": cookie["name"],
-                        "value": cookie["value"],
-                        "domain": cookie.get("domain", ""),
-                        "path": cookie.get("path", "/"),
-                        "expires": cookie.get("expiry", -1),
-                        "httpOnly": cookie.get("httpOnly", False),
-                        "secure": cookie.get("secure", False),
-                        "sameSite": "Lax",  # DrissionPage puede no proporcionar esto
-                    }
-                )
-            driver.quit()
-            # Establecer cookies en Playwright
-            await self.page.context.add_cookies(formatted_cookies)
-            logging.info(
-                "Bypass de Cloudflare realizado y cookies transferidas a Playwright."
-            )
-        except Exception as exc:
-            logging.error(f"Error en el bypass de Cloudflare: {exc}")
-            raise
-        # Continuar con el flujo normal de login
-        await self.page.goto("https://dgrentas.arca.gob.ar/rentascuA/principal.aspx")
-        # await self.page.wait_for_load_state("networkidle")
-        await self.page.locator(
-            "(//input[@value='Acceder'])[2]"
-        ).click()  # https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=arca_dgr_contrib
-        await self.page.locator("//input[@id='F1:username']").fill(f"{self._cuit}")
-        await self.page.locator("//input[@id='F1:btnSiguiente']").click()
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.locator("//input[@id='F1:password']").fill(
-            f"{self._clave_fiscal}"
-        )
-        await self.page.locator("//input[@id='F1:btnIngresar']").click()
-        await self.page.wait_for_load_state("networkidle")
-        if await self.page.is_visible("text=Clave o usuario incorrecto"):
-            raise LoginError(self.cliente)
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_selector("//select[@id='vPERSONAID']")
-        options = await self.page.locator("//select[@id='vPERSONAID']//option").all()
-        for option in options:
-            label = await option.inner_text()
-            if self._cuit_cliente_input in label:
-                value = await option.get_attribute("value")
-                await self.page.select_option("select#vPERSONAID", value=value)
-                break
-        await self.page.locator("//input[@value='Ingresar']").click()
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_selector("//a/span[contains(text(), 'Dom Fiscal')]")
-        await self.page.locator("//a/span[contains(text(), 'Dom Fiscal')]").click()
-        await self.page.locator("//a[contains(text(), 'Domicilio')]").click()
-        # https://dgrentas.arca.gob.ar/rentascuA/DomicilioElectronico.aspx
-        # Esperar a que se abra una nueva pestaña
-        self.page = await self.context.wait_for_event("page")
-        # Cambiar el contexto a la nueva pestaña
-        await self.page.bring_to_front()
-        await self.page.wait_for_load_state("networkidle")
-        # 'No se encontraron novedades'
-        # 'Ud. no tiene Notificaciones'
+        await self.page.goto("https://arcat.gob.ar/")
+        await self.page.get_by_role("link", name="Acceso con Clave Fiscal").click()
+        await self.page.get_by_role("spinbutton").click()
+        await self.page.get_by_role("spinbutton").fill("20412371667")
+        await self.page.get_by_role("button", name="Siguiente").click()
+        await self.page.get_by_role("textbox", name="TU CLAVE").fill("FC!t@X.1BB8!")
+        await self.page.get_by_role("button", name="Ingresar").click()
+        async with self.page.expect_popup() as page1_info:
+            await self.page.get_by_role("button", name="Domicilio Fiscal").click()
+            page1 = await page1_info.value
+            # Usar la nueva pestaña como la página activa para los siguientes pasos
+            self.page = page1
+            await page1.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
-        return (
-            False
-            if await self.page.is_visible("text=No se encontraron novedades")
-            and await self.page.is_visible("text=Ud. no tiene Notificaciones")
-            else False
-        )
+        """
+        Determinar si hay notificaciones.
+
+        Reglas:
+        - Si aparece 'No se encontraron novedades' y 'Ud. no tiene Notificaciones' -> False
+        - Si aparece un texto que contiene 'No Leídas' y el número asociado es 0 -> False
+        - Si 'No Leídas' contiene un número distinto de 0 -> True
+        - En ausencia de los mensajes negativos, asumimos que hay notificaciones -> True
+        """
+        # Mensajes explícitos que indican ausencia de novedades y notificaciones
+        if await self.page.is_visible(
+            "text=No se encontraron novedades"
+        ) and await self.page.is_visible("text=Ud. no tiene Notificaciones"):
+            return False
+
+        # Buscar cantidad de 'No Leídas' != 0.
+        try:
+            import re
+
+            try:
+                html = await self.page.content()
+            except Exception:
+                html = ""
+
+            m = re.search(r"No\s*Leídas\s*[:\|\-]?\s*(\d+)", html, re.IGNORECASE)
+            if m:
+                return int(m.group(1)) != 0
+
+        except Exception:
+            pass
+
+        # Si no se detectan los mensajes negativos, asumimos que hay notificaciones
+        return True
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)
