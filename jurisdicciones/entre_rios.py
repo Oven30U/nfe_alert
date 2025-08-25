@@ -116,6 +116,11 @@ class EntreRios(Jurisdiccion):
 
     async def buscar_notificacion(self):
         await self.new_page.wait_for_load_state("networkidle")
+
+        await self.new_page.locator("i.fa.fa-caret-down").click()
+        await self.new_page.locator("li[data-range-key='Últimos 30 días']").click()
+
+        # Obtener los valores de cantidad_avisos y cantidad_notificaciones
         cantidad_avisos = (await self.new_page.locator("#avisos").inner_text()).strip(
             "()"
         )
