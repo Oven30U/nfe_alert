@@ -2,9 +2,15 @@ import re
 import os
 from typing import Optional
 
-from playwright.async_api import Playwright, async_playwright, Page
+from playwright.async_api import (
+    Playwright,
+    async_playwright,
+    Page,
+    expect,
+    TimeoutError as PlaywrightTimeoutError,
+)
 
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError, DelegacionError
 
 
 class Neuquen(Jurisdiccion):
@@ -116,83 +122,56 @@ class Neuquen(Jurisdiccion):
     async def login_neuquen_afip(self):
         """Login a través del sistema de AFIP con redirección a Neuquen DFE."""
         # URL específica para Neuquen a través de AFIP
-        URL_AFIP_NEUQUEN = "https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=dgahfneuq_auth_clave_fiscal"
+        URL_AFIP_NEUQUEN = "https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+        SUCCESS_SELECTOR = "input#buscadorInput"
 
         # Reutilizar el método AFIP_login de la clase base
-        await self.AFIP_login(URL_AFIP_NEUQUEN, success_selector="select#cuit_opera")
+        await self.AFIP_login(URL_AFIP_NEUQUEN, success_selector=SUCCESS_SELECTOR)
 
         try:
-            # Esperar a que se complete el login y la redirección al sistema de Neuquen
-            await self.page.wait_for_url("**/nqn/Extranet/**", timeout=60000)
-            self.logger.info("Redirección a portal de Neuquén completada")
+            await self.page.get_by_role("combobox", name="Buscador").click()
+            await self.page.get_by_role("combobox", name="Buscador").fill(
+                "Login SiNATrA"
+            )
+            await self.page.get_by_role("combobox", name="Buscador").press("Enter")
+            async with self.page.expect_popup() as page2_info:
+                await self.page.get_by_role(
+                    "link", name="Login SiNATrA Acceso al"
+                ).click()
+            page2 = await page2_info.value
+            self.page = page2
+            self.new_page = page2
+            if await self.page.get_by_label("CUIT a Representar:").is_visible():
+                # Intentar seleccionar directamente; si no selecciona nada o timed out,
+                # considerar pendiente de aceptación
+                try:
+                    selected = await self.page.get_by_label(
+                        "CUIT a Representar:"
+                    ).select_option(self._cuit_cliente_input)
+                except PlaywrightTimeoutError as e:
+                    # Timeout usually means the option was not found / not visible
+                    self.logger.warning(
+                        f"Timeout seleccionando CUIT {self._cuit_cliente_input}: {e}"
+                    )
+                    # Usar DelegacionError para evitar tomar screenshots y tratar como delegación
+                    raise DelegacionError(self.cliente) from e
+                except Exception as e:
+                    # Any other error treat as delegation for safety
+                    self.logger.warning(
+                        f"Error seleccionando CUIT {self._cuit_cliente_input}: {e}"
+                    )
+                    raise DelegacionError(self.cliente) from e
 
-            # Verificar si hay que seleccionar un CUIT en el selector
-            cuit_selector = await self.page.query_selector("#cuit_opera")
-            if cuit_selector:
-                self.logger.info(
-                    f"Encontrado selector de CUIT, buscando el valor {self._cuit_cliente_input}"
-                )
-
-                # Verificar si el CUIT del cliente está disponible en el selector
-                options = await self.page.evaluate("""
-                    () => {
-                        const select = document.querySelector("#cuit_opera");
-                        return select ? Array.from(select.options).map(opt => ({value: opt.value, text: opt.text})) : [];
-                    }
-                """)
-
-                # Log de opciones disponibles para debug
-                self.logger.debug(f"Opciones disponibles en selector CUIT: {options}")
-
-                # Verificar si alguna opción contiene el CUIT del cliente
-                cuit_encontrado = False
-                for option in options:
-                    if self._cuit_cliente_input in option["value"]:
-                        await self.page.select_option(
-                            "#cuit_opera", value=option["value"]
-                        )
-                        self.logger.info(
-                            f"Seleccionado CUIT {option['value']} del dropdown"
-                        )
-                        cuit_encontrado = True
-                        break
-
-                if not cuit_encontrado:
+                if not selected:
                     self.logger.warning(
                         f"CUIT {self._cuit_cliente_input} no encontrado en las opciones disponibles"
                     )
-                    # await self.tomar_screenshot_error("cuit_no_encontrado")
-                    raise LoginError(self.cliente, LoginError.PENDIENTE_ACEPTACION)
-
-                # Verificar si existe el botón de ingreso y hacer click
-                btn_ingresar = await self.page.query_selector("#btn_ingresar_AFIP")
-                if btn_ingresar:
-                    self.logger.debug("Encontrado botón de ingreso, haciendo click")
-                    await self.page.click("#btn_ingresar_AFIP")
-                    await self.page.wait_for_load_state("networkidle")
-                else:
-                    self.logger.debug(
-                        "No se encontró botón de ingreso específico, continuando"
-                    )
-
-                terminos_visibles = await self.page.is_visible(
-                    "text='Términos y Condiciones del Domicilio Fiscal Electrónico'",
-                    timeout=10000,
-                )
-                if terminos_visibles:
-                    self.logger.warning(
-                        "Se detectaron Términos y Condiciones pendientes de aceptación"
-                    )
-                    # await self.tomar_screenshot_error(error_type="terminos_condiciones")
-                    raise LoginError(self.cliente, LoginError.PENDIENTE_ACEPTACION)
-
-            # Verificar si hay mensajes de error en la página de Neuquen
-            if (
-                await self.page.locator(
-                    "text='Acción prohibida, por favor ingrese nuevamente al sistema.'"
-                ).count()
-            ) > 0:
-                raise LoginError(self.cliente, LoginError.SERVICIO_NO_DISPONIBLE)
+                    raise DelegacionError(self.cliente)
+                self.logger.info(f"Seleccionado CUIT {selected} del dropdown")
+                await self.page.get_by_role("button", name="Ingresar").click()
+            await expect(
+                self.page.get_by_text("Bandeja de Mensajes - Notificaciones")
+            ).to_be_visible()
 
         except Exception as e:
             self.logger.error(f"Error completando login AFIP para Neuquen: {str(e)}")

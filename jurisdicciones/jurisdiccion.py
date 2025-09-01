@@ -70,8 +70,8 @@ class LoginErrorAfip(LoginError):
     DEFAULT_MESSAGE = "Credenciales ARCA inválidas"
     PENDIENTE_DELEGACION = "Servicio pendiente de delegación"
 
-    def __init__(self, cliente, message=None):
-        super().__init__(cliente, message or self.DEFAULT_MESSAGE)
+    def __init__(self, cliente, mensaje=None):
+        super().__init__(cliente, mensaje or self.DEFAULT_MESSAGE)
 
 
 class ConsultarNotificacionesError(LoggedException):
@@ -287,6 +287,13 @@ class Jurisdiccion(ABC):
             )
             await self.page.get_by_role("button", name="Ingresar").click(timeout=18000)
             await self.page.wait_for_load_state("networkidle", timeout=180000)
+
+            # Verificar si aparece el mensaje de cambio de contraseña obligatorio
+            password_change_locator = self.page.get_by_text(
+                "Por medidas de seguridad tenés que cambiar tu contraseña"
+            )
+            if await password_change_locator.is_visible():
+                raise LoginErrorAfip(self.cliente, "Es necesario cambiar clave fiscal")
 
             # Verificar errores comunes solo si la URL actual es la esperada
             if self.page.url == URL_AFIP_LOGIN:
