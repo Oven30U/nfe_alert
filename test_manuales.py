@@ -6,7 +6,6 @@ import sys
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 
-from jurisdicciones.jujuy import Jujuy
 
 # Cargar las variables de entorno desde el archivo .env
 load_dotenv()
@@ -30,10 +29,12 @@ from jurisdicciones import (
     RioNegro,
     Salta,
     SanLuis,
+    SanJuan,
     SantaCruz,
     SantiagoDelEstero,
     Sicnea,
     Tucuman,
+    Jujuy,
 )
 
 
@@ -194,6 +195,9 @@ async def neuquen_test(headless=False, iterations=1):
 async def jujuy_test(headless=False, iterations=1):
     await generic_test("JUJUY", Jujuy, headless, iterations)
 
+async def san_juan_test(headless=False, iterations=1):
+    await generic_test("SAN_JUAN", SanJuan, headless, iterations)
+
 
 def send_email_smtp_test():
     """
@@ -256,6 +260,7 @@ async def run_test_by_name(test_name, headless=False, iterations=1):
         "formosa": formosa_test,
         "neuquen": neuquen_test,
         "santa_cruz": santa_cruz_test,
+        "san_juan": san_juan_test,
     }
 
     if test_name.lower() in tests:
@@ -270,7 +275,7 @@ if __name__ == "__main__":
     # Ejemplos de cómo ejecutar los tests:
 
     # 1. Ejecutar un test específico:
-    asyncio.run(neuquen_test(headless=False))
+    asyncio.run(san_juan_test(headless=False))
 
     # 2. Ejecutar un test con múltiples iteraciones:
     # asyncio.run(salta_test(headless=False, iterations=5))

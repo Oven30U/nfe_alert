@@ -7,32 +7,26 @@ from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class SanJuan(Jurisdiccion):
-    def __init__(self, nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input=None,
-                 razon_social_cliente_input=None, texto_notificacion=None, headless=True):
-        super().__init__(nombre, codigo, cliente, client_folder, cuit, clave_fiscal, fecha_desde, fecha_hasta, cuit_cliente_input,
-                         razon_social_cliente_input, texto_notificacion, headless)
-        self.cuit_cliente_input = str(cuit_cliente_input)
-        self._cuit = int(str(self._cuit)[2:-1]) #? Saco el DNI unicamente del cuit
-
-    @classmethod
-    async def create(
-            cls,
-            playwright: Playwright,
-            cliente, client_folder,
-            cuit,
-            clave_fiscal,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            razon_social_cliente_input=None,
-            texto_notificacion=None,
-            headless=True
+    def __init__(
+        self,
+        nombre,
+        codigo,
+        cliente,
+        client_folder,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input=None,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
     ):
-        self = await super().create(
-            playwright,
-            "SanJuan",
-            "918 SAN JUAN",
-            cliente, client_folder,
+        super().__init__(
+            nombre,
+            codigo,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -40,7 +34,40 @@ class SanJuan(Jurisdiccion):
             cuit_cliente_input,
             razon_social_cliente_input,
             texto_notificacion,
-            headless=headless
+            headless,
+        )
+        self.cuit_cliente_input = str(cuit_cliente_input)
+        self._cuit = int(str(self._cuit)[2:-1])  # ? Saco el DNI unicamente del cuit
+
+    @classmethod
+    async def create(
+        cls,
+        playwright: Playwright,
+        cliente,
+        client_folder,
+        cuit,
+        clave_fiscal,
+        fecha_desde,
+        fecha_hasta,
+        cuit_cliente_input,
+        razon_social_cliente_input=None,
+        texto_notificacion=None,
+        headless=True,
+    ):
+        self = await super().create(
+            playwright,
+            "SanJuan",
+            "918 SAN JUAN",
+            cliente,
+            client_folder,
+            cuit,
+            clave_fiscal,
+            fecha_desde,
+            fecha_hasta,
+            cuit_cliente_input,
+            razon_social_cliente_input,
+            texto_notificacion,
+            headless=headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -65,16 +92,22 @@ class SanJuan(Jurisdiccion):
             await page.locator("//input[contains(@id,'clave')]").wait_for(timeout=5000)
             await page.get_by_placeholder("Clave").click()
             await page.get_by_placeholder("Clave").fill(f"{self._clave_fiscal}")
-            await page.get_by_role("combobox").select_option('F')
+            await page.get_by_role("combobox").select_option("F")
             await page.wait_for_load_state("networkidle")
             await page.get_by_role("button", name="Iniciar Sesión").click()
-            
-            if (await page.is_visible("//label[contains(.,'El usuario no se ha logueado correctamente.')]", timeout=5000)):
-                await page.get_by_role("combobox").select_option('M')
+
+            if await page.is_visible(
+                "//label[contains(.,'El usuario no se ha logueado correctamente.')]",
+                timeout=5000,
+            ):
+                await page.get_by_role("combobox").select_option("M")
                 await page.wait_for_load_state("networkidle")
                 await page.get_by_role("button", name="Iniciar Sesión").click()
-            if (await page.is_visible("//label[contains(.,'El usuario no se ha logueado correctamente.')]", timeout=5000)):
-                await page.get_by_role("combobox").select_option('X')
+            if await page.is_visible(
+                "//label[contains(.,'El usuario no se ha logueado correctamente.')]",
+                timeout=5000,
+            ):
+                await page.get_by_role("combobox").select_option("X")
                 await page.wait_for_load_state("networkidle")
                 await page.get_by_role("button", name="Iniciar Sesión").click()
 
@@ -92,12 +125,12 @@ class SanJuan(Jurisdiccion):
             retries += 1
 
         if (
-                # await  self.page.is_visible("text=El N° de CUIT no es válido")
-                await self.page.is_visible("//label[contains(.,'El usuario no se ha logueado correctamente.')]")
-        ):
-            raise LoginError(
-                self.cliente
+            # await  self.page.is_visible("text=El N° de CUIT no es válido")
+            await self.page.is_visible(
+                "//label[contains(.,'El usuario no se ha logueado correctamente.')]"
             )
+        ):
+            raise LoginError(self.cliente)
 
         # if (await  self.page.is_visible("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]")):
         #     await self.page.locator("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]").click()
@@ -105,14 +138,27 @@ class SanJuan(Jurisdiccion):
         # await self.page.wait_for_load_state("networkidle")
         # await self.page.goto("https://rentas.dgrsj.gob.ar/Notificaciones/getListadoDeNotificaciones")
         await self.page.wait_for_load_state("networkidle")
-        await self.page.locator("(//button[contains(@class,'btn btn-primary bg-primary dropdown-toggle-split dropdown-toggle text-white')])[2]").click()
-        await self.page.get_by_role("link", name=", ADIDAS ARGENTINA S.A.  [").click() #!
-        if await self.page.wait_for_selector("//button[contains(@id,'btnMensajeAceptar')]", timeout=5000):
+        await self.page.locator(
+            "(//button[contains(@class,'btn btn-primary bg-primary dropdown-toggle-split dropdown-toggle text-white')])[2]"
+        ).click()
+        await self.page.get_by_role(
+            "link", name=", ADIDAS ARGENTINA S.A.  ["
+        ).click()  #!
+        if await self.page.is_visible(
+            "//button[contains(@id,'btnMensajeAceptar')]", timeout=5000
+        ):
             await self.page.get_by_text("Ver Notificaciones").click()
+        await self.page.goto(
+            "https://rentas.dgrsj.gob.ar/DatosContribuyente/EDomicilioFiscal"
+        )
 
     async def buscar_notificacion(self):
-        await self.page.locator("//table[@id='dtDetalleDeNotificaciones']").wait_for(state="visible")
-        cells = await self.page.locator("//table[@id='dtDetalleDeNotificaciones']//tbody//tr/td[4]").all()
+        await self.page.locator("//table[@id='dtDetalleDeNotificaciones']").wait_for(
+            state="visible"
+        )
+        cells = await self.page.locator(
+            "//table[@id='dtDetalleDeNotificaciones']//tbody//tr/td[4]"
+        ).all()
         fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
         fecha_hasta_dt = datetime.strptime(self.fecha_hasta, "%d%m%Y")
         for cell in cells:
@@ -135,7 +181,6 @@ class SanJuan(Jurisdiccion):
 if __name__ == "__main__":
     import asyncio
 
-
     async def main():
         async with async_playwright() as playwright:
             fecha_desde = os.getenv("FECHA_DESDE")
@@ -157,6 +202,5 @@ if __name__ == "__main__":
                 cuit_cliente_input=cuit_SanJuan,
             )
             await san_juan.procesar_jurisdiccion()
-
 
     asyncio.run(main())
