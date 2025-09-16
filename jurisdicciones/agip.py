@@ -8,6 +8,7 @@ from jurisdicciones.jurisdiccion import (
     DelegacionError,
     Jurisdiccion,
     LoginError,
+    BuscarNotificacionError,
 )
 
 
@@ -91,66 +92,40 @@ class Agip(Jurisdiccion):
             await self.page.select_option(
                 "select[name='cuit_representado']", f"{self._cuit_cliente_input}"
             )
-            await self.page.fill(
-                'xpath=//*[@id="filtro_app"]',
-                "Domicilio Fiscal Electrónico",
-                timeout=10000,
+            await self.page.type(
+                'xpath=//*[@id="filtro_app"]', "Domicilio Fiscal Electrónico", delay=1
             )
 
-            # Intento principal de navegación
-            try:
-                await self.page.click(
-                    f"xpath=//*[@onclick='ir_servicio(54,{self._cuit_cliente_input})']",
-                    timeout=5000,
-                )
-            except Exception:
-                # Ruta alternativa
-                await self.page.click(
-                    "xpath=//*[@onclick='ir_servicio(54, 0)']", timeout=100000
-                )
-                # Intentar clickear en Representados
-                try:
-                    await self.page.wait_for_selector(
-                        f"xpath=//li[@id='opRepresentados']//a[@class='dropdown-toggle']",
-                        timeout=20000,
-                    )
-                    await self.page.click(
-                        f"xpath=//li[@id='opRepresentados']//a[@class='dropdown-toggle']",
-                        timeout=10000,
-                    )
-                except Exception:
-                    # Si no se puede hacer click en Representados, verificar si lblCuit contiene el mismo CUIT
-                    try:
-                        lbl_cuit_element = await self.page.wait_for_selector(
-                            "xpath=//*[@class='lblCuit']", timeout=5000
-                        )
-                        if lbl_cuit_element:
-                            lbl_cuit_text = await lbl_cuit_element.text_content()
-                            if lbl_cuit_text and lbl_cuit_text.strip() == self._cuit:
-                                raise DelegacionError(self.cliente)
-                    except DelegacionError:
-                        # Re-lanzar DelegacionError sin modificaciones
-                        raise
-                    except Exception:
-                        # Si no se puede verificar lblCuit, continuar con el error original
-                        pass
-                    # Re-lanzar el error original del click en Representados
-                    raise
+            selector_servicio_dfe = (
+                f"xpath=//*[@onclick='ir_servicio(54,{self._cuit_cliente_input})']"
+            )
 
-                # Seleccionar el DFE del CUIT representado
+            if await self.page.is_visible(selector_servicio_dfe):
+                await self.page.click(selector_servicio_dfe, timeout=5000)
+            else:
+                await self.page.fill('xpath=//*[@id="filtro_app"]', "")
+                await self.page.type(
+                    'xpath=//*[@id="filtro_app"]', "Nueva Cuenta Corriente Tributaria", delay=1
+                )
+                await self.page.get_by_role(
+                    "link", name="Nueva Cuenta Corriente"
+                ).click()
+                await self.page.wait_for_load_state("networkidle")
                 await self.page.wait_for_selector(
-                    f"a[data-id='{self._cuit_cliente_input}']", timeout=100000
+                    "p.text-razonsocial", state="visible", timeout=60000
                 )
-                await self.page.click(
-                    f"xpath=//*[a[@data-id={self._cuit_cliente_input}]]", timeout=100000
+                await self.page.goto("https://portal-cct.agip.gob.ar/DFE")
+                await self.page.wait_for_selector(
+                    "xpath=//th[contains(., 'CUIT Representado')]",
+                    timeout=10000,
+                    state="visible",
                 )
-
-            # Esta parte siempre debe ejecutarse si no hubo excepciones previas
-            boton_filtro = (
-                "xpath=//button[@class='btnNoLeidas btn btn-default']"  # no_leidas
+        except DelegacionError:
+            raise
+        except Exception:
+            raise Exception(
+                "No se pudo acceder a 'Representados' ni verificar delegación"
             )
-            await self.page.wait_for_selector(boton_filtro, timeout=100000)
-            await self.page.click(boton_filtro, timeout=100000)  # 10 min
 
         except LoginError as le:
             # Re-lanzar errores de login directamente sin convertirlos
@@ -172,60 +147,105 @@ class Agip(Jurisdiccion):
         1. Existe alguna fila que contenga 's/Notificar'
         2. La fecha de esa fila es posterior o igual a self.fecha_desde
         """
-        try:
-            # Esperar a que la tabla esté visible
-            await self.page.wait_for_selector(
-                "table#tablaMensajes", state="visible", timeout=30000
-            )
+        if "//lb.agip" in self.page.url:
+            # https://lb.agip.gob.ar/dfe/?evt=cc
+            try:
+                # Esperar a que la tabla esté visible
+                await self.page.wait_for_selector(
+                    "table#tablaMensajes", state="visible", timeout=30000
+                )
 
-            # Obtener todas las filas que contienen 's/Notificar'
-            filas_notificar = await self.page.query_selector_all(
-                "xpath=//table[@id='tablaMensajes']/tbody/tr[td[contains(text(),'s/Notificar')]]"
-            )
+                # Obtener todas las filas que contienen 's/Notificar'
+                filas_notificar = await self.page.query_selector_all(
+                    "xpath=//table[@id='tablaMensajes']/tbody/tr[td[contains(text(),'s/Notificar')]]"
+                )
 
-            self.logger.debug(
-                f"AGIP: Se encontraron {len(filas_notificar)} filas con 's/Notificar'"
-            )
+                self.logger.debug(
+                    f"AGIP: Se encontraron {len(filas_notificar)} filas con 's/Notificar'"
+                )
 
-            if len(filas_notificar) == 0:
-                self.logger.debug("AGIP: No hay notificaciones pendientes")
-                return False
+                if len(filas_notificar) == 0:
+                    self.logger.debug("AGIP: No hay notificaciones pendientes")
+                    return False
 
-            # Convertir fecha_desde a objeto datetime
-            # self.fecha_desde está en formato 'ddmmyyyy'
-            fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
+                # Convertir fecha_desde a objeto datetime
+                # self.fecha_desde está en formato 'ddmmyyyy'
+                fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
 
-            for fila in filas_notificar:
-                # Obtener la fecha de la columna 2
-                fecha_td = await fila.query_selector("td:nth-child(2)")
-                if fecha_td:
-                    fecha_texto = await fecha_td.text_content()
-                    fecha_texto = fecha_texto.strip()
+                for fila in filas_notificar:
+                    # Obtener la fecha de la columna 2
+                    fecha_td = await fila.query_selector("td:nth-child(2)")
+                    if fecha_td:
+                        fecha_texto = await fecha_td.text_content()
+                        fecha_texto = fecha_texto.strip()
 
-                    try:
-                        # Convertir a formato datetime (asumiendo formato 'yyyy-mm-dd')
-                        fecha_notificacion = datetime.strptime(fecha_texto, "%Y-%m-%d")
-
-                        self.logger.debug(
-                            f"AGIP: Comparando fecha {fecha_notificacion} con {fecha_desde}"
-                        )
-
-                        # Comparar fechas
-                        if fecha_notificacion >= fecha_desde:
-                            self.logger.debug(
-                                f"AGIP: Notificación encontrada con fecha {fecha_texto}"
+                        try:
+                            # Convertir a formato datetime (asumiendo formato 'yyyy-mm-dd')
+                            fecha_notificacion = datetime.strptime(
+                                fecha_texto, "%Y-%m-%d"
                             )
-                            return True
-                    except ValueError as e:
-                        self.logger.warning(
-                            f"AGIP: Error al procesar fecha '{fecha_texto}': {str(e)}"
-                        )
 
-            return False
-        except Exception as e:
-            self.logger.error(f"AGIP: Error en buscar_notificacion: {str(e)}")
-            # En caso de error, mejor reportar que sí hay notificaciones para que se revise manualmente
-            return True
+                            self.logger.debug(
+                                f"AGIP: Comparando fecha {fecha_notificacion} con {fecha_desde}"
+                            )
+
+                            # Comparar fechas
+                            if fecha_notificacion >= fecha_desde:
+                                self.logger.debug(
+                                    f"AGIP: Notificación encontrada con fecha {fecha_texto}"
+                                )
+                                return True
+                        except ValueError as e:
+                            self.logger.warning(
+                                f"AGIP: Error al procesar fecha '{fecha_texto}': {str(e)}"
+                            )
+
+                return False
+            except Exception as e:
+                self.logger.error(f"AGIP: Error en buscar_notificacion: {str(e)}")
+                raise BuscarNotificacionError(self.cliente)
+
+        elif "//portal-cct" in self.page.url:
+            await self.page.wait_for_selector(
+                "xpath=//th[contains(., 'CUIT Representado')]",
+                timeout=10000,
+                state="visible",
+            )
+            await self.page.wait_for_selector(
+                "xpath=//tbody/tr/td[2]", timeout=10000, state="visible"
+            )
+
+            fecha_td = await self.page.query_selector("xpath=//tbody/tr[1]/td[2]/span")
+            if fecha_td:
+                fecha_texto = await fecha_td.text_content()
+                fecha_texto = fecha_texto.strip()
+
+                try:
+                    fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
+                    fecha_hasta_dt = datetime.strptime(self.fecha_hasta, "%d%m%Y")
+
+                    fecha_tabla_dt = datetime.strptime(fecha_texto, "%d/%m/%Y")
+
+                    self.logger.debug(
+                        f"AGIP: Fecha en tabla {fecha_tabla_dt}, desde {fecha_desde_dt}, hasta {fecha_hasta_dt}"
+                    )
+
+                    if fecha_desde_dt <= fecha_tabla_dt <= fecha_hasta_dt:
+                        self.logger.debug(
+                            "AGIP: Notificación encontrada en rango de fechas"
+                        )
+                        return True
+                    else:
+                        self.logger.debug("AGIP: Fecha fuera de rango")
+                        return False
+                except ValueError as e:
+                    self.logger.warning(
+                        f"AGIP: Error al procesar fecha '{fecha_texto}': {str(e)}"
+                    )
+                    return False
+            else:
+                self.logger.debug("AGIP: No se encontró la celda de fecha en la tabla")
+                return False
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)

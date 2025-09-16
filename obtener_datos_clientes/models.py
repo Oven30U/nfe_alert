@@ -56,7 +56,7 @@ class Jurisdiccion(Base):
     )
 
     def __repr__(self):
-        return f"<Jurisdiccion {self.nombre}>"
+        return f"<Jurisdiccion {self.codigo}>"
 
 
 class ClienteJurisdiccion(Base):
