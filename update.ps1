@@ -24,10 +24,13 @@ try {
   $scriptDir = Split-Path -Parent $PSCommandPath
 } catch {
   # En entornos interactivos $PSCommandPath puede no existir; usar el directorio actual
-  $scriptDir = Get-Location
+  $scriptDir = (Get-Location).Path
 }
-
-$envPaths = @(Join-Path $scriptDir '.env', Join-Path (Get-Location) '.env')
+$envPaths = @()
+if ($scriptDir) {
+  $envPaths += Join-Path -Path $scriptDir -ChildPath '.env'
+}
+$envPaths += Join-Path -Path (Get-Location).Path -ChildPath '.env'
 foreach ($p in $envPaths) {
   if (Test-Path $p) {
     if ($isVerbose) { Write-Host "Leyendo .env desde: $p" }
@@ -73,14 +76,27 @@ try {
   if ($isVerbose) { Write-Host "Obteniendo release desde: $relUrl" }
   $rel = Invoke-WebRequest -Uri $relUrl -Headers $Headers -ErrorAction Stop | ConvertFrom-Json
 } catch {
-  # Si pedimos latest y falló, o si la búsqueda por tag falló, intentar listar releases y buscar el tag
+  # Si pedimos latest y falló con 404, intentar listar releases y tomar el primero como fallback.
   if ($ChannelTag -ieq "latest") {
-    throw "No se pudo obtener 'latest' release: $($_.Exception.Message)"
+    if ($isVerbose) { Write-Host "No se pudo obtener /latest: $($_.Exception.Message). Intentando listar releases..." }
+    try {
+      $all = Invoke-WebRequest -Uri $apiBase -Headers $Headers -ErrorAction Stop | ConvertFrom-Json
+      if ($all -and $all.Count -gt 0) {
+        $rel = $all | Select-Object -First 1
+        if ($isVerbose) { Write-Host "Usando release fallback: $($rel.tag_name)" }
+      } else {
+        throw "No hay releases disponibles en el repositorio."
+      }
+    } catch {
+      throw "No se pudo obtener 'latest' release ni listar releases: $($_.Exception.Message)"
+    }
+    
+  } else {
+    if ($isVerbose) { Write-Host "Fallo GET por tag ($ChannelTag). Probando a listar releases y buscar tag..." }
+    $all = Invoke-WebRequest -Uri $apiBase -Headers $Headers -ErrorAction Stop | ConvertFrom-Json
+    $rel = $all | Where-Object { $_.tag_name -eq $ChannelTag } | Select-Object -First 1
+    if (-not $rel) { throw "No se encontró un Release con tag '$ChannelTag' (ni en /releases/tags ni listando /releases)." }
   }
-  if ($isVerbose) { Write-Host "Fallo GET por tag ($ChannelTag). Probando a listar releases y buscar tag..." }
-  $all = Invoke-WebRequest -Uri $apiBase -Headers $Headers -ErrorAction Stop | ConvertFrom-Json
-  $rel = $all | Where-Object { $_.tag_name -eq $ChannelTag } | Select-Object -First 1
-  if (-not $rel) { throw "No se encontró un Release con tag '$ChannelTag' (ni en /releases/tags ni listando /releases)." }
 }
 
 # Si ya tenemos en destino el mismo tag, evitar reinstalar salvo que se fuerce
@@ -109,8 +125,9 @@ New-Item -ItemType Directory -Path $tmp -Force | Out-Null
 $zipPath = Join-Path $tmp $zipAsset.name
 $shaPath = if ($shaAsset) { Join-Path $tmp $shaAsset.name } else { $null }
 
-if ($env:GITHUB_PAT_NFE_UY) {
-  $hdr = $Headers.Clone(); $hdr["Accept"] = "application/octet-stream"  # descargar asset binario por API  
+if ($token) {
+  # Si tenemos token, preferimos descargar el asset vía API (octet-stream)
+  $hdr = $Headers.Clone(); $hdr["Accept"] = "application/octet-stream"
   if ($Verbose) { Write-Host "Descargando (API) $($zipAsset.name) -> $zipPath" }
   Invoke-WebRequest -Uri $zipAsset.url -Headers $hdr -OutFile $zipPath
   if ($shaAsset) {
