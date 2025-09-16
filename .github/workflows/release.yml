@@ -20,15 +20,24 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Prepare zip (only on tag)
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           zip -r release.zip . -x ".git/*" ".github/*"
 
-      - name: Create GitHub Release (only on tag)
-        # if: startsWith(github.ref, 'refs/tags/')
+      - name: Determine release tag (if none)
+        id: tagname
+        run: |
+          if [[ "${GITHUB_REF##refs/tags/}" != "$GITHUB_REF" ]]; then
+            echo "tag=${GITHUB_REF##refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=autodeploy-${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: release.zip
+          tag_name: ${{ steps.tagname.outputs.tag }}
+          name: Release ${{ steps.tagname.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
