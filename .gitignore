@@ -21,3 +21,5 @@ database.db
 .env
 .venv/
 .env_dev
+
+token.txt
