@@ -23,7 +23,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Obtener fecha actual
-        run: echo "RELEASE_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+        id: set-date
+        run: echo "::set-output name=date::$(date +'%Y%m%d')"
 
       - name: Preparar carpeta de entrega (exclude .git y CI)
         run: |
@@ -34,17 +35,17 @@ jobs:
       - name: Crear ZIP
         run: |
           cd out
-          zip -r "nfe_alert-${RELEASE_DATE}.zip" nfe_alert
-          sha256sum "nfe_alert-${RELEASE_DATE}.zip" > "nfe_alert-${RELEASE_DATE}.zip.sha256"
+          zip -r "nfe_alert-${{ steps.set-date.outputs.date }}.zip" nfe_alert
+          sha256sum "nfe_alert-${{ steps.set-date.outputs.date }}.zip" > "nfe_alert-${{ steps.set-date.outputs.date }}.zip.sha256"
 
       - name: Publicar en Release (asset)
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            out/nfe_alert-${RELEASE_DATE}.zip
-            out/nfe_alert-${RELEASE_DATE}.zip.sha256
+            out/nfe_alert-${{ steps.set-date.outputs.date }}.zip
+            out/nfe_alert-${{ steps.set-date.outputs.date }}.zip.sha256
           overwrite_files: true
-          tag_name: "release-${RELEASE_DATE}"
-          name: "Release ${RELEASE_DATE}"
+          tag_name: "release-${{ steps.set-date.outputs.date }}"
+          name: "Release ${{ steps.set-date.outputs.date }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
