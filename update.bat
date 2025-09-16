@@ -10,10 +10,15 @@ set TMP_DIR=%TEMP%\update_tmp
 :: Crear carpeta temporal
 if exist "%TMP_DIR%" rmdir /s /q "%TMP_DIR%"
 mkdir "%TMP_DIR%"
+echo Carpeta temporal creada en %TMP_DIR%
+pause
 
 :: Obtener última versión desde GitHub API (release más reciente)
-echo Consultando última versión (release) desde GitHub...
+echo Consultando ultima version (release) desde GitHub...
 curl -s https://api.github.com/repos/%REPO%/releases/latest > "%TMP_DIR%\release.json"
+echo Archivo release.json descargado a %TMP_DIR%\release.json
+type "%TMP_DIR%\release.json" | more
+pause
 
 :: Extraer tag_name desde el JSON (formato "tag_name": "vX.X.X")
 set LATEST_VERSION=
@@ -46,6 +51,7 @@ if exist "%VERSION_FILE%" (
 
 echo Versión local: %LOCAL_VERSION%
 echo Última versión: %LATEST_VERSION%
+pause
 
 :: Comparar versiones
 if not "%LATEST_VERSION%"=="%LOCAL_VERSION%" (
@@ -94,8 +100,16 @@ if not "%LATEST_VERSION%"=="%LOCAL_VERSION%" (
         echo Asset descargado correctamente.
     )
 
+    echo Tamaño del archivo descargado:
+    if exist "%TMP_DIR%\%ZIP_NAME%" for %%F in ("%TMP_DIR%\%ZIP_NAME%") do echo %%~zF bytes
+    pause
+
     :: Extraer y reemplazar archivos
     powershell -Command "Expand-Archive -Force '%TMP_DIR%\%ZIP_NAME%' '.'"
+
+    echo Extracción completada. Listando archivos extraídos (primeras 200 líneas):
+    dir /b | more
+    pause
 
     :: Actualizar archivo de versión
     echo %LATEST_VERSION% > "%VERSION_FILE%"

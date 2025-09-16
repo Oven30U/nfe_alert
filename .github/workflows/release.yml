@@ -1,47 +1,47 @@
-name: Build and Release
+# name: Build and Release
 
-permissions:
-  contents: write
+# permissions:
+#   contents: write
 
-on:
-    push:
-        branches:
-            - main
-    pull_request:
-        types: [closed]
-        branches:
-            - main
+# on:
+#     push:
+#         branches:
+#             - main
+#     pull_request:
+#         types: [closed]
+#         branches:
+#             - main
 
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+# jobs:
+#   release:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Prepare zip (only on tag)
-        run: |
-          zip -r release.zip . -x ".git/*" ".github/*"
+#       - name: Prepare zip (only on tag)
+#         run: |
+#           zip -r release.zip . -x ".git/*" ".github/*"
 
-      - name: Determine release tag (if none)
-        id: tagname
-        run: |
-          if [[ "${GITHUB_REF##refs/tags/}" != "$GITHUB_REF" ]]; then
-            echo "tag=${GITHUB_REF##refs/tags/}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=autodeploy-${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
-          fi
+#       - name: Determine release tag (if none)
+#         id: tagname
+#         run: |
+#           if [[ "${GITHUB_REF##refs/tags/}" != "$GITHUB_REF" ]]; then
+#             echo "tag=${GITHUB_REF##refs/tags/}" >> $GITHUB_OUTPUT
+#           else
+#             echo "tag=autodeploy-${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
+#           fi
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release.zip
-          tag_name: ${{ steps.tagname.outputs.tag }}
-          name: Release ${{ steps.tagname.outputs.tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Create GitHub Release
+#         uses: softprops/action-gh-release@v2
+#         with:
+#           files: release.zip
+#           tag_name: ${{ steps.tagname.outputs.tag }}
+#           name: Release ${{ steps.tagname.outputs.tag }}
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    #   - name: Skip release creation for non-tags
-        # if: startsWith(github.ref, 'refs/tags/') == false
-        # run: |
-        #   echo "Not a tag push; skipping release creation."
+#     #   - name: Skip release creation for non-tags
+#         # if: startsWith(github.ref, 'refs/tags/') == false
+#         # run: |
+#         #   echo "Not a tag push; skipping release creation."

@@ -1,0 +1,47 @@
+name: package-and-release
+
+on:
+  push:
+    branches:
+      - main
+    # tags:
+    #   - 'v*'   # v1.0.000, v1.0.001, etc.
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: write  # necesario para crear/actualizar Releases
+
+jobs:
+  package:
+    # Ejecutar solo en push o cuando un pull_request cerrado hacia main fue mergeado
+    if: >-
+      github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Preparar carpeta de entrega (exclude .git y CI)
+        run: |
+          mkdir -p out/nfe_alert
+          shopt -s extglob
+          cp -r !(out|.git|.github) out/nfe_alert
+
+      - name: Crear ZIP
+        run: |
+          cd out
+          zip -r "nfe_alert-${GITHUB_REF_NAME}.zip" nfe_alert
+          sha256sum "nfe_alert-${GITHUB_REF_NAME}.zip" > "nfe_alert-${GITHUB_REF_NAME}.zip.sha256"
+
+      - name: Publicar en Release (asset)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/nfe_alert-${{ github.ref_name }}.zip
+            out/nfe_alert-${{ github.ref_name }}.zip.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
