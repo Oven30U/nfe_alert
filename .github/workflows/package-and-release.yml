@@ -19,11 +19,16 @@ jobs:
     # Ejecutar solo en push o cuando un pull_request cerrado hacia main fue mergeado
     if: >-
       github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    env:
+      RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('autodeploy-%s', github.run_number) }}
+      RELEASE_NAME: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'main' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # ...existing code...
 
       - name: Preparar carpeta de entrega (exclude .git y CI)
         run: |
@@ -41,7 +46,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            out/nfe_alert-${{ github.ref_name }}.zip
-            out/nfe_alert-${{ github.ref_name }}.zip.sha256
+            out/nfe_alert-${{ env.RELEASE_NAME }}.zip
+            out/nfe_alert-${{ env.RELEASE_NAME }}.zip.sha256
+          overwrite_files: true
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Release ${{ env.RELEASE_TAG }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
