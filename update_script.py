@@ -275,22 +275,21 @@ def main():
             return
 
         logging.info(f"Extracting {zip_name}...")
-        # ToDo Descomentar
-        # try:
-        #     extract_zip(zip_path, os.getcwd())
-        # except zipfile.BadZipFile:
-        #     logging.error("Failed to extract ZIP file. The file may be corrupted.")
-        #     return
-        # except Exception as e:
-        #     logging.error(f"Unexpected error extracting ZIP: {e}")
-        #     return
+        try:
+            extract_zip(zip_path, os.getcwd())
+        except zipfile.BadZipFile:
+            logging.error("Failed to extract ZIP file. The file may be corrupted.")
+            return
+        except Exception as e:
+            logging.error(f"Unexpected error extracting ZIP: {e}")
+            return
 
         # Delete the ZIP file after extraction
-        # try:
-        #     os.remove(zip_path)
-        #     logging.info(f"Deleted ZIP file: {zip_name}")
-        # except Exception as e:
-        #     logging.error(f"Failed to delete ZIP file: {e}")
+        try:
+            os.remove(zip_path)
+            logging.info(f"Deleted ZIP file: {zip_name}")
+        except Exception as e:
+            logging.error(f"Failed to delete ZIP file: {e}")
 
         # Save the current release as the last processed release
         save_last_processed_release(last_release_file, release_name)
