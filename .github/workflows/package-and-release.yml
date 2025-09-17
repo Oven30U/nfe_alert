@@ -22,9 +22,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Obtener fecha actual
-        id: set-date
-        run: echo "::set-output name=date::$(date +'%Y%m%d')"
+      - name: Obtener fecha y hora actual
+        id: set-date-time
+        run: echo "::set-output name=datetime::$(date +'%Y%m%d-%H%M%S')"
 
       - name: Preparar carpeta de entrega (exclude .git y CI)
         run: |
@@ -35,17 +35,17 @@ jobs:
       - name: Crear ZIP
         run: |
           cd out
-          zip -r "nfe_alert-${{ steps.set-date.outputs.date }}.zip" nfe_alert
-          sha256sum "nfe_alert-${{ steps.set-date.outputs.date }}.zip" > "nfe_alert-${{ steps.set-date.outputs.date }}.zip.sha256"
+          zip -r "nfe_alert-${{ steps.set-date-time.outputs.datetime }}.zip" nfe_alert
+          sha256sum "nfe_alert-${{ steps.set-date-time.outputs.datetime }}.zip" > "nfe_alert-${{ steps.set-date-time.outputs.datetime }}.zip.sha256"
 
       - name: Publicar en Release (asset)
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            out/nfe_alert-${{ steps.set-date.outputs.date }}.zip
-            out/nfe_alert-${{ steps.set-date.outputs.date }}.zip.sha256
+            out/nfe_alert-${{ steps.set-date-time.outputs.datetime }}.zip
+            out/nfe_alert-${{ steps.set-date-time.outputs.datetime }}.zip.sha256
           overwrite_files: true
-          tag_name: "release-${{ steps.set-date.outputs.date }}"
-          name: "Release ${{ steps.set-date.outputs.date }}"
+          tag_name: "release-${{ steps.set-date-time.outputs.datetime }}"
+          name: "Release ${{ steps.set-date-time.outputs.datetime }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

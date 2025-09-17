@@ -8,7 +8,7 @@ if not exist .venv (
 )
 
 REM Step 2: Activate the virtual environment
-call venv\Scripts\activate
+call .venv\Scripts\activate
 pause
 
 REM Step 3: Install or verify uv
@@ -24,12 +24,16 @@ echo Running update_script.py...
 python update_script.py
 pause
 
-REM Step 6: Execute main.py
+REM Step 6: Update dependencies with uv
+uv sync
+pause
+
+REM Step 7: Execute main.py
 echo Running main.py...
 python main.py
 pause
 
-REM Step 7: Deactivate the virtual environment
+REM Step 8: Deactivate the virtual environment
 deactivate
 pause
 

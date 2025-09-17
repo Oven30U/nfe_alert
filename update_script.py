@@ -13,15 +13,17 @@ def setup_logging():
     )
 
 
-def get_github_release(owner: str, repo: str):
+def get_github_release(owner: str, repo: str, token: str):
     url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-    response = requests.get(url)
+    headers = {"Authorization": f"token {token}"} if token else {}
+    response = requests.get(url, headers=headers)
     response.raise_for_status()
     return response.json()
 
 
-def download_file(url: str, output_path: str):
-    with requests.get(url, stream=True) as response:
+def download_file(url: str, output_path: str, token: str):
+    headers = {"Authorization": f"token {token}"} if token else {}
+    with requests.get(url, headers=headers, stream=True) as response:
         response.raise_for_status()
         with open(output_path, "wb") as file:
             shutil.copyfileobj(response.raw, file)
@@ -60,14 +62,40 @@ def extract_zip(zip_path: str, extract_to: str):
                 shutil.copyfileobj(source, target)
 
 
+def get_last_processed_release(file_path: str) -> str:
+    """Reads the last processed release from a file."""
+    if os.path.exists(file_path):
+        with open(file_path, "r") as file:
+            return file.read().strip()
+    return ""
+
+
+def save_last_processed_release(file_path: str, release_name: str) -> None:
+    """Saves the last processed release to a file."""
+    with open(file_path, "w") as file:
+        file.write(release_name)
+
+
 def main():
     setup_logging()
 
     owner = os.getenv("GITHUB_OWNER", "AR-BPS-TaxTech")
     repo = os.getenv("GITHUB_REPO", "nfe_alert")
+    token = os.getenv("GITHUB_TOKEN", "")
+    last_release_file = "last_release.txt"
 
     try:
-        release = get_github_release(owner, repo)
+        release = get_github_release(owner, repo, token)
+        release_name = release.get("tag_name", "")
+
+        # Check if the release has already been processed
+        last_processed_release = get_last_processed_release(last_release_file)
+        if release_name == last_processed_release:
+            logging.info(
+                f"Release {release_name} has already been processed. Skipping download."
+            )
+            return
+
         assets = release.get("assets", [])
         asset_names = [asset.get("name", "") for asset in assets]
         logging.info(f"Assets found in latest release: {asset_names}")
@@ -94,7 +122,7 @@ def main():
 
         logging.info(f"Downloading {zip_name} from {zip_url} ...")
         try:
-            download_file(zip_url, zip_path)
+            download_file(zip_url, zip_path, token)
         except Exception as e:
             logging.error(f"Failed to download ZIP file: {e}")
             return
@@ -108,6 +136,16 @@ def main():
         except Exception as e:
             logging.error(f"Unexpected error extracting ZIP: {e}")
             return
+
+        # Delete the ZIP file after extraction
+        try:
+            os.remove(zip_path)
+            logging.info(f"Deleted ZIP file: {zip_name}")
+        except Exception as e:
+            logging.error(f"Failed to delete ZIP file: {e}")
+
+        # Save the current release as the last processed release
+        save_last_processed_release(last_release_file, release_name)
 
         logging.info("Update completed successfully.")
     except requests.RequestException as e:
