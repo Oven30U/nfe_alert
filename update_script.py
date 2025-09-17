@@ -24,9 +24,31 @@ def get_github_release(owner: str, repo: str, token: str):
 def download_file(url: str, output_path: str, token: str):
     headers = {"Authorization": f"token {token}"} if token else {}
     with requests.get(url, headers=headers, stream=True) as response:
+        if response.status_code == 404:
+            # Dejar que el llamador maneje el fallback
+            response.raise_for_status()
         response.raise_for_status()
         with open(output_path, "wb") as file:
             shutil.copyfileobj(response.raw, file)
+
+
+def download_asset_with_api(
+    owner: str, repo: str, asset_id: int, output_path: str, token: str
+):
+    """Descarga un asset usando el endpoint de assets de la API de GitHub.
+
+    Este endpoint devuelve el contenido binario si se usa la cabecera
+    'Accept: application/octet-stream' y se incluye autorización cuando es necesario.
+    """
+    headers = {"Accept": "application/octet-stream"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/releases/assets/{asset_id}"
+    with requests.get(url, headers=headers, stream=True) as response:
+        response.raise_for_status()
+        with open(output_path, "wb") as f:
+            shutil.copyfileobj(response.raw, f)
 
 
 def extract_zip(zip_path: str, extract_to: str):
@@ -120,11 +142,32 @@ def main():
 
         zip_path = os.path.join(os.getcwd(), zip_name)
 
-        logging.info(f"Downloading {zip_name} from {zip_url} ...")
-        try:
-            download_file(zip_url, zip_path, token)
-        except Exception as e:
-            logging.error(f"Failed to download ZIP file: {e}")
+        logging.info(f"Downloading {zip_name} (try API asset endpoint first)...")
+        asset_id = zip_asset.get("id")
+        download_succeeded = False
+
+        # Primero intentar descargar vía API (esto suele funcionar si el asset requiere auth)
+        if asset_id:
+            logging.info(f"Attempting download via API for asset id {asset_id}...")
+            try:
+                download_asset_with_api(owner, repo, asset_id, zip_path, token)
+                download_succeeded = True
+                logging.info("Downloaded asset via API endpoint.")
+            except Exception as e:
+                logging.warning(f"API asset download failed: {e}")
+
+        # Si falló o no había asset_id, intentar la URL de browser_download
+        if not download_succeeded:
+            logging.info(f"Attempting browser download from {zip_url} ...")
+            try:
+                download_file(zip_url, zip_path, token)
+                download_succeeded = True
+                logging.info("Downloaded asset via browser_download_url.")
+            except Exception as e:
+                logging.warning(f"Browser download failed: {e}")
+
+        if not download_succeeded:
+            logging.error("All download methods failed. Aborting update.")
             return
 
         logging.info(f"Extracting {zip_name}...")
