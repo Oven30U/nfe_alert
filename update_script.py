@@ -4,6 +4,12 @@ import zipfile
 import shutil
 import logging
 
+# Ensure .env file is loaded when running the script so os.getenv can read its values
+from dotenv import load_dotenv
+
+load_dotenv()
+# database.get_session no se usa aquí; las conexiones se crean localmente en get_token_from_db
+
 
 def setup_logging():
     logging.basicConfig(
@@ -15,15 +21,39 @@ def setup_logging():
 
 def get_github_release(owner: str, repo: str, token: str):
     url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-    headers = {"Authorization": f"token {token}"} if token else {}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return response.json()
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "update-script/1.0",
+    }
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    try:
+        response = requests.get(url, headers=headers, timeout=60)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        # Log detailed info for debugging (status code and response body if available)
+        try:
+            resp = getattr(e, "response", None)
+            status = resp.status_code if resp is not None else None
+            body = resp.text if resp is not None else None
+            logging.error(
+                "get_github_release failed: url=%s status=%s response=%s",
+                url,
+                status,
+                body,
+            )
+        except Exception:
+            logging.exception("Error while logging GitHub response details")
+        raise
 
 
 def download_file(url: str, output_path: str, token: str):
     headers = {"Authorization": f"token {token}"} if token else {}
-    with requests.get(url, headers=headers, stream=True) as response:
+    with requests.get(
+        url, headers=headers, stream=True, timeout=60
+    ) as response:  # Added timeout
         if response.status_code == 404:
             # Dejar que el llamador maneje el fallback
             response.raise_for_status()
@@ -35,17 +65,15 @@ def download_file(url: str, output_path: str, token: str):
 def download_asset_with_api(
     owner: str, repo: str, asset_id: int, output_path: str, token: str
 ):
-    """Descarga un asset usando el endpoint de assets de la API de GitHub.
-
-    Este endpoint devuelve el contenido binario si se usa la cabecera
-    'Accept: application/octet-stream' y se incluye autorización cuando es necesario.
-    """
+    """Download an asset using the GitHub API asset endpoint."""
     headers = {"Accept": "application/octet-stream"}
     if token:
         headers["Authorization"] = f"token {token}"
 
     url = f"https://api.github.com/repos/{owner}/{repo}/releases/assets/{asset_id}"
-    with requests.get(url, headers=headers, stream=True) as response:
+    with requests.get(
+        url, headers=headers, stream=True, timeout=60
+    ) as response:  # Added timeout
         response.raise_for_status()
         with open(output_path, "wb") as f:
             shutil.copyfileobj(response.raw, f)
@@ -98,12 +126,88 @@ def save_last_processed_release(file_path: str, release_name: str) -> None:
         file.write(release_name)
 
 
+def get_token_from_db(user: str, password: str) -> str:
+    """Intenta obtener el token GITHUB_TOKEN_NFE_ALERT desde la tabla updates de la base 'tecnologia'.
+
+    Se asume que la tabla 'updates' tiene una columna 'key' y 'value' o similar; la consulta
+    busca la fila donde key = 'GITHUB_TOKEN_NFE_ALERT'.
+    """
+    import os
+    from urllib.parse import quote_plus
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.orm import sessionmaker
+
+    # Leer servidor/driver desde entorno o usar valores por defecto
+    server = os.getenv("SQLSERVER_SERVER")
+    driver = os.getenv("SQLSERVER_DRIVER", "ODBC Driver 17 for SQL Server")
+    if not server:
+        raise RuntimeError(
+            "SQLSERVER_SERVER no está definido en las variables de entorno"
+        )
+
+    # Construir connection string para la base 'tecnologia'
+    quoted_driver = quote_plus(driver)
+    # Formato: mssql+pyodbc://user:pass@server/tecnologia?driver=Driver+Name
+    conn_str = f"mssql+pyodbc://{user}:{quote_plus(password)}@{server}/tecnologia?driver={quoted_driver}"
+
+    engine = create_engine(conn_str, fast_executemany=True)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    session = None
+    try:
+        session = SessionLocal()
+        # Leer token desde la tabla token_updates_gh, columna token, id = 1
+        sql = text(
+            "SELECT TOP 1 token FROM dbo.token_updates_gh WHERE n_bot = 'ComplyPro'"
+        )
+        result = session.execute(sql).fetchone()
+        if result:
+            return str(result[0])
+        return ""
+    finally:
+        if session:
+            try:
+                session.close()
+            except Exception:
+                pass
+        try:
+            engine.dispose()
+        except Exception:
+            pass
+
+
 def main():
     setup_logging()
 
     owner = os.getenv("GITHUB_OWNER", "AR-BPS-TaxTech")
     repo = os.getenv("GITHUB_REPO", "nfe_alert")
-    token = os.getenv("GITHUB_TOKEN", "")
+    # Primero intentamos leer el token desde la variable de entorno
+    token = os.getenv("GITHUB_TOKEN_NFE_ALERT", "")
+
+    # Si no está en entorno, intentar leer desde la base de datos usando
+    # las credenciales TAX_TECH_USER / TAX_TECH_PASS
+    if not token:
+        tax_user = os.getenv("TAX_TECH_USER")
+        tax_pass = os.getenv("TAX_TECH_PASS")
+        if tax_user and tax_pass:
+            try:
+                logging.info(
+                    "Attempting to read GITHUB_TOKEN_NFE_ALERT from DB using TAX_TECH_USER/TAX_TECH_PASS"
+                )
+                token_from_db = get_token_from_db(tax_user, tax_pass)
+                if token_from_db:
+                    token = token_from_db
+                    logging.info(
+                        "Obtained token from DB and will use it for GitHub API requests."
+                    )
+                else:
+                    logging.warning("Token not found in DB 'updates' table.")
+            except Exception as e:
+                logging.exception(f"Error obtaining token from DB: {e}")
+        else:
+            logging.info(
+                "TAX_TECH_USER/TAX_TECH_PASS not set; skipping DB token lookup."
+            )
     last_release_file = "last_release.txt"
 
     try:
@@ -146,7 +250,7 @@ def main():
         asset_id = zip_asset.get("id")
         download_succeeded = False
 
-        # Primero intentar descargar vía API (esto suele funcionar si el asset requiere auth)
+        # Attempt API asset download first
         if asset_id:
             logging.info(f"Attempting download via API for asset id {asset_id}...")
             try:
@@ -156,7 +260,7 @@ def main():
             except Exception as e:
                 logging.warning(f"API asset download failed: {e}")
 
-        # Si falló o no había asset_id, intentar la URL de browser_download
+        # Fallback to browser_download_url if API download fails
         if not download_succeeded:
             logging.info(f"Attempting browser download from {zip_url} ...")
             try:
@@ -171,21 +275,22 @@ def main():
             return
 
         logging.info(f"Extracting {zip_name}...")
-        try:
-            extract_zip(zip_path, os.getcwd())
-        except zipfile.BadZipFile:
-            logging.error("Failed to extract ZIP file. The file may be corrupted.")
-            return
-        except Exception as e:
-            logging.error(f"Unexpected error extracting ZIP: {e}")
-            return
+        # ToDo Descomentar
+        # try:
+        #     extract_zip(zip_path, os.getcwd())
+        # except zipfile.BadZipFile:
+        #     logging.error("Failed to extract ZIP file. The file may be corrupted.")
+        #     return
+        # except Exception as e:
+        #     logging.error(f"Unexpected error extracting ZIP: {e}")
+        #     return
 
         # Delete the ZIP file after extraction
-        try:
-            os.remove(zip_path)
-            logging.info(f"Deleted ZIP file: {zip_name}")
-        except Exception as e:
-            logging.error(f"Failed to delete ZIP file: {e}")
+        # try:
+        #     os.remove(zip_path)
+        #     logging.info(f"Deleted ZIP file: {zip_name}")
+        # except Exception as e:
+        #     logging.error(f"Failed to delete ZIP file: {e}")
 
         # Save the current release as the last processed release
         save_last_processed_release(last_release_file, release_name)
