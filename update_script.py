@@ -3,6 +3,7 @@ import requests
 import zipfile
 import shutil
 import logging
+import re
 
 # Ensure .env file is loaded when running the script so os.getenv can read its values
 from dotenv import load_dotenv
@@ -110,6 +111,108 @@ def extract_zip(zip_path: str, extract_to: str):
             os.makedirs(os.path.dirname(extracted_path), exist_ok=True)
             with zip_ref.open(member) as source, open(extracted_path, "wb") as target:
                 shutil.copyfileobj(source, target)
+
+
+def _split_sql_batches(sql_text: str):
+    """Split SQL text into batches using lines that contain only GO (case-insensitive).
+
+    Returns a list of SQL batches (strings).
+    """
+    # Normalize newlines
+    # Split on lines that contain only GO (possibly with surrounding whitespace)
+    parts = re.split(r"^\s*GO\s*$", sql_text, flags=re.IGNORECASE | re.MULTILINE)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def execute_sql_file_on_sqlserver(file_path: str) -> None:
+    """Execute SQL statements from a file against SQL Server using database.get_session().
+
+    The file is split into batches by lines containing only GO. If execution succeeds,
+    the SQL file will be deleted by the caller.
+    """
+    from database import get_session
+
+    logging.info("Executing SQL file: %s", file_path)
+
+    session = None
+    cursor = None
+    raw_conn = None
+    try:
+        session = get_session()
+        # Get raw DBAPI connection and cursor (pyodbc) to support multi-statement execution
+        raw_conn = session.connection().connection
+        cursor = raw_conn.cursor()
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            sql_text = f.read()
+
+        batches = _split_sql_batches(sql_text)
+        logging.info("Found %d SQL batches in %s", len(batches), file_path)
+
+        for batch in batches:
+            if not batch:
+                continue
+            logging.info("Executing SQL batch (len=%d)", len(batch))
+            cursor.execute(batch)
+        # Commit once all batches executed
+        raw_conn.commit()
+        logging.info("Successfully executed SQL file: %s", file_path)
+
+    except Exception as e:
+        # Attempt rollback if possible
+        try:
+            if raw_conn is not None:
+                raw_conn.rollback()
+        except Exception:
+            pass
+        logging.exception("Error executing SQL file %s: %s", file_path, e)
+        raise
+    finally:
+        try:
+            if cursor is not None:
+                cursor.close()
+        except Exception:
+            pass
+        if session:
+            try:
+                session.close()
+            except Exception:
+                pass
+
+
+def apply_sql_files_in_repo(root_dir: str) -> None:
+    """Find and apply all .sql files under root_dir against SQL Server.
+
+    Files are executed in alphabetical order. Each file is deleted after successful execution.
+    """
+    sql_files = []
+    for dirpath, _, filenames in os.walk(root_dir):
+        for fname in filenames:
+            if fname.lower().endswith(".sql"):
+                sql_files.append(os.path.join(dirpath, fname))
+
+    if not sql_files:
+        logging.info("No .sql files found under %s", root_dir)
+        return
+
+    sql_files.sort()
+    logging.info("Applying %d SQL files found under %s", len(sql_files), root_dir)
+
+    for sql_file in sql_files:
+        try:
+            execute_sql_file_on_sqlserver(sql_file)
+            try:
+                os.remove(sql_file)
+                logging.info(
+                    "Deleted SQL file after successful execution: %s", sql_file
+                )
+            except Exception as e:
+                logging.warning("Failed to delete SQL file %s: %s", sql_file, e)
+        except Exception:
+            logging.error(
+                "Failed to apply SQL file %s. Leaving file in place for inspection.",
+                sql_file,
+            )
 
 
 def get_last_processed_release(file_path: str) -> str:
@@ -277,6 +380,18 @@ def main():
         logging.info(f"Extracting {zip_name}...")
         try:
             extract_zip(zip_path, os.getcwd())
+            # After extraction, apply any SQL files included in the repository
+            try:
+                sql_dir = os.path.join(os.getcwd(), "querys", "updates")
+                if os.path.isdir(sql_dir):
+                    apply_sql_files_in_repo(sql_dir)
+                else:
+                    logging.info(
+                        "SQL updates directory not found, skipping: %s", sql_dir
+                    )
+            except Exception as e:
+                logging.error("Error applying SQL files after extraction: %s", e)
+                # Do not abort the whole update; leave SQL files for inspection if failed
         except zipfile.BadZipFile:
             logging.error("Failed to extract ZIP file. The file may be corrupted.")
             return
