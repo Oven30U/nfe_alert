@@ -1,8 +1,9 @@
 import os
 import logging
 from datetime import datetime
+from typing import Optional
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, async_playwright, Page
 from CloudflareBypasser import CloudflareBypasser
 from DrissionPage import ChromiumPage
 
@@ -55,7 +56,11 @@ class Catamarca(Jurisdiccion):
         razon_social_cliente_input=None,
         texto_notificacion=None,
         headless=True,
+        browser: Optional[object] = None,
+        context: Optional[object] = None,
+        page: Optional[Page] = None,
     ):
+        # Propagar browser/context/page a super().create para reutilizar el contexto
         self = await super().create(
             playwright,
             "Catamarca",
@@ -70,6 +75,9 @@ class Catamarca(Jurisdiccion):
             razon_social_cliente_input,
             texto_notificacion,
             headless=headless,
+            browser=browser,
+            context=context,
+            page=page,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self

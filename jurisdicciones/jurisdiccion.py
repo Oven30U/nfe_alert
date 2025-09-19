@@ -203,6 +203,9 @@ class Jurisdiccion(ABC):
         texto_notificacion: Optional[str] = None,
         headless: bool = True,
         slow_mo: int = 0,  # Nuevo parámetro para configurar slow motion
+        browser: Optional[object] = None,
+        context: Optional[object] = None,
+        page: Optional[Page] = None,
     ) -> "Jurisdiccion":
         """
         Crea e inicializa una instancia de Jurisdiccion.
@@ -241,11 +244,26 @@ class Jurisdiccion(ABC):
             headless,
         )
         self.client_folder = client_folder
-        self.browser = await playwright.chromium.launch(
-            headless=headless, slow_mo=slow_mo
-        )
-        self.context = await self.browser.new_context()
-        self.page = await self.context.new_page()
+        # Si el caller pasa un browser/context/page, reutilizarlos para permitir trazas
+        if browser is not None:
+            self.browser = browser
+            # Usar el context pasado o crear uno nuevo a partir del browser
+            if context is not None:
+                self.context = context
+            else:
+                self.context = await self.browser.new_context()
+            # Usar la page pasada o crear una nueva desde el context
+            self.page = page or await self.context.new_page()
+            # Indicador para saber si debemos cerrar el browser en cerrar_navegador()
+            self._owns_browser = False
+        else:
+            # Crear browser/context/page propios
+            self.browser = await playwright.chromium.launch(
+                headless=headless, slow_mo=slow_mo
+            )
+            self.context = context or await self.browser.new_context()
+            self.page = page or await self.context.new_page()
+            self._owns_browser = True
         self.logger = Logger.get_logger()
 
         return self
@@ -494,7 +512,21 @@ class Jurisdiccion(ABC):
         return self.hay_screenshot
 
     async def cerrar_navegador(self):
-        await self.browser.close()
+        """Cerrar el navegador solo si la instancia lo creó.
+
+        Las instancias que reutilizan un browser/context externo no lo cerrarán.
+        """
+        try:
+            if getattr(self, "_owns_browser", True):
+                if self.browser:
+                    await self.browser.close()
+            else:
+                # No cerrar browser que pertenece al caller.
+                self.logger.info(
+                    "No se cierra el browser porque no pertenece a la instancia."
+                )
+        except Exception as e:
+            self.logger.exception(f"Error cerrando navegador: {e}")
 
     async def maximizar_ventana(self):
         if not self.headless:
