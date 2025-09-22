@@ -367,7 +367,7 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    JURISDICCION = "agip"
+    JURISDICCION = "catamarca"
     HEADLESS = False
     ITERATIONS = 1
 

@@ -1,5 +1,6 @@
 import os
 import logging
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -86,14 +87,41 @@ class Catamarca(Jurisdiccion):
         """
         Consulta las notificaciones en la web de Catamarca.
         """
-        await self.page.goto("https://arcat.gob.ar/")
-        await self.page.get_by_role("link", name="Acceso con Clave Fiscal").click()
+        # await self.page.goto("https://arcat.gob.ar/")
+        await self.page.goto(
+            "https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=arca_dgr_contrib"
+        )
+        # await self.page.get_by_role("link", name="Acceso con Clave Fiscal").click()
         await self.page.get_by_role("spinbutton").click()
-        await self.page.get_by_role("spinbutton").fill("20412371667")
+        await self.page.get_by_role("spinbutton").fill(self._cuit)
         await self.page.get_by_role("button", name="Siguiente").click()
-        await self.page.get_by_role("textbox", name="TU CLAVE").fill("FC!t@X.1BB8!")
+        await self.page.get_by_role("textbox", name="TU CLAVE").fill(self._clave_fiscal)
         await self.page.get_by_role("button", name="Ingresar").click()
         async with self.page.expect_popup() as page1_info:
+            await self.page.wait_for_selector("#vPERSONAID")
+            representado_pattern: str = rf"^\s*{re.escape(self._cuit_cliente_input)}\b"
+            options = self.page.locator("#vPERSONAID option")
+            count = await options.count()
+            selected = False
+            for i in range(count):
+                opt = options.nth(i)
+                try:
+                    text = (await opt.inner_text() or "").strip()
+                except Exception:
+                    text = ""
+                if re.search(representado_pattern, text):
+                    value = await opt.get_attribute("value")
+                    if value is not None:
+                        await self.page.locator("#vPERSONAID").select_option(
+                            value=value
+                        )
+                    else:
+                        await self.page.locator("#vPERSONAID").select_option(label=text)
+                    selected = True
+                    break
+            if not selected:
+                # Si no se encuentra la opción para el CUIT del cliente, levantar LoginError indicando delegación pendiente
+                raise LoginError(self.cliente, LoginError.PENDIENTE_DELEGACION)
             await self.page.get_by_role("button", name="Domicilio Fiscal").click()
             page1 = await page1_info.value
             # Usar la nueva pestaña como la página activa para los siguientes pasos
