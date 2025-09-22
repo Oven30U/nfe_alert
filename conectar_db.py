@@ -1,19 +1,20 @@
+import os
 from datetime import datetime, timedelta
 from time import sleep
-from typing import Union, List
-import os
+from typing import List, Union
 
-from sqlalchemy import DateTime, func
-from sqlalchemy.exc import OperationalError, DBAPIError
-from sqlalchemy.orm import Session
 from dotenv import load_dotenv
+from sqlalchemy import DateTime, func
+from sqlalchemy.exc import DBAPIError, OperationalError
+from sqlalchemy.orm import Session
 
 from database import get_session, get_sqlite_session
+from logger import Logger
 from models import MonitoreoBotsBackup
+from obtener_datos_clientes.db import SessionLocal
 from obtener_datos_clientes.models import (
     MonitoreoBots,
 )  # Importar desde obtener_datos_clientes
-from logger import Logger
 
 # Load environment variables from .env file
 load_dotenv()
@@ -222,67 +223,49 @@ def conectar_db(
     """
     # Primero intentar registrar en SQL Server
     try:
-        session = None
+        session = SessionLocal()
+        monitoreo_bots = MonitoreoBots(
+            proceso=proceso,
+            username=username,
+            iniciado=inicio_value,
+            finalizado=datetime.now(),
+            estado=estado_value,
+            cliente_id=cliente_id,
+            id_procesamiento_diario_global=procesamiento_id,
+        )
+        session.add(monitoreo_bots)
+        session.commit()
+        logger.info(f"Registro exitoso en SQL Server para {cliente}")
+    except Exception as e:
+        if "session" in locals() and session:
+            session.rollback()
+        logger.error(f"Error al registrar en SQL Server para {cliente}: {str(e)}")
+        # Si hay error en SQL Server, registrar en SQLite como respaldo
         try:
-            session = get_session()
-            monitoreo_bots = MonitoreoBots(
+            sqlite_session = get_sqlite_session()
+            monitoreo_bots_backup = MonitoreoBotsBackup(
                 proceso=proceso,
+                cliente=cliente,
                 username=username,
                 iniciado=inicio_value,
                 finalizado=datetime.now(),
                 estado=estado_value,
                 cliente_id=cliente_id,
-                id_procesamiento_diario_global=procesamiento_id,
+                procesamiento_diario_global_id=procesamiento_id,
             )
-
-            session.add(monitoreo_bots)
-            session.commit()
-            logger.info(f"Registro exitoso en SQL Server para {cliente}")
-
-        except Exception as e:
-            if session:
-                session.rollback()
-            logger.error(f"Error al registrar en SQL Server para {cliente}: {str(e)}")
-            raise
-
+            sqlite_session.add(monitoreo_bots_backup)
+            sqlite_session.commit()
+            logger.info(f"Registro respaldo exitoso en SQLite para {cliente}")
+        except Exception as e2:
+            if "sqlite_session" in locals() and sqlite_session:
+                sqlite_session.rollback()
+            logger.error(f"Error al registrar en SQLite para {cliente}: {str(e2)}")
         finally:
-            if session:
-                session.close()
-
-    except Exception:
-        # Si hay error en SQL Server, registrar en SQLite como respaldo
-        try:
-            session = None
-            try:
-                session = get_sqlite_session()
-                monitoreo_bots_backup = MonitoreoBotsBackup(
-                    proceso=proceso,
-                    cliente=cliente,  # Aquí sí puede ser string si el modelo lo permite
-                    username=username,
-                    iniciado=inicio_value,
-                    finalizado=datetime.now(),
-                    estado=estado_value,
-                    cliente_id=cliente_id,
-                    procesamiento_diario_global_id=procesamiento_id,
-                )
-
-                session.add(monitoreo_bots_backup)
-                session.commit()
-                logger.info(f"Registro respaldo exitoso en SQLite para {cliente}")
-
-            except Exception as e:
-                if session:
-                    session.rollback()
-                logger.error(f"Error al registrar en SQLite para {cliente}: {str(e)}")
-
-            finally:
-                if session:
-                    session.close()
-
-        except Exception as e:
-            logger.error(
-                f"Error general en conexión a bases de datos para {cliente}: {str(e)}"
-            )
+            if "sqlite_session" in locals() and sqlite_session:
+                sqlite_session.close()
+    finally:
+        if "session" in locals() and session:
+            session.close()
 
 
 def get_clientes_ejecutados_hoy_with_retries(
@@ -336,7 +319,8 @@ def read_and_modify_html(
     cliente: str, new_pass: str, dias: int, username: str = "usuario"
 ) -> str:
     html_template_path = os.getenv(
-        "PATH_HTML_SET_PASS", "C:/Users/lmarinaro/Documents/dfe/DFEPW/html/mail_plantilla_set_pass.html"
+        "PATH_HTML_SET_PASS",
+        "C:/Users/lmarinaro/Documents/dfe/DFEPW/html/mail_plantilla_set_pass.html",
     )
     with open(html_template_path, "r", encoding="utf-8") as file:
         html_content = file.read()
