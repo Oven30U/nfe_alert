@@ -287,15 +287,14 @@ def main():
     # Primero intentamos leer el token desde la variable de entorno
     token = os.getenv("GITHUB_TOKEN_NFE_ALERT", "")
 
-    # Si no está en entorno, intentar leer desde la base de datos usando
-    # las credenciales TAX_TECH_USER / TAX_TECH_PASS
+    # Si no está en entorno, intentar leer desde la base
     if not token:
-        tax_user = os.getenv("TAX_TECH_USER")
-        tax_pass = os.getenv("TAX_TECH_PASS")
+        tax_user = os.getenv("SQLSERVER_USERNAME")
+        tax_pass = os.getenv("SQLSERVER_PASSWORD")
         if tax_user and tax_pass:
             try:
                 logging.info(
-                    "Attempting to read GITHUB_TOKEN_NFE_ALERT from DB using TAX_TECH_USER/TAX_TECH_PASS"
+                    "Attempting to read GITHUB_TOKEN_NFE_ALERT from DB using SQLSERVER_USERNAME/SQLSERVER_PASSWORD"
                 )
                 token_from_db = get_token_from_db(tax_user, tax_pass)
                 if token_from_db:
@@ -309,7 +308,7 @@ def main():
                 logging.exception(f"Error obtaining token from DB: {e}")
         else:
             logging.info(
-                "TAX_TECH_USER/TAX_TECH_PASS not set; skipping DB token lookup."
+                "SQLSERVER_USERNAME/SQLSERVER_PASSWORD not set; skipping DB token lookup."
             )
     last_release_file = "last_release.txt"
 
