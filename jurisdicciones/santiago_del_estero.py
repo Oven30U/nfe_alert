@@ -114,9 +114,9 @@ class SantiagoDelEstero(Jurisdiccion):
             await new_page.wait_for_load_state("load")
             await new_page.wait_for_load_state("networkidle")
             self.page = new_page
-            await self.page.evaluate(
-                "document.querySelector('#proceed-button').click();"
-            )
+            proceed_btn = self.page.locator("#proceed-button")
+            if await proceed_btn.is_visible():
+                await proceed_btn.click()
             await self.page.wait_for_selector(
                 "//h3[contains(text(), 'Bandeja de Entrada')]", timeout=60000
             )

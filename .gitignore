@@ -36,3 +36,4 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+jurisdicciones/santiago_del_estero.py

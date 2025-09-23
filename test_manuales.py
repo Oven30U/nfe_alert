@@ -558,7 +558,7 @@ if __name__ == "__main__":
     # Ejemplos de cómo ejecutar los tests:
 
     # 1. Ejecutar un test específico:
-    asyncio.run(salta_test(headless=False))
+    asyncio.run(catamarca_test(headless=False))
 
     # 2. Ejecutar un test con múltiples iteraciones:
     # asyncio.run(salta_test(headless=False, iterations=5))

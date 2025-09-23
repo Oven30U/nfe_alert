@@ -85,48 +85,43 @@ class Catamarca(Jurisdiccion):
 
     async def consultar_notificaciones(self) -> None:
         """
-        Consulta las notificaciones en la web de Catamarca.
+        Consulta las notificaciones en la web de Catamarca usando el login centralizado.
         """
-        # await self.page.goto("https://arcat.gob.ar/")
-        await self.page.goto(
-            "https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=arca_dgr_contrib"
+        URL_AFIP_CATAMARCA_LOGIN = "https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=arca_dgr_contrib"
+        await super().AFIP_login(
+            URL_AFIP_LOGIN=URL_AFIP_CATAMARCA_LOGIN,
+            success_url="https://dgrentas.arcat.gob.ar/",
         )
-        # await self.page.get_by_role("link", name="Acceso con Clave Fiscal").click()
-        await self.page.get_by_role("spinbutton").click()
-        await self.page.get_by_role("spinbutton").fill(self._cuit)
-        await self.page.get_by_role("button", name="Siguiente").click()
-        await self.page.get_by_role("textbox", name="TU CLAVE").fill(self._clave_fiscal)
-        await self.page.get_by_role("button", name="Ingresar").click()
+        await self.page.wait_for_selector("#vPERSONAID")
+
+        representado_pattern: str = rf"^\s*{re.escape(self._cuit_cliente_input)}\b"
+        options = self.page.locator("#vPERSONAID option")
+        count = await options.count()
+        selected = False
+        for i in range(count):
+            opt = options.nth(i)
+            try:
+                text = (await opt.inner_text() or "").strip()
+            except Exception:
+                text = ""
+            if re.search(representado_pattern, text):
+                value = await opt.get_attribute("value")
+                if value is not None:
+                    await self.page.locator("#vPERSONAID").select_option(value=value)
+                else:
+                    await self.page.locator("#vPERSONAID").select_option(label=text)
+                selected = True
+                break
+        if not selected:
+            # Si no se encuentra la opción para el CUIT del cliente, levantar LoginError indicando delegación pendiente
+            raise LoginError(self.cliente, LoginError.PENDIENTE_DELEGACION)
+        await self.page.get_by_role("button", name="Domicilio Fiscal").click()
+        # Esperar a que se abra la nueva pestaña y usarla como la página activa
         async with self.page.expect_popup() as page1_info:
-            await self.page.wait_for_selector("#vPERSONAID")
-            representado_pattern: str = rf"^\s*{re.escape(self._cuit_cliente_input)}\b"
-            options = self.page.locator("#vPERSONAID option")
-            count = await options.count()
-            selected = False
-            for i in range(count):
-                opt = options.nth(i)
-                try:
-                    text = (await opt.inner_text() or "").strip()
-                except Exception:
-                    text = ""
-                if re.search(representado_pattern, text):
-                    value = await opt.get_attribute("value")
-                    if value is not None:
-                        await self.page.locator("#vPERSONAID").select_option(
-                            value=value
-                        )
-                    else:
-                        await self.page.locator("#vPERSONAID").select_option(label=text)
-                    selected = True
-                    break
-            if not selected:
-                # Si no se encuentra la opción para el CUIT del cliente, levantar LoginError indicando delegación pendiente
-                raise LoginError(self.cliente, LoginError.PENDIENTE_DELEGACION)
-            await self.page.get_by_role("button", name="Domicilio Fiscal").click()
-            page1 = await page1_info.value
-            # Usar la nueva pestaña como la página activa para los siguientes pasos
-            self.page = page1
-            await page1.wait_for_load_state("networkidle")
+            pass  # El click anterior debería disparar el popup
+        page1 = await page1_info.value
+        self.page = page1
+        await page1.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
         """

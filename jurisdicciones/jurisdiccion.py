@@ -48,6 +48,7 @@ class LoginError(LoggedException):
     CREDENCIALES_ARCA = "Credenciales ARCA inválidas"
     PENDIENTE_ACEPTACION = "Pendiente de aceptación de T&C"
     CREDENCIALES_EXPIRADAS = "Credenciales expiradas"
+    CAPTCHA_DETECTADO = "Captcha detectado en login"
 
     def __init__(self, cliente, mensaje=None):
         """
@@ -293,18 +294,34 @@ class Jurisdiccion(ABC):
             await self.page.get_by_role("spinbutton").fill(self._cuit, timeout=18000)
             await self.page.get_by_role("button", name="Siguiente").click(timeout=18000)
 
+            # Verificar si aparece el mensaje de CUIL/CUIT incorrecto
             incorrect_login = await self.page.query_selector(
                 ":has-text('Número de CUIL/CUIT incorrecto')"
             )
             if incorrect_login:
                 raise LoginErrorAfip(self.cliente, "Número de CUIL/CUIT incorrecto")
 
+
+            await self.page.get_by_text("Ingresar con Clave Fiscal ").wait_for(state="visible", timeout=18000)
+            captcha_locator = self.page.locator("div#captcha")
+            if await captcha_locator.is_visible():
+                raise LoginError(
+                    self.cliente, LoginError.CAPTCHA_DETECTADO
+                )
+
             await self.page.get_by_label("TU CLAVE").click(timeout=18000)
             await self.page.get_by_label("TU CLAVE").fill(
                 self._clave_fiscal, timeout=18000
             )
+
             await self.page.get_by_role("button", name="Ingresar").click(timeout=18000)
             await self.page.wait_for_load_state("networkidle", timeout=180000)
+
+            error_locator = self.page.locator(
+                'form[name="F1"]:has-text("Clave o usuario incorrecto")'
+            )
+            if await error_locator.is_visible():
+                raise LoginErrorAfip(self.cliente)
 
             # Verificar si aparece el mensaje de cambio de contraseña obligatorio
             password_change_locator = self.page.get_by_text(
