@@ -261,7 +261,7 @@ def get_token_from_db(user: str, password: str) -> str:
         session = SessionLocal()
         # Leer token desde la tabla token_updates_gh, columna token, id = 1
         sql = text(
-            "SELECT TOP 1 token FROM dbo.token_updates_gh WHERE n_bot = 'ComplyPro'"
+            "SELECT TOP 1 token FROM dbo.token_updates_gh WHERE n_bot = 'NFEAlert'"
         )
         result = session.execute(sql).fetchone()
         if result:
