@@ -130,7 +130,7 @@ class Catamarca(Jurisdiccion):
         Reglas:
         - Si aparece 'No se encontraron novedades' y 'Ud. no tiene Notificaciones' -> False
         - Si aparece un texto que contiene 'No Leídas' y el número asociado es 0 -> False
-        - Si 'No Leídas' contiene un número distinto de 0 -> True
+        - Si 'No Leídas' contiene un número distinto de 0 y la fecha de //tr[1]//td[2] está en el rango -> True
         - En ausencia de los mensajes negativos, asumimos que hay notificaciones -> True
         """
         # Mensajes explícitos que indican ausencia de novedades y notificaciones
@@ -139,9 +139,9 @@ class Catamarca(Jurisdiccion):
         ) and await self.page.is_visible("text=Ud. no tiene Notificaciones"):
             return False
 
-        # Buscar cantidad de 'No Leídas' != 0.
         try:
             import re
+            from datetime import datetime
 
             try:
                 html = await self.page.content()
@@ -150,7 +150,26 @@ class Catamarca(Jurisdiccion):
 
             m = re.search(r"No\s*Leídas\s*[:\|\-]?\s*(\d+)", html, re.IGNORECASE)
             if m:
-                return int(m.group(1)) != 0
+                no_leidas = int(m.group(1))
+                if no_leidas == 0:
+                    return False
+                # Si hay no leídas, analizar la fecha de la primera notificación
+                # Extraer la fecha de //tr[1]//td[2]
+                try:
+                    fecha_str = await self.page.locator("//tr[1]//td[2]").inner_text()
+                    fecha_str = fecha_str.strip()
+                    # Convertir self.fecha_desde y self.fecha_hasta de ddmmYYYY a datetime
+                    fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
+                    fecha_hasta = datetime.strptime(self.fecha_hasta, "%d%m%Y")
+                    # Convertir fecha_str de dd-mm-YYYY a datetime
+                    fecha_notif = datetime.strptime(fecha_str, "%d-%m-%Y")
+                    if fecha_desde <= fecha_notif <= fecha_hasta:
+                        return True
+                    else:
+                        return False
+                except Exception:
+                    # Si no se puede extraer la fecha, asumimos que hay notificación
+                    return True
 
         except Exception:
             pass
