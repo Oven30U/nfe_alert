@@ -75,7 +75,7 @@ class Mendoza(Jurisdiccion):
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
-    
+
     async def is_logged_in(self) -> bool:
         """
         Verifica si el usuario ya ha iniciado sesión.
@@ -84,33 +84,47 @@ class Mendoza(Jurisdiccion):
             bool: True si el usuario ha iniciado sesión, False en caso contrario
         """
         try:
-            # Asegurar que la página haya terminado de cargar
-            await self.page.wait_for_load_state("domcontentloaded")
-            await self.page.wait_for_load_state("networkidle")
-            
-            # Buscar el elemento de logout con timeout reducido
-            logout_element = await self.page.wait_for_selector(
-                "//a[contains(text(), 'Cerrar Sesión')]", 
-                timeout=60000
-            )
-            
-            # Variable explícita para el resultado
-            is_logged_in_result: bool = logout_element is not None
-            
-            if is_logged_in_result:
+            # Esperar por cualquiera de los dos indicios: 'Cerrar Sesión' (login ok) o 'expirad' (contraseña expirada)
+            # Usamos un timeout razonable; si ninguno aparece, consideramos que no está logueado
+            timeout_ms = 60000
+
+            # Lanzar comprobación de expirado en paralelo esperando su aparición breve
+            try:
+                # Si aparece texto relacionado con expiración, lanzar excepción específica
+                if await self.page.wait_for_selector(
+                    "text=expirad", timeout=timeout_ms
+                ):
+                    raise LoginError(self.cliente, LoginError.CREDENCIALES_EXPIRADAS)
+            except TimeoutError:
+                # No apareció la indicación de expirado en el corto plazo; seguimos
+                pass
+            except LoginError:
+                # Re-lanzar LoginError para salir inmediatamente
+                raise
+            except Exception:
+                # Ocurrió algo inesperado comprobando expiración; continuar con la comprobación normal
+                pass
+
+            # Ahora esperar por 'Cerrar Sesión' durante el timeout total restante
+            try:
+                await self.page.wait_for_selector(
+                    "text=Cerrar Sesión", timeout=timeout_ms
+                )
                 self.logger.info("Usuario ya ha iniciado sesión")
-            else:
-                self.logger.info("Usuario no ha iniciado sesión")
-                
-            return is_logged_in_result
-            
-        except TimeoutError:
-            self.logger.info("Elemento 'Cerrar Sesión' no encontrado - usuario no logueado")
-            return False
+                return True
+            except TimeoutError:
+                self.logger.info(
+                    "No se detectó 'Cerrar Sesión' en la página - usuario no logueado"
+                )
+                return False
+
+        except LoginError:
+            # Propagar la excepción de credenciales expiradas
+            raise
         except Exception as e:
             self.logger.error(f"Error verificando estado de login: {str(e)}")
             return False
-        
+
     async def perform_login(self) -> None:
         """
         Realiza el proceso de inicio de sesión en el portal ATM Mendoza con un enfoque flexible.
@@ -124,10 +138,6 @@ class Mendoza(Jurisdiccion):
         try:
             # Esperar al selector del formulario de login
             await self.page.wait_for_selector("#cuit")
-
-            # Completar el formulario de login
-            # await self.page.fill("#cuit", "30712399623")
-            # await self.page.fill("#password", "AbbVie2025.")
             await self.page.wait_for_load_state("domcontentloaded")
             await self.page.fill("#cuit", f"{self._cuit}")
             await self.page.fill("#password", f"{self._clave_fiscal}")
@@ -140,12 +150,14 @@ class Mendoza(Jurisdiccion):
             time.sleep(1.5)
 
             # Primer intento: Usar evaluate para invocar JavaScript function
-            self.logger.info("Intentando iniciar sesión usando evaluación de función JS")
+            self.logger.info(
+                "Intentando iniciar sesión usando evaluación de función JS"
+            )
             await self.page.evaluate("entrar()")
 
             # Verificar si esto fue suficiente para iniciar sesión
             await self.page.wait_for_timeout(
-                2000
+                15000
             )  # Dar tiempo para que se complete el inicio de sesión
             if await self.is_logged_in():
                 self.logger.info("Inicio de sesión exitoso con función JS")
@@ -160,7 +172,9 @@ class Mendoza(Jurisdiccion):
             # Verificar si el login fue exitoso
             await self.page.wait_for_timeout(2000)
             if await self.is_logged_in():
-                self.logger.info("Inicio de sesión exitoso después de hacer clic en el botón")
+                self.logger.info(
+                    "Inicio de sesión exitoso después de hacer clic en el botón"
+                )
             else:
                 self.logger.warning(
                     "El inicio de sesión podría haber fallado - 'Cerrar Sesión' no encontrado"
@@ -184,7 +198,7 @@ class Mendoza(Jurisdiccion):
                     continue
                 else:
                     raise
-        
+
         # if await self.is_logged_in():
         #     self.logger.info("Sesión ya iniciada. Saltando proceso de inicio de sesión.")
         # else:
@@ -215,11 +229,8 @@ class Mendoza(Jurisdiccion):
                 )
                 self.hay_screenshot = False
 
-            # Verificar el tipo de error específico
-            if await self.page.is_visible("text=Su contraseña ha expirado"):
-                raise LoginError(self.cliente, "Contraseña expirada") from exc
-            else:
-                raise LoginError(self.cliente, "Credenciales inválidas") from exc
+            # Mensaje por defecto cuando no se detecta expiración explícita
+            raise LoginError(self.cliente, "Credenciales inválidas") from exc
 
         async with self.page.expect_popup() as popup_info:
             await self.page.click("#divDFE")
