@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, TimeoutError, async_playwright
 
 from jurisdicciones.jurisdiccion import (
     ConsultarNotificacionesError,
@@ -77,17 +77,52 @@ class Agip(Jurisdiccion):
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
 
-    async def consultar_notificaciones(self):
-        try:
-            await self.page.goto("https://claveciudad.agip.gob.ar/", timeout=100000)
-            await self.page.fill('xpath=//*[@id="cuit"]', f"{self._cuit}")
-            await self.page.fill('xpath=//*[@id="clave"]', f"{self._clave_fiscal}")
-            await self.page.click("xpath=//a[normalize-space()='Ingresar']")
+    async def _login(self):
+        await self.page.goto("https://claveciudad.agip.gob.ar/")
+        await self.page.wait_for_load_state("networkidle")
+        await self.page.get_by_role("button", name="Iniciar sesión").click()
+        await self.page.wait_for_load_state("networkidle")
+        await self.page.get_by_role("button", name="Ingresar con CUIL o email").click()
+        await self.page.get_by_role(
+            "textbox", name="CUIL / Correo electronico *"
+        ).click()
+        await self.page.get_by_role("textbox", name="CUIL / Correo electronico *").fill(
+            f"{self._cuit}"
+        )
+        await self.page.get_by_role("textbox", name="Contraseña").click()
+        await self.page.locator("#password-text-field").fill(f"{self._clave_fiscal}")
+        await self.page.get_by_role("button", name="Ingresar").click()
+        await self.page.wait_for_load_state("networkidle")
+
+        await self._check_login_errors()
+
+        await self._handle_permissions()
+
+    async def _check_login_errors(self):
+        """Verifica si hay errores de login y lanza LoginError si corresponde."""
+        error_locators = [
+            "#kc-form-login-mail",
+            "#modal-error-email",
+            "#error-password",
+        ]
+        for locator in error_locators:
+            if await self.page.locator(locator).is_visible():
+                raise LoginError(self.cliente)
+
+    async def _handle_permissions(self):
+        """Maneja la confirmación de permisos si aparece el mensaje correspondiente."""
+        if (
+            await self.page.locator(
+                "xpath=//h1[contains(@class, 'titulo') and contains(., 'Confirmá los permisos')]"
+            ).is_visible()
+            and await self.page.locator("#confirmar-permisos #kc-login").is_visible()
+        ):
+            await self.page.locator("#confirmar-permisos #kc-login").click()
             await self.page.wait_for_load_state("load")
 
-            # Verificar errores de login - este error NO debe ser convertido a ConsultarNotificacionesError
-            if await self.page.is_visible("text=Clave/Usuario incorrecto."):
-                raise LoginError(self.cliente)
+    async def consultar_notificaciones(self):
+        try:
+            await self._login()
 
             await self.page.select_option(
                 "select[name='cuit_representado']", f"{self._cuit_cliente_input}"
@@ -105,7 +140,9 @@ class Agip(Jurisdiccion):
             else:
                 await self.page.fill('xpath=//*[@id="filtro_app"]', "")
                 await self.page.type(
-                    'xpath=//*[@id="filtro_app"]', "Nueva Cuenta Corriente Tributaria", delay=1
+                    'xpath=//*[@id="filtro_app"]',
+                    "Nueva Cuenta Corriente Tributaria",
+                    delay=1,
                 )
                 await self.page.get_by_role(
                     "link", name="Nueva Cuenta Corriente"
@@ -120,14 +157,8 @@ class Agip(Jurisdiccion):
                     timeout=10000,
                     state="visible",
                 )
-        except DelegacionError:
-            raise
-        except Exception:
-            raise Exception(
-                "No se pudo acceder a 'Representados' ni verificar delegación"
-            )
-
-        except LoginError as le:
+                await self.page.wait_for_load_state("networkidle")
+        except LoginError:
             # Re-lanzar errores de login directamente sin convertirlos
             raise
         except DelegacionError:
@@ -139,7 +170,7 @@ class Agip(Jurisdiccion):
                 self.cliente, f"Error al consultar notificaciones: {str(e)}"
             ) from e
 
-    async def buscar_notificacion(self):
+    async def buscar_notificacion(self) -> bool:
         """
         Busca notificaciones en la tabla de mensajes de AGIP.
 
@@ -147,65 +178,82 @@ class Agip(Jurisdiccion):
         1. Existe alguna fila que contenga 's/Notificar'
         2. La fecha de esa fila es posterior o igual a self.fecha_desde
         """
-        if "//lb.agip" in self.page.url:
-            # https://lb.agip.gob.ar/dfe/?evt=cc
-            try:
-                # Esperar a que la tabla esté visible
-                await self.page.wait_for_selector(
-                    "table#tablaMensajes", state="visible", timeout=30000
-                )
+        await self.page.wait_for_load_state("networkidle")
 
-                # Obtener todas las filas que contienen 's/Notificar'
-                filas_notificar = await self.page.query_selector_all(
-                    "xpath=//table[@id='tablaMensajes']/tbody/tr[td[contains(text(),'s/Notificar')]]"
-                )
-
+        # Intentar esperar por el locator h3 durante 5 minutos
+        try:
+            await self.page.locator("h3:has-text('Notificaciones Recibidas')").wait_for(
+                state="visible", timeout=1200000
+            )
+            # Si aparece, proceder con la lógica de lb.agip.gob.ar
+            return await self._buscar_en_lb_agip()
+        except TimeoutError:
+            # Si no aparece el h3 en 5 minutos, proceder con la lógica de portal-cct
+            if "//portal-cct" in self.page.url:
+                return await self._buscar_en_portal_cct()
+            else:
                 self.logger.debug(
-                    f"AGIP: Se encontraron {len(filas_notificar)} filas con 's/Notificar'"
+                    "AGIP: No se encontró el locator esperado ni portal-cct en URL"
                 )
-
-                if len(filas_notificar) == 0:
-                    self.logger.debug("AGIP: No hay notificaciones pendientes")
-                    return False
-
-                # Convertir fecha_desde a objeto datetime
-                # self.fecha_desde está en formato 'ddmmyyyy'
-                fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
-
-                for fila in filas_notificar:
-                    # Obtener la fecha de la columna 2
-                    fecha_td = await fila.query_selector("td:nth-child(2)")
-                    if fecha_td:
-                        fecha_texto = await fecha_td.text_content()
-                        fecha_texto = fecha_texto.strip()
-
-                        try:
-                            # Convertir a formato datetime (asumiendo formato 'yyyy-mm-dd')
-                            fecha_notificacion = datetime.strptime(
-                                fecha_texto, "%Y-%m-%d"
-                            )
-
-                            self.logger.debug(
-                                f"AGIP: Comparando fecha {fecha_notificacion} con {fecha_desde}"
-                            )
-
-                            # Comparar fechas
-                            if fecha_notificacion >= fecha_desde:
-                                self.logger.debug(
-                                    f"AGIP: Notificación encontrada con fecha {fecha_texto}"
-                                )
-                                return True
-                        except ValueError as e:
-                            self.logger.warning(
-                                f"AGIP: Error al procesar fecha '{fecha_texto}': {str(e)}"
-                            )
-
                 return False
-            except Exception as e:
-                self.logger.error(f"AGIP: Error en buscar_notificacion: {str(e)}")
-                raise BuscarNotificacionError(self.cliente)
 
-        elif "//portal-cct" in self.page.url:
+    async def _buscar_en_lb_agip(self) -> bool:
+        """Busca notificaciones en la tabla de lb.agip.gob.ar."""
+        try:
+            # Esperar a que la tabla esté visible
+            await self.page.wait_for_selector(
+                "table#tablaMensajes", state="visible", timeout=30000
+            )
+
+            # Obtener todas las filas que contienen 's/Notificar'
+            filas_notificar = await self.page.query_selector_all(
+                "xpath=//table[@id='tablaMensajes']/tbody/tr[td[contains(text(),'s/Notificar')]]"
+            )
+
+            self.logger.debug(
+                f"AGIP: Se encontraron {len(filas_notificar)} filas con 's/Notificar'"
+            )
+
+            if len(filas_notificar) == 0:
+                self.logger.debug("AGIP: No hay notificaciones pendientes")
+                return False
+
+            # Convertir fecha_desde a objeto datetime
+            fecha_desde = datetime.strptime(self.fecha_desde, "%d%m%Y")
+
+            for fila in filas_notificar:
+                # Obtener la fecha de la columna 2
+                fecha_td = await fila.query_selector("td:nth-child(2)")
+                if fecha_td:
+                    fecha_texto = (await fecha_td.text_content() or "").strip()
+
+                    try:
+                        # Convertir a formato datetime (asumiendo formato 'yyyy-mm-dd')
+                        fecha_notificacion = datetime.strptime(fecha_texto, "%Y-%m-%d")
+
+                        self.logger.debug(
+                            f"AGIP: Comparando fecha {fecha_notificacion} con {fecha_desde}"
+                        )
+
+                        # Comparar fechas
+                        if fecha_notificacion >= fecha_desde:
+                            self.logger.debug(
+                                f"AGIP: Notificación encontrada con fecha {fecha_texto}"
+                            )
+                            return True
+                    except ValueError as e:
+                        self.logger.warning(
+                            f"AGIP: Error al procesar fecha '{fecha_texto}': {str(e)}"
+                        )
+
+            return False
+        except Exception as e:
+            self.logger.error(f"AGIP: Error en _buscar_en_lb_agip: {str(e)}")
+            raise BuscarNotificacionError(self.cliente)
+
+    async def _buscar_en_portal_cct(self) -> bool:
+        """Busca notificaciones en la tabla de portal-cct.agip.gob.ar."""
+        try:
             await self.page.wait_for_selector(
                 "xpath=//th[contains(., 'CUIT Representado')]",
                 timeout=10000,
@@ -217,13 +265,11 @@ class Agip(Jurisdiccion):
 
             fecha_td = await self.page.query_selector("xpath=//tbody/tr[1]/td[2]/span")
             if fecha_td:
-                fecha_texto = await fecha_td.text_content()
-                fecha_texto = fecha_texto.strip()
+                fecha_texto = (await fecha_td.text_content() or "").strip()
 
                 try:
                     fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
                     fecha_hasta_dt = datetime.strptime(self.fecha_hasta, "%d%m%Y")
-
                     fecha_tabla_dt = datetime.strptime(fecha_texto, "%d/%m/%Y")
 
                     self.logger.debug(
@@ -246,6 +292,9 @@ class Agip(Jurisdiccion):
             else:
                 self.logger.debug("AGIP: No se encontró la celda de fecha en la tabla")
                 return False
+        except Exception as e:
+            self.logger.error(f"AGIP: Error en _buscar_en_portal_cct: {str(e)}")
+            raise BuscarNotificacionError(self.cliente)
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)

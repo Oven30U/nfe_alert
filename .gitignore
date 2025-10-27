@@ -37,3 +37,4 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 jurisdicciones/santiago_del_estero.py
+.vscode/settings.json
