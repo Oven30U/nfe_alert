@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, TimeoutError, async_playwright
+from playwright.async_api import Playwright, TimeoutError, async_playwright, expect
 
 from jurisdicciones.jurisdiccion import (
     ConsultarNotificacionesError,
@@ -78,8 +78,60 @@ class Agip(Jurisdiccion):
         return self
 
     async def _login(self):
+        """
+        Por cambios en el flujo de ingreso de AGIP:
+        Verifica si el ingreso de "Clave Ciudad" es visible.
+        Si está visible, lo pulsa e intenta _login_clave_ciudad() primero.
+        Si no está visible, intenta _login_miba() primero.
+        Si el primer intento falla con LoginError, prueba el método alternativo.
+        Solo lanza LoginError si ambos métodos de autenticación fallan.
+        """
         await self.page.goto("https://claveciudad.agip.gob.ar/")
         await self.page.wait_for_load_state("networkidle")
+
+        clave_ciudad_locator = self.page.locator(
+            "xpath=//div[contains(@class, 'clave-ciudad-info')]/a[contains(text(), 'Clave Ciudad')]"
+        )
+        locator_visible = await clave_ciudad_locator.is_visible()
+        if locator_visible:
+            await clave_ciudad_locator.click()
+
+        try:
+            if locator_visible:
+                await self._login_clave_ciudad()
+            else:
+                await self._login_miba()
+        except LoginError:
+            try:
+                if locator_visible:
+                    await self._login_miba()
+                else:
+                    await self._login_clave_ciudad()
+            except LoginError:
+                raise
+
+    async def _login_clave_ciudad(self) -> None:
+        """
+        Handles the Clave Ciudad login flow.
+        """
+        await self.page.wait_for_load_state("networkidle")
+        await expect(self.page.locator("input#cuit")).to_be_visible(timeout=180000)
+        await self.page.locator("input#cuit").fill(f"{self._cuit}")
+        await self.page.locator("input#clave").fill(f"{self._clave_fiscal}")
+        await self.page.get_by_role("button", name="Ingresar").click()
+        if await self.page.locator(
+            "xpath=//div[contains(@class, 'msgError')]"
+        ).is_visible():
+            raise LoginError(self.cliente)
+        await expect(
+            self.page.get_by_role("heading", name="Búsqueda de aplicativos/")
+        ).to_be_visible(timeout=180000)
+
+    async def _login_miba(self) -> None:
+        """
+        Handles the MIBA login flow.
+        """
+        await self.page.goto("https://claveciudad.agip.gob.ar/")
         await self.page.get_by_role("button", name="Iniciar sesión").click()
         await self.page.wait_for_load_state("networkidle")
         await self.page.get_by_role("button", name="Ingresar con CUIL o email").click()
@@ -94,11 +146,11 @@ class Agip(Jurisdiccion):
         await self.page.get_by_role("button", name="Ingresar").click()
         await self.page.wait_for_load_state("networkidle")
 
-        await self._check_login_errors()
+        await self._login_miba_check_login_errors()
 
-        await self._handle_permissions()
+        await self._login_miba_handle_permissions()
 
-    async def _check_login_errors(self):
+    async def _login_miba_check_login_errors(self):
         """Verifica si hay errores de login y lanza LoginError si corresponde."""
         error_locators = [
             "#kc-form-login-mail",
@@ -109,7 +161,7 @@ class Agip(Jurisdiccion):
             if await self.page.locator(locator).is_visible():
                 raise LoginError(self.cliente)
 
-    async def _handle_permissions(self):
+    async def _login_miba_handle_permissions(self):
         """Maneja la confirmación de permisos si aparece el mensaje correspondiente."""
         if (
             await self.page.locator(
