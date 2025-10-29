@@ -232,15 +232,16 @@ class Agip(Jurisdiccion):
         """
         await self.page.wait_for_load_state("networkidle")
 
-        # Intentar esperar por el locator h3 durante 5 minutos
+        # Intentar esperar por el locator h3 durante 1 minuto
         try:
+            await self.page.wait_for_load_state("networkidle")
             await self.page.locator("h3:has-text('Notificaciones Recibidas')").wait_for(
-                state="visible", timeout=1200000
+                state="visible", timeout=60000
             )
             # Si aparece, proceder con la lógica de lb.agip.gob.ar
             return await self._buscar_en_lb_agip()
         except TimeoutError:
-            # Si no aparece el h3 en 5 minutos, proceder con la lógica de portal-cct
+            # Si no aparece el h3 en 1 minuto, proceder con la lógica de portal-cct
             if "//portal-cct" in self.page.url:
                 return await self._buscar_en_portal_cct()
             else:
