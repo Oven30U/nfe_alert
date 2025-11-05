@@ -82,6 +82,10 @@ class LaRioja(Jurisdiccion):
         await self.page.wait_for_load_state("domcontentloaded")
         await self.page.wait_for_load_state("networkidle")
 
+        frame = self.page.frame_locator('iframe[name="gxpea000098000025"]')
+        if await frame.locator('span.PopupHeaderButton#gxp0_cls').is_visible():
+            await frame.locator('span.PopupHeaderButton#gxp0_cls').click()
+
         if await self.page.is_visible(
             "text=El CUIT ingresado No Existe o No se encuentra Activo"
         ):

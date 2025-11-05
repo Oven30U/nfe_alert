@@ -38,6 +38,7 @@ from jurisdicciones import (
     Sicnea,
     Tucuman,
     Jujuy,
+    LaRioja,
 )
 
 
@@ -473,6 +474,19 @@ async def chubut_test(
     )
 
 
+async def la_rioja_test(
+    headless=False, iterations=1, enable_tracing: bool = True, trace_dir: str = "traces"
+):
+    await generic_test(
+        "LA_RIOJA",
+        LaRioja,
+        headless,
+        iterations,
+        enable_tracing=enable_tracing,
+        trace_dir=trace_dir,
+    )
+
+
 def send_email_smtp_test():
     """
     Test manual para enviar el correo con contraseña del zip
@@ -542,6 +556,7 @@ async def run_test_by_name(
         "santa_cruz": santa_cruz_test,
         "san_juan": san_juan_test,
         "chubut": chubut_test,
+        "la_rioja": la_rioja_test,
     }
 
     if test_name.lower() in tests:
@@ -558,7 +573,7 @@ if __name__ == "__main__":
     # Ejemplos de cómo ejecutar los tests:
 
     # 1. Ejecutar un test específico:
-    asyncio.run(agip_test(headless=False))
+    asyncio.run(la_rioja_test(headless=False))
 
     # 2. Ejecutar un test con múltiples iteraciones:
     # asyncio.run(salta_test(headless=False, iterations=5))
