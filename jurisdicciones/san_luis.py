@@ -112,9 +112,21 @@ class SanLuis(Jurisdiccion):
         iframe = self.page.frame_locator(
             "iframe[src*='/ords/clavefiscal/r/miclave/notificaciones-domicilio-electr%C3%B3nico1']"
         )
-        return not await iframe.locator(
+        await iframe.locator(
+            "//span[contains(text(),'No se han encontrado datos para mostrar')]"
+        ).wait_for(state="visible", timeout=10000)
+
+        # Check if 'no data' message is visible
+        no_data_visible = await iframe.locator(
             "//span[contains(text(),'No se han encontrado datos para mostrar')]"
         ).is_visible()
+
+        if not no_data_visible:
+            # Optional: Confirm presence of actual data (e.g., table rows)
+            data_rows = iframe.locator("//table//tbody//tr")
+            return await data_rows.count() > 0
+
+        return False
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)
