@@ -315,7 +315,8 @@ class Jurisdiccion(ABC):
             )
 
             await self.page.get_by_role("button", name="Ingresar").click(timeout=18000)
-            await self.page.wait_for_load_state("networkidle", timeout=180000)
+            # await self.page.wait_for_load_state("networkidle", timeout=180000)
+            await self.page.wait_for_load_state("load", timeout=180000)
 
             error_locator = self.page.locator(
                 'form[name="F1"]:has-text("Clave o usuario incorrecto")'
