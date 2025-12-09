@@ -73,6 +73,23 @@ Ejecuta las pruebas con:
 pytest
 ```
 
+## Visualización de Traces de Playwright
+Playwright genera traces en archivos ZIP durante la ejecución de pruebas o sesiones de navegador. Para visualizarlos:
+
+1. Instala Playwright (si no está instalado): Ejecuta `pip install playwright` en tu terminal.
+
+2. Ejecuta el comando de visualización:
+   - Abre una terminal (en Windows, usa PowerShell o CMD).
+   - Navega al directorio donde está el archivo de trace (e.g., `traces/`).
+   - Ejecuta: `playwright show-trace <nombre-del-archivo.zip>`
+     - Ejemplo: `playwright show-trace trace.zip`
+   - Esto abre un visor web en tu navegador predeterminado, donde puedes reproducir la sesión paso a paso, ver capturas de pantalla, logs de red y acciones realizadas.
+
+3. Notas:
+   - Asegúrate de que el archivo de trace sea válido (generado con `context.tracing.start()` y `context.tracing.stop()` en tu código).
+   - Si usas un entorno virtual, activa el venv antes de ejecutar el comando.
+   - Para más detalles, consulta la [documentación oficial de Playwright](https://playwright.dev/python/docs/trace-viewer).
+
 ## Contribuciones
 1. Haz un fork del repositorio.
 2. Crea una rama para tu funcionalidad o corrección de errores:
