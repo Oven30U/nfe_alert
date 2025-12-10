@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import re
 
 from playwright.async_api import Playwright, async_playwright
 
@@ -37,7 +38,6 @@ class Corrientes(Jurisdiccion):
             headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
-        # self.headless = headless
 
     @classmethod
     async def create(
@@ -53,6 +53,10 @@ class Corrientes(Jurisdiccion):
         razon_social_cliente_input=None,
         texto_notificacion=None,
         headless=True,
+        slow_mo=0,
+        browser=None,
+        context=None,
+        page=None,
     ):
         self = await super().create(
             playwright,
@@ -68,6 +72,10 @@ class Corrientes(Jurisdiccion):
             razon_social_cliente_input,
             texto_notificacion,
             headless=headless,
+            slow_mo=slow_mo,
+            browser=browser,
+            context=context,
+            page=page,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         self.headless = headless
@@ -75,28 +83,37 @@ class Corrientes(Jurisdiccion):
 
     async def consultar_notificaciones(self):
         await self.page.goto("https://miportal.dgrcorrientes.gov.ar/")
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.locator("//input[@id='username']").fill(f"{self._cuit}")
-        await self.page.locator("//input[@id='loginPassword']").fill(
-            f"{self._clave_fiscal}"
+        await self.page.get_by_role("textbox", name="CUIT o Usuario").click()
+        await self.page.get_by_role("textbox", name="CUIT o Usuario").fill(
+            "30598129246"
         )
-        await self.page.locator("//button[@id='ingresar']").click()
+        await self.page.get_by_role("textbox", name="Clave virtual").click()
+        await self.page.get_by_role("textbox", name="Clave virtual").fill("Janssen22")
+        await self.page.get_by_role("button", name="Ingresar").click()
         await self.page.wait_for_load_state("networkidle")
-        if await self.page.is_visible("text=Los datos ingresados no son correctos."):
-            raise LoginError(self.cliente)
-        await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_selector("//h3[contains(text(),'Domicilio')]")
-        await self.page.goto("https://miportal.dgrcorrientes.gov.ar/bandejadfe#")
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_selector("text=Domicilio Fiscal Electrónico")
+        await (
+            self.page.locator("div")
+            .filter(has_text=re.compile(r"^DFEDomicilio Fiscal Electrónico$"))
+            .nth(1)
+            .click()
+        )
+        await self.page.wait_for_selector("text=Notificaciones")
 
     async def buscar_notificacion(self):
-        filas = await self.page.locator("//div[@class='listCuerpo']//p[3]").all()
+        await self.page.locator(".css-1hwfws3").click()
+        await self.page.get_by_text("No Leidos", exact=True).click()
+        await self.page.wait_for_load_state("networkidle")
+
+        text = await self.page.locator("#root").inner_text()
+        if "no se encontraron resultados" in text:
+            return False
+        dates = re.findall(r"\b\d{2}/\d{2}/\d{4}\b", text)
         fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
         fecha_hasta_dt = datetime.strptime(self.fecha_hasta, "%d%m%Y")
-        for fila in filas:
-            text = await fila.inner_text()
+        for date_str in dates:
             try:
-                cell_date = datetime.strptime(text, "%d/%m/%Y")
+                cell_date = datetime.strptime(date_str, "%d/%m/%Y")
                 if fecha_desde_dt <= cell_date <= fecha_hasta_dt:
                     return True
             except ValueError:
@@ -106,23 +123,6 @@ class Corrientes(Jurisdiccion):
     async def tomar_screenshot(self):
         if not self.headless:
             await super().maximizar_ventana()
-        # if not self.headless:
-        #     # Maximizar la ventana del navegador usando la API de DevTools
-        #     client = await self.page.context.new_cdp_session(self.page)
-        #     window_info = await client.send('Browser.getWindowForTarget')
-        #     window_id = window_info['windowId']
-        #
-        #     # Restaurar a estado normal si está minimizado o en pantalla completa
-        #     await client.send('Browser.setWindowBounds', {
-        #         'windowId': window_id,
-        #         'bounds': {'windowState': 'normal'}
-        #     })
-        #
-        #     # Maximizar la ventana
-        #     await client.send('Browser.setWindowBounds', {
-        #         'windowId': window_id,
-        #         'bounds': {'windowState': 'maximized'}
-        #     })
         return await super().tomar_screenshot(self.page)
 
     async def procesar_jurisdiccion(self):

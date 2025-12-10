@@ -786,7 +786,7 @@ if __name__ == "__main__":
     # send_email_smtp_test()
 
     # 5. Ejecutar test desde DB pasando directamente la clase:
-    asyncio.run(test_jurisdiccion_from_db(Cordoba, headless=False))
+    asyncio.run(test_jurisdiccion_from_db(Corrientes, headless=False))
 
     # O usando generic_test_from_db directamente:
     # asyncio.run(generic_test_from_db(Cordoba, headless=False))
