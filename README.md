@@ -90,6 +90,32 @@ Playwright genera traces en archivos ZIP durante la ejecución de pruebas o sesi
    - Si usas un entorno virtual, activa el venv antes de ejecutar el comando.
    - Para más detalles, consulta la [documentación oficial de Playwright](https://playwright.dev/python/docs/trace-viewer).
 
+## Generación de Código con Playwright Codegen
+Playwright Codegen es una herramienta que permite grabar interacciones con un sitio web y generar automáticamente código Python asíncrono para automatizar esas acciones. Esto es útil para crear o actualizar scripts de automatización para jurisdicciones fiscales.
+
+### Ejemplo de uso
+Para generar código:
+
+1. Asegúrate de tener Playwright instalado en tu entorno virtual:
+   ```bash
+   pip install playwright
+   playwright install
+   ```
+
+2. Ejecuta el comando de codegen apuntando al portal de Corrientes:
+   ```bash
+   playwright codegen --target=python-async https://linkalportal.com.ar/
+   ```
+
+3. Esto abrirá un navegador controlado por Playwright. Realiza las acciones que deseas automatizar en el sitio web (como iniciar sesión, navegar a secciones específicas, etc.).
+
+4. El código generado se mostrará en la terminal. Puedes copiarlo y adaptarlo para integrar en tus scripts de jurisdicción.
+
+5. Notas:
+   - El código generado utiliza la API asíncrona de Playwright (`async`/`await`).
+   - Asegúrate de manejar credenciales sensibles de manera segura (usa variables de entorno).
+   - Para más opciones de codegen, consulta la [documentación oficial de Playwright](https://playwright.dev/python/docs/codegen).
+
 ## Contribuciones
 1. Haz un fork del repositorio.
 2. Crea una rama para tu funcionalidad o corrección de errores:
