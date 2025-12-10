@@ -160,8 +160,8 @@ class Cordoba(Jurisdiccion):
                     timeout=90000,
                 )
 
-                # Hacer clic en el botón
-                await self.page.click(button_selector)
+                # Hacer clic en el botón (seleccionar el primero si hay múltiples)
+                await self.page.locator(button_selector).first.click()
 
                 # Esperar nuevamente a que la carga termine
                 await self.page.wait_for_selector(
@@ -208,7 +208,6 @@ class Cordoba(Jurisdiccion):
         # Intentar loguearse con el representado
         await self.intentar_representado()
 
-        await self.page.wait_for_url("https://www.rentascordoba.gob.ar/mi-inicio/")
         await self.page.wait_for_load_state("networkidle", timeout=90000)
         await self.page.wait_for_selector(
             "//*[contains(text(), 'En representación de')]",

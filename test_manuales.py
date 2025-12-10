@@ -7,6 +7,12 @@ from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 
 from logger import Logger
+from database import get_session
+from obtener_datos_clientes.models import (
+    Cliente,
+    Jurisdiccion,
+    ClienteJurisdiccion,
+)  # Agregar imports necesarios
 
 
 # Cargar las variables de entorno desde el archivo .env
@@ -569,6 +575,201 @@ async def run_test_by_name(
         )
 
 
+async def generic_test_from_db(
+    clase_jurisdiccion,
+    jurisdiccion: str = None,
+    headless: bool = False,
+    iterations: int = 1,
+    enable_tracing: bool = True,
+    trace_dir: str = "traces",
+    db_session=None,
+) -> None:
+    """
+    Función genérica para ejecutar tests de jurisdicciones iterando sobre datos de la base de datos.
+    Filtra clientes que tienen una relación con la jurisdicción especificada y donde consultar=True.
+
+    Args:
+        clase_jurisdiccion: Clase correspondiente a la jurisdicción.
+        jurisdiccion: Nombre de la jurisdicción en mayúscula (e.g., "CORDOBA").
+                     Si no se proporciona, se infiere del nombre de la clase.
+        headless: Indica si el navegador debe correr en modo sin interfaz gráfica.
+        iterations: Número de veces que se debe repetir el test por cliente.
+        enable_tracing: Si se debe habilitar tracing.
+        trace_dir: Directorio para guardar traces.
+        db_session: Sesión de DB opcional (para inyección de dependencias).
+    """
+    # Si no se proporciona jurisdiccion, intentar inferirla del nombre de la clase
+    if jurisdiccion is None:
+        class_name = clase_jurisdiccion.__name__
+        # Mapeo directo de clases conocidas a nombres de jurisdicción
+        class_to_jurisdiccion = {
+            "Cordoba": "CORDOBA",
+            "Arba": "ARBA",
+            "Catamarca": "CATAMARCA",
+            "Chaco": "CHACO",
+            "Chubut": "CHUBUT",
+            "Corrientes": "CORRIENTES",
+            "EntreRios": "ENTRERIOS",
+            "Formosa": "FORMOSA",
+            "Jujuy": "JUJUY",
+            "LaPampa": "LA_PAMPA",
+            "LaRioja": "LA_RIOJA",
+            "Mendoza": "MENDOZA",
+            "Nacional": "NACIONAL",
+            "Neuquen": "NEUQUEN",
+            "RioNegro": "RIO_NEGRO",
+            "Salta": "SALTA",
+            "SanJuan": "SAN_JUAN",
+            "SanLuis": "SANLUIS",
+            "SantaCruz": "SANTA_CRUZ",
+            "SantiagoDelEstero": "SANTIAGO_DEL_ESTERO",
+            "Sicnea": "SICNEA",
+            "Tucuman": "TUCUMAN",
+            "Agip": "AGIP",
+        }
+        jurisdiccion = class_to_jurisdiccion.get(class_name)
+        if jurisdiccion is None:
+            # Fallback: convertir CamelCase a UPPER_CASE con guiones bajos
+            jurisdiccion = "".join(
+                [
+                    "_" + c.lower() if c.isupper() and i > 0 else c.lower()
+                    for i, c in enumerate(class_name)
+                ]
+            ).upper()
+    logger = Logger.get_logger()
+    if db_session is None:
+        db_session = get_session()
+
+    try:
+        # Filtrar clientes que tienen una ClienteJurisdiccion con la jurisdicción especificada y consultar=True
+        clientes = (
+            db_session.query(Cliente)
+            .join(Cliente.cliente_jurisdicciones)
+            .join(ClienteJurisdiccion.jurisdiccion)
+            .filter(Jurisdiccion.clase == jurisdiccion)
+            .filter(ClienteJurisdiccion.consultar == True)
+            .filter(Cliente.documentacion == True)
+            .all()
+        )
+
+        if not clientes:
+            logger.warning(
+                f"No se encontraron clientes para la jurisdicción {jurisdiccion} en la DB."
+            )
+            return
+
+        fecha_desde = os.getenv("FECHA_DESDE")
+        fecha_hasta = os.getenv("FECHA_HASTA")
+
+        for cliente in clientes:
+            # Obtener la ClienteJurisdiccion específica para esta jurisdicción
+            cj = (
+                db_session.query(ClienteJurisdiccion)
+                .filter(ClienteJurisdiccion.cliente_id == cliente.id)
+                .join(ClienteJurisdiccion.jurisdiccion)
+                .filter(Jurisdiccion.clase == jurisdiccion)
+                .filter(ClienteJurisdiccion.consultar == True)
+                .first()
+            )
+
+            if not cj:
+                logger.warning(
+                    f"No se encontró configuración de jurisdicción para cliente {cliente.nombre}."
+                )
+                continue
+
+            for i in range(iterations):
+                logger.info(
+                    f"Ejecutando iteración {i + 1} para {jurisdiccion} - Cliente: {cliente.nombre}"
+                )
+
+                try:
+                    async with async_playwright() as playwright:
+                        # Preparar browser/context
+                        browser = await playwright.chromium.launch(headless=headless)
+                        context = await browser.new_context()
+
+                        trace_path = None
+                        if enable_tracing:
+                            os.makedirs(trace_dir, exist_ok=True)
+                            trace_path = os.path.join(
+                                trace_dir,
+                                f"{jurisdiccion}_{cliente.nombre}_{i + 1}.zip",
+                            )
+                            await context.tracing.start(
+                                screenshots=True, snapshots=True, sources=True
+                            )
+
+                        # Crear instancia con datos de DB
+                        instance = await clase_jurisdiccion.create(
+                            playwright,
+                            cliente.nombre,  # cliente
+                            cliente.client_folder,  # client_folder
+                            cj.usuario,  # cuit
+                            cj.password,  # clave_fiscal (usuario en ClienteJurisdiccion)
+                            fecha_desde,
+                            fecha_hasta,
+                            cliente.cuit,  # cuit_cliente_input (usando cuit del cliente como ejemplo; ajusta si hay campo específico)
+                            razon_social_cliente_input=None,  # Ajusta si hay dato en DB
+                            texto_notificacion=None,  # Ajusta si hay dato en DB
+                            headless=headless,
+                            browser=browser,
+                            context=context,
+                        )
+
+                        resultado = await instance.procesar_jurisdiccion()
+                        logger.info(
+                            f"Resultado para {jurisdiccion} - {cliente.nombre}: {resultado}"
+                        )
+
+                        # Detener tracing
+                        if enable_tracing and trace_path:
+                            try:
+                                await context.tracing.stop(path=trace_path)
+                                logger.info(f"Traza guardada en: {trace_path}")
+                            except Exception as e:
+                                logger.error(f"Error al guardar trace: {e}")
+
+                        await browser.close()
+
+                except Exception as e:
+                    logger.error(
+                        f"Error en {jurisdiccion} - {cliente.nombre} (iteración {i + 1}): {e}"
+                    )
+                    if iterations == 1:
+                        raise
+    finally:
+        db_session.close()
+
+
+# Funciones helper para facilitar el uso de generic_test_from_db con clases específicas
+async def test_jurisdiccion_from_db(
+    clase_jurisdiccion,
+    headless: bool = False,
+    iterations: int = 1,
+    enable_tracing: bool = True,
+    trace_dir: str = "traces",
+):
+    """
+    Función helper para ejecutar tests de jurisdicciones desde la base de datos
+    pasando directamente la clase de jurisdicción.
+
+    Args:
+        clase_jurisdiccion: Clase de la jurisdicción a testear (ej: Cordoba, Arba)
+        headless: Si ejecutar en modo headless
+        iterations: Número de iteraciones por cliente
+        enable_tracing: Si habilitar tracing
+        trace_dir: Directorio para traces
+    """
+    await generic_test_from_db(
+        clase_jurisdiccion=clase_jurisdiccion,
+        headless=headless,
+        iterations=iterations,
+        enable_tracing=enable_tracing,
+        trace_dir=trace_dir,
+    )
+
+
 if __name__ == "__main__":
     # Ejemplos de cómo ejecutar los tests:
 
@@ -576,13 +777,22 @@ if __name__ == "__main__":
     # asyncio.run(cordoba_test(headless=False))
 
     # 2. Ejecutar un test con múltiples iteraciones:
-    asyncio.run(cordoba_test(headless=False, iterations=15))
+    # asyncio.run(cordoba_test(headless=False, iterations=15))
 
     # 3. Ejecutar un test por nombre:
     # asyncio.run(run_test_by_name('nacional', headless=False))
 
     # 4. Ejecutar el test de email:
     # send_email_smtp_test()
+
+    # 5. Ejecutar test desde DB pasando directamente la clase:
+    asyncio.run(test_jurisdiccion_from_db(Cordoba, headless=False))
+
+    # O usando generic_test_from_db directamente:
+    # asyncio.run(generic_test_from_db(Cordoba, headless=False))
+
+    # O especificando el nombre de jurisdicción explícitamente:
+    # asyncio.run(generic_test_from_db(Cordoba, jurisdiccion="CORDOBA", headless=False))
 
     # Descomentar la línea correspondiente al test que se desea ejecutar
     # pass
