@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 from playwright.async_api import Playwright, async_playwright
 
@@ -11,7 +10,8 @@ class SanLuis(Jurisdiccion):
         self,
         nombre,
         codigo,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -24,7 +24,8 @@ class SanLuis(Jurisdiccion):
         super().__init__(
             nombre,
             codigo,
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -40,7 +41,8 @@ class SanLuis(Jurisdiccion):
     async def create(
         cls,
         playwright: Playwright,
-        cliente, client_folder,
+        cliente,
+        client_folder,
         cuit,
         clave_fiscal,
         fecha_desde,
@@ -49,12 +51,17 @@ class SanLuis(Jurisdiccion):
         razon_social_cliente_input=None,
         texto_notificacion=None,
         headless=True,
+        slow_mo=0,
+        browser=None,
+        context=None,
+        page=None,
     ):
         self = await super().create(
             playwright,
             "SanLuis",
             "919 SAN LUIS",
-            cliente, client_folder,
+            cliente,
+            client_folder,
             cuit,
             clave_fiscal,
             fecha_desde,
@@ -63,6 +70,10 @@ class SanLuis(Jurisdiccion):
             razon_social_cliente_input,
             texto_notificacion,
             headless=headless,
+            slow_mo=slow_mo,
+            browser=browser,
+            context=context,
+            page=page,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -79,14 +90,19 @@ class SanLuis(Jurisdiccion):
         await self.page.locator("button:has(span:text('Conectar'))").first.click()
         await self.page.wait_for_load_state("networkidle")
         if await self.page.is_visible("text=Credenciales de conexión no válidas"):
-            raise LoginError(
-                self.cliente
-            )
+            raise LoginError(self.cliente)
         await self.page.wait_for_load_state("networkidle")
         await self.page.locator(
             f"//td[b[contains(text(), '{self._cuit_cliente_input}')]]/following-sibling::td//button"
         ).click()
         await self.page.wait_for_load_state("networkidle")
+
+    async def buscar_notificacion(self):
+        if await self.page.is_visible(
+            "h2.t-Region-title:has-text('Notificaciones recibidas')"
+        ):
+            return True
+
         await self.page.wait_for_selector(
             "//a[div[h3[contains(text(), 'Buzón Electrónico')]]]"
         )
@@ -107,8 +123,6 @@ class SanLuis(Jurisdiccion):
         await iframe.locator("select#P11_ESTADO").select_option("ENVIADA")
         await iframe.locator("//div//button[span[contains(text(), 'Buscar')]]").click()
         await self.page.wait_for_load_state("networkidle")
-
-    async def buscar_notificacion(self):
         iframe = self.page.frame_locator(
             "iframe[src*='/ords/clavefiscal/r/miclave/notificaciones-domicilio-electr%C3%B3nico1']"
         )
@@ -147,7 +161,7 @@ if __name__ == "__main__":
             cuit_SanLuis = os.getenv("TEST_SAN_LUIS_CUIT")
             clave_fiscal_SanLuis = os.getenv("TEST_SAN_LUIS_CLAVE_FISCAL")
             cuit_cliente_input = os.getenv("TEST_SAN_LUIS_CUIT_CLIENTE_INPUT")
-            
+
             san_luis = await SanLuis.create(
                 playwright,
                 client,

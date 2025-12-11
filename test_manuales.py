@@ -774,7 +774,7 @@ if __name__ == "__main__":
     # Ejemplos de cómo ejecutar los tests:
 
     # 1. Ejecutar un test específico:
-    # asyncio.run(cordoba_test(headless=False))
+    asyncio.run(san_luis_test(headless=False))
 
     # 2. Ejecutar un test con múltiples iteraciones:
     # asyncio.run(cordoba_test(headless=False, iterations=15))
@@ -786,7 +786,7 @@ if __name__ == "__main__":
     # send_email_smtp_test()
 
     # 5. Ejecutar test desde DB pasando directamente la clase:
-    asyncio.run(test_jurisdiccion_from_db(Corrientes, headless=False))
+    # asyncio.run(test_jurisdiccion_from_db(SanLuis, headless=False))
 
     # O usando generic_test_from_db directamente:
     # asyncio.run(generic_test_from_db(Cordoba, headless=False))
