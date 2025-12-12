@@ -50,6 +50,10 @@ class EntreRios(Jurisdiccion):
         razon_social_cliente_input=None,
         texto_notificacion=None,
         headless=True,
+        slow_mo=0,
+        browser=None,
+        context=None,
+        page=None,
     ):
         self = await super().create(
             playwright,
@@ -65,6 +69,10 @@ class EntreRios(Jurisdiccion):
             razon_social_cliente_input,
             texto_notificacion,
             headless=headless,
+            slow_mo=slow_mo,
+            browser=browser,
+            context=context,
+            page=page,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
         return self
@@ -101,6 +109,11 @@ class EntreRios(Jurisdiccion):
         popup_info = await self.page.wait_for_event("popup")
         self.new_page = popup_info
         await self.new_page.wait_for_load_state("networkidle")
+
+        # Si aparece el botón de cerrar modal, darle click
+        if await self.new_page.is_visible("button.close[data-dismiss='modal']"):
+            await self.new_page.click("button.close[data-dismiss='modal']")
+
         cuit_contribuyente = await self.formatear_cuit(self._cuit_cliente_input)
         # await self.page.click(
         #     f'xpath=//*[@id="textoFiltro"][contains(text(), "{cuit_contribuyente}")]'
@@ -109,6 +122,18 @@ class EntreRios(Jurisdiccion):
             f"xpath=//*[contains(text(), '{cuit_contribuyente}')]"
         ).click()
         await self.new_page.wait_for_load_state("load")
+        await self.new_page.wait_for_load_state("domcontentloaded")
+        await self.new_page.wait_for_load_state("networkidle")
+
+        # Esperar por el botón de cerrar modal hasta 5 segundos y darle click si aparece
+        try:
+            await self.new_page.wait_for_selector(
+                "button.close[data-dismiss='modal']", timeout=10000
+            )
+            await self.new_page.click("button.close[data-dismiss='modal']")
+        except Exception:
+            pass
+
         await self.new_page.goto(
             "https://portal.ater.gob.ar/ventanillaVirtual/adhesionVentanilla.aspx"
         )
