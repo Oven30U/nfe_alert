@@ -74,6 +74,18 @@ class LaPampa(Jurisdiccion):
         await self.page.goto(
             "https://dgr.lapampa.gob.ar/ServiciosEnLinea/?programa=MenuCuenta"
         )
+
+        await self.page.wait_for_load_state("networkidle")
+
+        await self.page.locator('a#gestionar').click()
+        await self.page.wait_for_load_state("networkidle")
+        await self.page.locator('a#aContribuyentes').click()
+        await self.page.wait_for_load_state("networkidle")
+        await self.page.locator('iframe[name="iframe1"]').content_frame.locator('button#Btn2').click()
+        await self.page.wait_for_load_state("networkidle")
+        await self.page.locator('iframe[name="iframe1"]').content_frame.locator('li.list-group-item').filter(has_text="Consulta de Novedades / Trámites").click()
+        await self.page.wait_for_load_state("networkidle")
+
         iframe = self.page.frame(name="iframe1")
         await iframe.fill("input#cuit", f"{self._cuit}")
         await iframe.fill("input#pPassword", f"{self._clave_fiscal}")
@@ -88,9 +100,10 @@ class LaPampa(Jurisdiccion):
             f"//form[@id='FrmSeleccionEmpresa']//td[contains(text(),'{cuit_clic}')]/following-sibling::td[2]/input[@type='radio']"
         )
         await iframe.click("input#vConfirmar")
-        await iframe.click("//li[contains(text(), 'Consulta de Novedades/Trámites')]")
-        await self.page.wait_for_load_state("domcontentloaded")
         await self.page.wait_for_load_state("networkidle")
+        await iframe.locator('div#lblBandeja').wait_for(state='visible')
+        # await iframe.click("//h1[contains(text(), 'Consulta de Novedades/Trámites')]")
+            
 
     async def buscar_notificacion(self):
         iframe = self.page.frame(name="iframe1")
