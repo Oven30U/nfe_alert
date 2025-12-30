@@ -102,7 +102,6 @@ class LaPampa(Jurisdiccion):
         await iframe.click("input#vConfirmar")
         await self.page.wait_for_load_state("networkidle")
         await iframe.locator('div#lblBandeja').wait_for(state='visible')
-        # await iframe.click("//h1[contains(text(), 'Consulta de Novedades/Trámites')]")
             
 
     async def buscar_notificacion(self):
