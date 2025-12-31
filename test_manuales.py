@@ -774,10 +774,10 @@ if __name__ == "__main__":
     # Ejemplos de cómo ejecutar los tests:
 
     # 1. Ejecutar un test específico:
-    asyncio.run(la_pampa_test(headless=False))
+    # asyncio.run(la_pampa_test(headless=False))
 
     # 2. Ejecutar un test con múltiples iteraciones:
-    # asyncio.run(cordoba_test(headless=False, iterations=15))
+    asyncio.run(agip_test(headless=False, iterations=15))
 
     # 3. Ejecutar un test por nombre:
     # asyncio.run(run_test_by_name('nacional', headless=False))
