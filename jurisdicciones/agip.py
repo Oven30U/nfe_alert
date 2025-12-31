@@ -196,9 +196,16 @@ class Agip(Jurisdiccion):
                     "Nueva Cuenta Corriente Tributaria",
                     delay=1,
                 )
-                await self.page.get_by_role(
+                nueva_cuenta_link = self.page.get_by_role(
                     "link", name="Nueva Cuenta Corriente"
-                ).click()
+                )
+                if await nueva_cuenta_link.is_visible():
+                    await nueva_cuenta_link.click()
+                else:
+                    raise DelegacionError(
+                        self.cliente,
+                        "Servicio pendiente de delegación",
+                    )
                 await self.page.wait_for_load_state("networkidle")
                 await self.page.wait_for_selector(
                     "p.text-razonsocial", state="visible", timeout=60000
