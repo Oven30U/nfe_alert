@@ -206,7 +206,7 @@ def obtener_clientes(
                 "Modo desarrollo: Usando correo de prueba para los clientes predefinidos"
             )
             test_email = os.getenv(
-                "CORREO_RECEPTOR_TEST_MAIL", "lmarinaro@deloitte.com"
+                "CORREO_RECEPTOR_TEST_MAIL", "amiriarte@deloitte.com"
             )
             df_clientes["To: Equipo Cliente"] = test_email
             df_clientes["CC: Equipo Deloitte"] = test_email

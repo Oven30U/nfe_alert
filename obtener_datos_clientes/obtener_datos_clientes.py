@@ -529,7 +529,7 @@ class ObtenerDatosClientes:
                     "Modo desarrollo: Usando correo de prueba para todos los clientes"
                 )
                 test_email = os.getenv(
-                    "CORREO_RECEPTOR_TEST_MAIL", "lmarinaro@deloitte.com"
+                    "CORREO_RECEPTOR_TEST_MAIL", "amiriarte@deloitte.com"
                 )
                 # Reemplazar correos con el correo de prueba
                 if "Correo Output" in df_result.columns:

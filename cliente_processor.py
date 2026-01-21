@@ -24,7 +24,7 @@ logger = Logger.get_logger()
 CORREO_NOTIFICACION_ERROR = os.getenv(
     "CORREO_NOTIFICACION_ERROR", "rpa-tax-ar@deloitte.com"
 )
-CORREO_TEST = os.getenv("CORREO_TEST", "lmarinaro@deloitte.com")
+CORREO_TEST = os.getenv("CORREO_TEST", "amiriarte@deloitte.com")
 ENVIAR_CORREO_TEST = os.getenv("ENVIAR_CORREO_TEST", "False").lower() == "true"
 LIMITES_REINTENTO = int(os.getenv("LIMITES_REINTENTO", 5))
 
