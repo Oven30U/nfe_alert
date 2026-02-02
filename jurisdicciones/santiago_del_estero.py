@@ -118,8 +118,8 @@ class SantiagoDelEstero(Jurisdiccion):
             if await proceed_btn.is_visible():
                 await proceed_btn.click()
             await self.page.wait_for_selector(
-                "//h3[contains(text(), 'Bandeja de Entrada')]", timeout=60000
-            )
+                "//h3[normalize-space(.) = 'Bandeja de Entrada']", timeout=60000
+            ) # !!! TODO : Modificar en el servidor
             # await new_page.goto(
             #     "https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml"
             # )

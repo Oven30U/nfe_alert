@@ -377,7 +377,7 @@ class ProcesamientoManager:
         processor: ClienteProcessor,
         df_final: Optional[pd.DataFrame],
         estado: str,
-        inicio: datetime,
+        inicio: datetime,   
     ) -> None:
         """Finaliza el procesamiento de un cliente."""
         try:

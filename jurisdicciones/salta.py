@@ -231,6 +231,30 @@ class Salta(Jurisdiccion):
                 f"SALTA: Error al hacer click en botón 'Ingresar': {str(e)}"
             )
             raise LoginErrorAfip(self.cliente, f"Error al acceder al sistema: {str(e)}")
+        
+    async def _click_aceptar_button(self) -> None:
+        """
+        Hace click en el botón "Aceptar" para aceptar los términos y condiciones.
+
+        Raises:
+            LoginErrorAfip: Cuando no se puede encontrar o hacer click en el botón "Aceptar"
+        """
+        try:
+            # Estrategia principal: buscar span con texto "Ingresar"
+            aceptar_btn_selector = '//*[@id="dgrModalOverlay"]/div/div[3]/button'
+            
+            if await self.page.is_visible(aceptar_btn_selector):
+                # Primero, tomar screen de la notificacion
+                await self.tomar_screenshot()
+                # Hacer click en el botón Aceptar
+                await self.page.click(aceptar_btn_selector)
+                self.logger.debug("SALTA: Click en botón 'Aceptar' realizado")
+
+        except Exception as e:
+            self.logger.error(
+                f"SALTA: Error al hacer click en botón 'Aceptar': {str(e)}"
+            )
+            raise LoginError(self.cliente, f"Error al acceder al sistema: {str(e)}")
 
     async def consultar_notificaciones(self):
         if int(str(self._cuit)[0]) != 3:
@@ -244,7 +268,9 @@ class Salta(Jurisdiccion):
         try:
             # Esperar adecuadamente a que la página cargue
             await self.page.wait_for_load_state("networkidle", timeout=30000)
-
+            # Si aparece el pop up de notificaciones, aceptarlo y continuar
+            await self._click_aceptar_button()
+            
             # Esperar específicamente al selector de logout con un timeout razonable
             await self.page.wait_for_selector(
                 "#enviaLogout", timeout=15000, state="visible"

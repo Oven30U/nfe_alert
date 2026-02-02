@@ -181,10 +181,22 @@ class Cordoba(Jurisdiccion):
                     )
                     await self.page.click(pagination_locator)
                 except TimeoutError:
-                    self.logger.warning(
-                        "No se encontró el representado ni la paginación."
-                    )
-                    break
+                    try:
+                        await self.page.goto("https://www.rentascordoba.gob.ar/mi-perfil/representado")
+                        
+                        await self.page.wait_for_load_state("load", timeout=90000)
+                        await self.page.wait_for_load_state("domcontentloaded", timeout=90000)
+
+                        await self.page.wait_for_selector(
+                            'text="Perfil"',
+                            state="hidden",
+                            timeout=90000,
+                        )
+                    except TimeoutError:
+                        self.logger.warning(
+                            "No se encontró el representado ni la paginación."
+                        )
+                        break
 
     async def consultar_notificaciones(self):
         try:
