@@ -189,7 +189,7 @@ class Cordoba(Jurisdiccion):
 
                         await self.page.wait_for_selector(
                             'text="Perfil"',
-                            state="hidden",
+                            state="visible",
                             timeout=90000,
                         )
                     except TimeoutError:

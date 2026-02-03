@@ -84,7 +84,7 @@ class SantaCruz(Jurisdiccion):
                     timeout=120000,
                 )
                 break
-            except Exception as e:
+            except Exception:
                 if attempt < max_retries - 1:
                     continue
                 else:

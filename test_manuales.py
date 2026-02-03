@@ -777,7 +777,7 @@ if __name__ == "__main__":
     # asyncio.run(la_pampa_test(headless=False))
 
     # 2. Ejecutar un test con múltiples iteraciones:
-    asyncio.run(salta_test(headless=False, iterations=15))
+    asyncio.run(santa_cruz_test(headless=False, iterations=15))
 
     # 3. Ejecutar un test por nombre:
     # asyncio.run(run_test_by_name('nacional', headless=False))

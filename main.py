@@ -458,6 +458,13 @@ class ProcesamientoManager:
                     break
 
                 hora_actual = datetime.now().strftime("%H:%M:%S")
+                # Validación de rango horario
+                if hora_actual.startswith("07:59") or hora_actual.startswith("17:10"):
+                    logger.info(
+                        "Procesamiento detenido automáticamente entre las 17:10 y las 07:59 horas."
+                    )
+                    break
+
                 logger.info(
                     f"Esperando {self.intervalo_espera // 60} minutos antes de la siguiente iteración... [{hora_actual}]"
                 )
