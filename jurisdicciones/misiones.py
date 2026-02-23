@@ -66,7 +66,7 @@ class Misiones(Jurisdiccion):
         return self
 
     async def consultar_notificaciones(self):
-        await self.page.goto("https://extranet.atm.misiones.gob.ar/Extranet/index.php")
+        await self.page.goto("https://extranet.atmisiones.gob.ar/Extranet/index.php")
         await self.page.locator("xpath=//button[@id='btn_sit']").click()
         # Utiliza press para evitar captchas
         await self.page.fill("input#log_user_aux", self._cuit)

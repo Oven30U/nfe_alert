@@ -3,14 +3,12 @@ import glob
 import os
 import shutil
 from datetime import datetime
-from typing import Optional, List  # Asegúrate de que List esté importado
-
+from typing import Optional, List
 import pandas as pd
 import pyminizip
 from reportlab.lib.pagesizes import landscape, A4
 from reportlab.pdfgen import canvas
 from PIL import Image
-
 import jurisdicciones
 from conectar_db import conectar_db
 from logger import Logger
