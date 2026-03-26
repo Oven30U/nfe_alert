@@ -326,6 +326,9 @@ class Salta(Jurisdiccion):
             await self.page.wait_for_selector("input#usuario")
             await self.page.fill("input#usuario", self._cuit)
             await self.page.fill("input#password", self._clave_fiscal)
+
+            # TODO: Resolver reCAPTCHA
+
             await self.page.click("a#enviaLogin")
 
             # Esperar a que la página cargue completamente

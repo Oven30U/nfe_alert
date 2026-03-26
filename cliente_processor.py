@@ -2,7 +2,7 @@ import asyncio
 import glob
 import os
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List
 import pandas as pd
 import pyminizip
@@ -133,7 +133,7 @@ class ClienteProcessor:
         if self.cliente_id is None:
             logger.debug("No se puede filtrar por login_error: cliente_id es None")
             return
-
+        
         try:
             with SessionLocal() as db:
                 # Obtener todas las jurisdicciones del cliente actual
@@ -174,11 +174,15 @@ class ClienteProcessor:
                         # No hay error de login, procesar normalmente
                         continue
 
-                    # Si hay error de login pero se han actualizado las credenciales después, procesar y resetear error
+                    # Si hay error de login pero se han actualizado las credenciales después (o pasó 1 día),s procesar y resetear error
+                    fecha_dt = pd.to_datetime(cliente_jurisdiccion.fecha_login_error)
+                    ahora = pd.Timestamp.now(tz='UTC')
+                    diff: timedelta = ahora - fecha_dt
                     if (
                         cliente_jurisdiccion.fecha_actualizacion
                         and cliente_jurisdiccion.fecha_login_error
                         < cliente_jurisdiccion.fecha_actualizacion
+                        or diff.days >= 1
                     ):
                         # En este caso, resetear fecha_login_error
                         try:
@@ -201,7 +205,7 @@ class ClienteProcessor:
 
                         continue
 
-                    # Si el error es más reciente que la actualización, marcar para saltar
+                    # Si el error es más reciente que la actualización (y pasó más de un días), marcar para saltar
                     self.group.loc[idx, "Saltar"] = True
                     self.group.loc[idx, "Error"] = "LoginError"
                     self.group.loc[idx, "Notificacion"] = "Credenciales inválidas"
