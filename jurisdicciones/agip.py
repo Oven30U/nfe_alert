@@ -136,14 +136,14 @@ class Agip(Jurisdiccion):
         await self.page.wait_for_load_state("networkidle")
         await self.page.get_by_role("button", name="Ingresar con CUIL o email").click()
         await self.page.get_by_role(
-            "textbox", name="CUIL / Correo electronico *"
+            "textbox", name="CUIL o Correo electronico *"
         ).click()
-        await self.page.get_by_role("textbox", name="CUIL / Correo electronico *").fill(
+        await self.page.get_by_role("textbox", name="CUIL o Correo electronico *").fill(
             f"{self._cuit}"
         )
         await self.page.get_by_role("textbox", name="Contraseña").click()
         await self.page.locator("#password-text-field").fill(f"{self._clave_fiscal}")
-        await self.page.get_by_role("button", name="Ingresar").click()
+        await self.page.get_by_role("button", name="Iniciar sesión").click()
         await self.page.wait_for_load_state("networkidle")
 
         await self._login_miba_check_login_errors()
