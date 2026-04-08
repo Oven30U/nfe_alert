@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, async_playwright, Page
 
 from jurisdicciones.jurisdiccion import (
     Jurisdiccion,
@@ -100,7 +100,7 @@ class Nacional(Jurisdiccion):
             await self.page.fill("input#buscadorInput", "Domicilio Fiscal Electrónico")
             await self.page.click("a.dropdown-item")
             popup_info = await self.page.wait_for_event("popup")
-            self.new_page = popup_info
+            self.new_page: Page = popup_info
 
             self.new_page.set_default_timeout(180000)
             self.new_page.set_default_navigation_timeout(180000)
@@ -111,7 +111,7 @@ class Nacional(Jurisdiccion):
             await self.new_page.click('text=" Comunicaciones de mis representados "')
             # await self.new_page.click("#d-select-81")
             await self.new_page.click(
-                "(//div[@class='input-group'])[5]//div[@class='form-control dropdown-toggle']"
+                '//*[@id="d-select-111"]/span', timeout=10000
             )
             await self._seleccionar_cuit_cliente()
             await self.page.wait_for_load_state("networkidle")
@@ -159,7 +159,8 @@ class Nacional(Jurisdiccion):
                 .click()
             )
 
-            await self.new_page.select_option("select[name='filtroEstado']", "No Leída")
+            await self.new_page.click('//*[@id="collapse-filtros-root"]/div/div[3]/button', timeout=5000)
+            await self.new_page.select_option("select[name='filtroEstado']", "No Leída", timeout=5000)
 
             # await completar_fechas(self.new_page, self.fecha_desde, self.fecha_hasta)
         except (LoginErrorAfip, DelegacionError) as e:
