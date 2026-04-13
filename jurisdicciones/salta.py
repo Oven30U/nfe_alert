@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 # import requests
-from playwright_stealth import stealth_async
+# from playwright_stealth import stealth_async
 from playwright.async_api import Playwright, async_playwright
 
 from jurisdicciones.jurisdiccion import (

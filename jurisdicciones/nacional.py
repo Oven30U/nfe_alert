@@ -110,9 +110,17 @@ class Nacional(Jurisdiccion):
             await self._click_recordar_mas_tarde()
             await self.new_page.click('text=" Comunicaciones de mis representados "')
             # await self.new_page.click("#d-select-81")
-            await self.new_page.click(
-                '//*[@id="d-select-111"]/span', timeout=10000
-            )
+            # await self.new_page.click(
+            #     "//div[@id='d-select-89']//span[@class='d-select__content user-select-none']",
+            
+            
+            #     timeout=10000
+            # )
+            # await self.new_page.click(
+            #     "//div[@id='d-select-89']//span[@class='d-select__placeholder'][normalize-space()='Seleccionar']",
+            #     timeout=10000
+            # )
+            await self.new_page.locator('#select-representados + .input-group').click()
             await self._seleccionar_cuit_cliente()
             await self.page.wait_for_load_state("networkidle")
 
@@ -228,16 +236,21 @@ class Nacional(Jurisdiccion):
 
     async def buscar_notificacion(self):
         # Use a single selector to get all notification links
-        all_links_selector = "xpath=//div[contains(@class, 'list-group')]//div[@id='notificaciones-bandeja-tab']/following-sibling::a"
+        # all_links_selector = "xpath=//div[contains(@class, 'list-group')]//div[@id='notificaciones-bandeja-tab']/following-sibling::div"
 
+        selector1 = "xpath=//div[@id='notificaciones-bandeja-tab'] | //div[@id='notificaciones-bandeja-tab']/following-sibling::div[1]"
+        selector2 = "xpath=//div[contains(@class, 'list-group')]/a"
+        
         contador_filtro_hay_notificacion = 0
         todos_screenshots_exitosos = True
 
         try:
             # Get all links matching the selector
-            self.logger.info("Buscando enlaces de notificaciones")
-            enlaces = await self.new_page.locator(all_links_selector).all()
-            self.logger.info(f"Se encontraron {len(enlaces)} enlaces de notificaciones")
+            self.logger.info("Buscando elementos de notificaciones")
+            enlaces1 = await self.new_page.locator(selector1).all()
+            enlaces2 = await self.new_page.locator(selector2).all()
+            enlaces = enlaces1 + enlaces2
+            self.logger.info(f"Se encontraron {len(enlaces)} elementos de notificaciones")
 
             # Expand any collapsed filters if necessary
             filtros_colapsados = await self.new_page.locator(
@@ -249,6 +262,9 @@ class Nacional(Jurisdiccion):
                 await self.new_page.wait_for_load_state("load")
                 await self.new_page.wait_for_load_state("domcontentloaded")
 
+            
+            
+            
             # Process each link
             for enlace in enlaces:
                 try:
