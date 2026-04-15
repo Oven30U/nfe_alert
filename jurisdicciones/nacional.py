@@ -272,7 +272,7 @@ class Nacional(Jurisdiccion):
 
                     # Skip FCE notifications if filtro_fce is True
                     if (
-                        "Factura de Crédito Electrónica" in texto_enlace
+                        "Factura de crédito electrónica" in texto_enlace
                         and self.filtro_fce
                     ):
                         self.logger.info(
