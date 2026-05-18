@@ -88,8 +88,10 @@ class Arba(Jurisdiccion):
         await self.page.wait_for_load_state("load")
         await self.page.fill("#CUIT", f"{self._cuit}")
         await self.page.fill("#clave_Cuit", f"{self._clave_fiscal}")
-        await self.page.locator("//button[@value='Ingresar']").click()
-        await self.page.wait_for_load_state("networkidle", timeout=60000)
+        
+        await asyncio.gather(
+            self.page.locator('button[value="Ingresar"]').click()
+        )
 
         page_content = await self.page.content()
         if (
@@ -115,7 +117,6 @@ class Arba(Jurisdiccion):
             )
 
         await self.page.wait_for_load_state("load")
-        await self.page.wait_for_load_state("networkidle")
 
     async def consultar_notificaciones(self) -> None:
         """
@@ -127,26 +128,28 @@ class Arba(Jurisdiccion):
         """
         await self._login()
 
-        await self.page.click("xpath=//span[contains(text(), 'DFE')]")
+        await self.page.click("xpath=//span[contains(text(), 'DFE')]", timeout=60000)
         await self.page.wait_for_load_state("load")
 
         if await self.page.is_visible("text=Seleccione un rol", timeout=60000):
             await self.page.select_option(
                 "select[name='rol']", "ContribuyentesGral/Contribuyente"
             )
-            # await self.page.click("xpath=//button[@type='submit']")
             await self.page.click("//button[contains(text(),'Continuar')]")
             await self.page.wait_for_load_state("load")
 
-        if await self.page.is_visible("text=error", timeout=60000):
+        if await self.page.is_visible("text=error", timeout=60000): 
             raise ConsultarNotificacionesError(
                 self.cliente,
             )
 
+    async def buscar_notificacion(self):
+        if await self.page.locator("text=Gracias por acceder a su Domicilio Fiscal Electrónico").count():
+            return False
+
         await self.page.click("xpath=//td[@id='tdFiltroLeidaNO']/a")
         await self.page.click('a[href="#tabs-Todas"]')
 
-    async def buscar_notificacion(self):
         no_results = await self.buscar_notificacion_xpath_visible(
             "//table[@id='listaNotificacionesTCTodas']//tbody/tr//*[contains(text(), 'No se encontraron resultados')]",
             self.page,
