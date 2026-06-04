@@ -78,6 +78,29 @@ class RioNegro(Jurisdiccion):
     ):
         return await super().AFIP_login(URL_AFIP_LOGIN, success_url=rio_negro_success_url)
 
+    async def _click_on_aceptar_popup(self):
+        popup_1 = self.page.get_by_label("Para operar en los servicios")
+        try:
+            await popup_1.wait_for(state="visible", timeout=3000)
+            await popup_1.get_by_role("button", name="ACEPTAR").click()
+        except Exception as e:
+            pass
+
+        for _ in range(3):
+            try:
+                popup_2 = self.page.locator(".jconfirm-box:visible").first
+                await popup_2.wait_for(state="visible", timeout=4000)
+                button = popup_2.locator("button:has-text('ACEPTAR')")
+                await button.wait_for(state="visible")
+                await self.page.wait_for_timeout(300)  # micro delayss
+                await button.click(force=True)
+                await self.page.wait_for_timeout(800)
+            except Exception as e:
+                break
+
+
+
+
     async def consultar_notificaciones(self):
         await self.AFIP_login(
             rio_negro_success_url="https://siatwagencia.rionegro.gov.ar/rn/Extranet/index.php"
@@ -89,9 +112,10 @@ class RioNegro(Jurisdiccion):
         )
         await self.page.click("#btn_ingresar")
         await self.page.wait_for_load_state("networkidle")
-        popup_aceptar_button = self.page.get_by_text("ACEPTAR")
-        if await popup_aceptar_button.is_visible():
-            await popup_aceptar_button.click()
+        # popup_aceptar_button = self.page.get_by_text("ACEPTAR")
+        # if await popup_aceptar_button.is_visible():
+        #     await popup_aceptar_button.click()
+        await self._click_on_aceptar_popup()
 
     async def buscar_notificacion(self):
         """
@@ -209,6 +233,7 @@ class RioNegro(Jurisdiccion):
 
     async def tomar_screenshot(self):
         await self.page.wait_for_load_state("networkidle")
+        await self._click_on_aceptar_popup()
 
         # Verificar si el botón está visible antes de hacer clic
         try:
@@ -225,6 +250,9 @@ class RioNegro(Jurisdiccion):
             self.logger.warning(
                 f"RIO NEGRO: No se pudo verificar/hacer clic en el botón: {str(e)}"
             )
+
+        await self.page.wait_for_load_state("networkidle")
+        await self._click_on_aceptar_popup()
 
         secciones = [
             ("notificaciones", "a#tab_notif"),
