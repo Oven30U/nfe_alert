@@ -140,7 +140,7 @@ class Cordoba(Jurisdiccion):
     async def realizar_representado(self):
         # Selector para el botón "Cambiar representado" basado en el CUIT
         button_selector = f"//p[text()='{self.cuit_cliente_input}']/ancestor::div[contains(@class, 'representados-list__body')]//button[span[text()='Cambiar representado']]"
-
+        # return
         while True:
             try:
                 await self.page.wait_for_load_state("load", timeout=90000)
@@ -199,6 +199,7 @@ class Cordoba(Jurisdiccion):
                         break
 
     async def consultar_notificaciones(self):
+        # raise ConsultarNotificacionesError("La página se encuentra caída", self.cliente)
         try:
             await self.AFIP_login()
         except Exception as e:
@@ -246,11 +247,13 @@ class Cordoba(Jurisdiccion):
             cont_fallos += 1
 
     async def buscar_notificacion(self):
+        # raise ConsultarNotificacionesError("La página se encuentra caída", self.cliente)
         try:
             await self.page.wait_for_load_state("load", timeout=60000)
-            if self.page.locator('xpath="(//tody)[1]"') is not None:
+            if self.page.locator('xpath="(//tbody)[1]"') is not None:
                 fecha_disposicion = self.page.locator("xpath=//tbody[1]/tr[1]/td[5]")
-                if fecha_disposicion is not None:
+                # if fecha_disposicion is not None:
+                if await fecha_disposicion.count() > 0:
                     texto = await fecha_disposicion.inner_text()
                     try:
                         text_date = datetime.strptime(texto, "%d/%m/%Y")
@@ -268,6 +271,7 @@ class Cordoba(Jurisdiccion):
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
+        # raise TimeoutError("La página se encuentra caída")
         try:
             await self.page.wait_for_load_state("networkidle", timeout=60000)
         except TimeoutError:

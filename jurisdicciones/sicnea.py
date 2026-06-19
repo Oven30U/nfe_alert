@@ -1,13 +1,13 @@
 import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, async_playwright, Frame, Page
 
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+from jurisdicciones.jurisdiccion import DelegacionError, Jurisdiccion, LoginError
 
-from logger import Logger
+# from logger import Logger
 
-logger = Logger.get_logger()
+# logger: Logger = Logger.get_logger()
 
 
 class Sicnea(Jurisdiccion):
@@ -100,7 +100,7 @@ class Sicnea(Jurisdiccion):
         await self.new_page.wait_for_load_state("networkidle")
 
         # Obtener todas las páginas abiertas en el contexto del navegador
-        self.new_page_2 = self.context.pages[2]
+        self.new_page_2: Page = self.context.pages[2]
         # Espera a que el script y el DOM se carguen completamente
         await self.new_page_2.wait_for_load_state("domcontentloaded")
         conexion_selector = await self.new_page_2.query_selector(
@@ -120,8 +120,12 @@ class Sicnea(Jurisdiccion):
         await self.new_page_2.hover(
             "xpath=//td[contains(@class, 'linksExternos') and .//span[contains(text(), 'MENU')]]"
         )
-        frame = self.new_page_2.frame(name="iframeAreaMenuLateral")
+        # await self.debug_all_frames(self.new_page_2)
+        frame: Frame | None = self.new_page_2.frame(name="iframeAreaMenuLateral")
         if frame is not None:
+            # Reviso si el cuit coincide con el que aparece en el dropdown
+            await self._check_cuit_in_dropdown(self.new_page_2)
+
             await frame.click("a:has-text(' Consulta')")
             await self.new_page_2.wait_for_load_state("networkidle")
             await self.new_page_2.wait_for_load_state("domcontentloaded")
@@ -137,6 +141,45 @@ class Sicnea(Jurisdiccion):
             await self.frame.click("input[name='btnBuscar']")
             await self.new_page_2.wait_for_load_state("networkidle")
             await self.frame.wait_for_load_state("networkidle")
+
+    async def _check_cuit_in_dropdown(self, page: Page):
+        datos_conexion_frame = await self._get_datos_conexion_frame(page)
+        if datos_conexion_frame is None:
+            self.logger.warning("No se encontró el frame mgenDatosConexion.aspx")
+            return False
+
+        try:
+            await datos_conexion_frame.wait_for_selector(
+                "#lblRazonSocialEmpresa",
+                state="attached",
+                timeout=10000
+            )
+        except Exception:
+            self.logger.warning("No se encontró #lblRazonSocialEmpresa en mgenDatosConexion.aspx")
+            return False
+
+        text_cuit = await datos_conexion_frame.evaluate("""
+        () => document.querySelector("#lblRazonSocialEmpresa")?.textContent?.trim() || ""
+        """)
+        self.logger.info(f"Texto CUIT encontrado: {text_cuit}")
+
+        if not text_cuit:
+            self.logger.warning("El texto de #lblRazonSocialEmpresa está vacío")
+            return False
+
+        if self.cuit_cliente_input not in text_cuit:
+            self.logger.error(
+                f"Client CUIT {self.cuit_cliente_input} not found in dropdown options. "
+                "Service may not be delegated properly."
+            )
+            raise DelegacionError(self.cliente, LoginError.PENDIENTE_DELEGACION)
+        return True
+
+    async def _get_datos_conexion_frame(self, page: Page) -> Frame | None:
+        for f in page.frames:
+            if "mgenDatosConexion.aspx" in f.url:
+                return f
+        return None
 
     async def _select_cuit_from_dropdown(self) -> None:
         """
@@ -360,9 +403,9 @@ class Sicnea(Jurisdiccion):
                 await self.frame.wait_for_selector(
                     "input#btnBuscar", timeout=60000, state="visible"
                 )
-                logger.info("Selector 'select#ddlEstado' encontrado correctamente")
+                self.logger.info("Selector 'select#ddlEstado' encontrado correctamente")
             except Exception as e:
-                logger.warning(f"Timeout esperando 'select#ddlEstado': {str(e)}")
+                self.logger.warning(f"Timeout esperando 'select#ddlEstado': {str(e)}")
             # Verificar notificaciones en sección NOTI (primera página)
             hay_notificacion_noti = not await self.frame.is_visible(
                 "text='No hay datos relacionados a la busqueda'"
@@ -406,10 +449,10 @@ class Sicnea(Jurisdiccion):
             # Actualizar el estado final de notificaciones con el formato de string esperado
             if hay_notificaciones_en_alguna_pagina:
                 self.hay_notificacion = "Hay notificaciones"
-                logger.info("Estado final: Hay notificaciones")
+                self.logger.info("Estado final: Hay notificaciones")
             else:
                 self.hay_notificacion = "No hay notificaciones"
-                logger.info("Estado final: No hay notificaciones")
+                self.logger.info("Estado final: No hay notificaciones")
             self.hay_screenshot = True
 
         except Exception as e:

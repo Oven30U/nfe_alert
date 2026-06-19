@@ -186,6 +186,7 @@ class Jurisdiccion(ABC):
         self.hora_actual = datetime.now().strftime("%H%M%S")
         self.error = (None,)
         self.headless = headless
+        self.logger: logging.Logger
 
     @classmethod
     async def create(

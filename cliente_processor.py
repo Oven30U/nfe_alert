@@ -1120,6 +1120,7 @@ class ClienteProcessor:
             df_correo = self._preparar_dataframe_correo(df_final)
 
             # Determinar destinatario usando la lógica encapsulada
+            es_ultimo_procesamiento = True #!!! TODO : SACAR HARDCODEO
             receptor, cc = self.determinar_destinatario(
                 hay_errores_para_destinatario, es_ultimo_procesamiento
             )
