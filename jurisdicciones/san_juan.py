@@ -141,9 +141,7 @@ class SanJuan(Jurisdiccion):
         await self.page.locator(
             "(//button[contains(@class,'btn btn-primary bg-primary dropdown-toggle-split dropdown-toggle text-white')])[2]"
         ).click()
-        await self.page.get_by_role(
-            "link", name=", ADIDAS ARGENTINA S.A.  ["
-        ).click()  #!
+        await self.page.locator(f"a:has(.text-muted:has-text('{self.cuit_cliente_input}')):visible").click()
         if await self.page.is_visible(
             "//button[contains(@id,'btnMensajeAceptar')]", timeout=5000
         ):
