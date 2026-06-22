@@ -134,15 +134,10 @@ class Agip(Jurisdiccion):
         await self.page.goto("https://claveciudad.agip.gob.ar/")
         await self.page.get_by_role("button", name="Iniciar sesión").click()
         await self.page.wait_for_load_state("networkidle")
-        await self.page.get_by_role("button", name="Ingresar con CUIL o email").click()
-        await self.page.get_by_role(
-            "textbox", name="CUIL o Correo electronico *"
-        ).click()
-        await self.page.get_by_role("textbox", name="CUIL o Correo electronico *").fill(
+        await self.page.locator("input[name*='email']").fill(
             f"{self._cuit}"
         )
-        await self.page.get_by_role("textbox", name="Contraseña").click()
-        await self.page.locator("#password-text-field").fill(f"{self._clave_fiscal}")
+        await self.page.locator("input[name*='pass']").fill(f"{self._clave_fiscal}")
         await self.page.get_by_role("button", name="Iniciar sesión").click()
         await self.page.wait_for_load_state("networkidle")
 
