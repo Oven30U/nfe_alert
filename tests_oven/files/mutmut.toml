@@ -1,0 +1,32 @@
+[mutmut]
+# Módulos objetivo para mutation testing.
+# Solo se mutan los archivos de mayor riesgo lógico para mantener
+# el tiempo de ejecución manejable.
+paths_to_mutate = [
+    "jurisdicciones/jurisdiccion.py",
+    "jurisdicciones/cordoba.py",
+    "jurisdicciones/chaco.py",
+    "jurisdicciones/nacional.py",
+    "cliente_processor.py",
+]
+
+# Directorio de tests que se ejecuta contra cada mutante
+tests_dir = "tests/"
+
+# Runner: pytest con asyncio activado
+runner = "python -m pytest tests/ -x -q --timeout=30"
+
+# Umbrales mínimos de mutation score (se verifican con mutmut results)
+# jurisdiccion.py: >= 80%
+# cliente_processor.py: >= 65%
+
+# Excluir código de utilidad que no tiene lógica de negocio crítica
+[mutmut.exclude]
+patterns = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/test_*",
+    "*__main__*",
+    "*/mapa_plot.py",
+    "*/mail*.py",
+]
