@@ -1,0 +1,60 @@
+[33m72e255d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Agregar tests y actualizar README
+[33m8022d1d[m[33m ([m[1;33mtag: [m[1;33mrelease-20260623-183019[m[33m, [m[1;31morigin/dev[m[33m)[m fix: _login en Agip y manejo de LoginError en Cordoba
+[33m7b2fdc0[m fix: _login_miba
+[33mfec0af2[m fix: selector hardcodeado en San Juan
+[33m5e0666c[m add: check del cuit delegado en Sicnea
+[33m67d0389[m[33m ([m[1;33mtag: [m[1;33mrelease-20260604-183817[m[33m)[m fix: manejo de popups en Rio Negro
+[33m18dcf3a[m[33m ([m[1;33mtag: [m[1;33mrelease-20260518-172737[m[33m)[m fix: identificación 'sin notificaciones' en ARBA
+[33mf80fd16[m[33m ([m[1;33mtag: [m[1;33mrelease-20260416-145603[m[33m)[m fix: "Correción selector de identificación de Factura de credito electronica en jurisdiccion Nacional"
+[33m5a842fb[m[33m ([m[1;33mtag: [m[1;33mrelease-20260413-144324[m[33m)[m fix: selectores modificados en ARCA
+[33m6c59320[m[33m ([m[1;33mtag: [m[1;33mrelease-20260408-181814[m[33m)[m fix: selectores en la consulta de Nacional
+[33m6630c41[m[33m ([m[1;33mtag: [m[1;33mrelease-20260406-153421[m[33m)[m fix: selector del login de la página nueva en agip
+[33mac7e64a[m[33m ([m[1;33mtag: [m[1;33mrelease-20260326-190005[m[33m)[m fix: evaluación del login error al momento de filtrar jurisdicciones
+[33m0fe9d4e[m[33m ([m[1;33mtag: [m[1;33mrelease-20260223-151505[m[33m)[m change: url inicial de Misiones
+[33mdfe8972[m[33m ([m[1;33mtag: [m[1;33mrelease-20260203-153621[m[33m)[m add: validación horaria en ProcesamientoManager
+[33mc8cee33[m[33m ([m[1;33mtag: [m[1;33mrelease-20260202-182156[m[33m)[m fix: consulta de notificaciones en cordoba, salta y santiago
+[33mc0b5de1[m[33m ([m[1;33mtag: [m[1;33mrelease-20260121-144551[m[33m)[m fix: fecha actualizada en los mails
+[33m36b2282[m[33m ([m[1;33mtag: [m[1;33mrelease-20251231-202657[m[33m)[m fix agip pendiente de delegacion ambos metodos
+[33mbcd71ea[m[33m ([m[1;33mtag: [m[1;33mrelease-20251231-140239[m[33m)[m feature: si quieren procesar una query deben dejarla en querys/updates/archivo.sql
+[33m26627e1[m[33m ([m[1;33mtag: [m[1;33mrelease-20251231-135653[m[33m)[m feat: add SQL script to deactivate specific clients and jurisdictions; update test execution examples
+[33m127bc4e[m[33m ([m[1;33mtag: [m[1;33mrelease-20251230-182826[m[33m)[m Merge pull request #49 from AR-BPS-TaxTech:leonelmarinaro/issue1507
+[33m840c5c8[m refactor: clean up unused imports and improve code readability
+[33mdc0c13d[m[33m ([m[1;33mtag: [m[1;33mrelease-20251229-170715[m[33m, [m[1;33mtag: [m[1;33mrelease-20251229-170714[m[33m)[m Merge pull request #48 from AR-BPS-TaxTech/leonelmarinaro/issue1507
+[33me6cf8b8[m fix AB#1507 la pampa error
+[33m591c6fe[m la pampa - prueba con reintentos desde web principal - no estable
+[33m1e8014c[m[33m ([m[1;33mtag: [m[1;33mrelease-20251212-143231[m[33m, [m[1;33mtag: [m[1;33mrelease-20251212-143230[m[33m)[m Merge pull request #47 from AR-BPS-TaxTech:leonelmarinaro/issue1506
+[33m648c724[m Fix AB#1506 pop up en entre rios
+[33m2c171ba[m[33m ([m[1;33mtag: [m[1;33mrelease-20251211-112436[m[33m, [m[1;33mtag: [m[1;33mrelease-20251211-112435[m[33m)[m Merge pull request #46 from AR-BPS-TaxTech/lmarinaro/AB#1486-SanLuisJannsenBug
+[33m218e3c2[m Fix: AB#1486
+[33m1c1d6fc[m[33m ([m[1;33mtag: [m[1;33mrelease-20251210-212241[m[33m, [m[1;33mtag: [m[1;33mrelease-20251210-212239[m[33m)[m Merge pull request #45 from AR-BPS-TaxTech:lmarinaro/AB#1480-corrientes
+[33m3c87aa3[m Fixes AB#1480
+[33m0fae150[m[33m ([m[1;33mtag: [m[1;33mrelease-20251210-015941[m[33m)[m Fix: #AB1407 Improve button click handling and add generic test function for jurisdictions
+[33mc6bdc70[m[33m ([m[1;33mtag: [m[1;33mrelease-20251209-203129[m[33m, [m[1;33mtag: [m[1;33mrelease-20251209-203128[m[33m)[m Merge pull request #44 from AR-BPS-TaxTech:leonelmarinaro/issue1407
+[33m00b9888[m Fixes #AB1408
+[33mac5d94e[m[33m ([m[1;33mtag: [m[1;33mrelease-20251202-214307[m[33m)[m Enhance SanLuis notification check
+[33m85da542[m[33m ([m[1;33mtag: [m[1;33mrelease-20251105-142519[m[33m, [m[1;33mtag: [m[1;33mrelease-20251105-142514[m[33m)[m Merge pull request #38 from AR-BPS-TaxTech:leonelmarinaro/issue37
+[33m8b65738[m La rioja cerrar popup abbvie Fixes #37
+[33m2e98330[m[33m ([m[1;33mtag: [m[1;33mrelease-20251029-180101[m[33m, [m[1;33mtag: [m[1;33mrelease-20251029-180058[m[33m)[m Merge pull request #33 from AR-BPS-TaxTech:leonelmarinaro/issue32
+[33m2c66824[m Optimizar agip.buscar_notificacion() Fixes #32 reducimos el tiempo de espera, utilizamos try porque la pagina suele tardar
+[33m415037b[m[33m ([m[1;33mtag: [m[1;33mrelease-20251028-184936[m[33m)[m Merge pull request #31 from AR-BPS-TaxTech:leonelmarinaro/issue30
+[33m374e639[m AGIP Login alternativo con clave ciudad Fixes #30
+[33m9e11de4[m[33m ([m[1;33mtag: [m[1;33mrelease-20251027-225825[m[33m, [m[1;33mtag: [m[1;33mrelease-20251027-225822[m[33m)[m Merge pull request #29 from AR-BPS-TaxTech:leonelmarinaro/issue28
+[33m45e5662[m Agip clave ciudad cambio de login Fixes #28
+[33ma208f13[m[33m ([m[1;33mtag: [m[1;33mrelease-20251013-162151[m[33m, [m[1;33mtag: [m[1;33mrelease-20251013-162150[m[33m)[m Merge pull request #27 from AR-BPS-TaxTech:leonelmarinaro/issue25
+[33m3b53232[m Mendoza detección de credencial expirada Fixes #25
+[33m16a2ca4[m[33m ([m[1;33mtag: [m[1;33mrelease-20250929-180827[m[33m, [m[1;33mtag: [m[1;33mrelease-20250929-180825[m[33m)[m Merge pull request #20 from AR-BPS-TaxTech:leonelmarinaro/issue19
+[33mf0a3284[m Fix: Catamarca debe filtrar notificaciones por fecha Fixes #19
+[33mb798bdb[m[33m ([m[1;33mtag: [m[1;33mrelease-20250923-204557[m[33m)[m fix: update bot name in SQL query for token retrieval in get_token_from_db function in update_script.py
+[33m00d20c5[m[33m ([m[1;33mtag: [m[1;33mrelease-20250923-181046[m[33m)[m fix: Catamarca add error handling for incorrect login credentials in Jurisdiccion class for Jurisdiccion.AFIP_login() method + Fix SantiagoDelEstero button click
+[33m04d6804[m[33m ([m[1;33mtag: [m[1;33mrelease-20250922-205902[m[33m)[m fix: unificacion de credenciales de update
+[33mba6b145[m[33m ([m[1;33mtag: [m[1;33mrelease-20250922-184333[m[33m)[m refactor: improve database connection handling in conectar_db.py
+[33m94c37c5[m fix: Catamarca select dynamic _cuit_cliente_input
+[33m6974fff[m[33m ([m[1;33mtag: [m[1;33mrelease-20250919-212241[m[33m)[m debug: add tracing to test_manuales.py example in Catamarca
+[33m188a28c[m[33m ([m[1;33mtag: [m[1;33mrelease-20250919-180343[m[33m)[m update: run_prod.bat es el archivo desplegado en el servidor
+[33mf07302d[m[33m ([m[1;33mtag: [m[1;33mrelease-20250918-202949[m[33m)[m delete: update de test querys
+[33m4904ecc[m[33m ([m[1;33mtag: [m[1;33mrelease-20250918-201924[m[33m)[m refactor: add SQL execution functionality and batch processing in update_script.py; create template for updating credentials
+[33m8acb823[m[33m ([m[1;33mtag: [m[1;33mrelease-20250918-132224[m[33m)[m refactor: remove obsolete run.bat; add run_dev.bat and run_prod.bat for improved environment setup
+[33m7e4b979[m[33m ([m[1;33mtag: [m[1;33mrelease-20250917-202436[m[33m)[m refactor: improve error handling for ZIP extraction and deletion in main function
+[33mb3e8aa5[m[33m ([m[1;33mtag: [m[1;33mrelease-20250917-201911[m[33m)[m refactor: enhance error handling and logging in get_github_release; improve token retrieval from database
+[33m2a72b38[m[33m ([m[1;33mtag: [m[1;33mrelease-20250917-150637[m[33m)[m refactor: improve logging setup and error handling in update_script.py
+[33m5198f89[m[33m ([m[1;33mtag: [m[1;33mrelease-20250917-143843[m[33m)[m refactor: update release handling and logging in update_script.py; improve date-time management in p
