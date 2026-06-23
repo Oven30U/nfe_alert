@@ -59,7 +59,7 @@ class Agip(Jurisdiccion):
         texto_notificacion=None,
         headless=True,
     ):
-        self = await super().create(
+        self: Jurisdiccion = await super().create(
             playwright,
             "Agip",
             "901 CABA",
@@ -97,35 +97,39 @@ class Agip(Jurisdiccion):
             await clave_ciudad_locator.click()
 
         try:
-            if locator_visible:
-                await self._login_clave_ciudad()
-            else:
-                await self._login_miba()
-        except LoginError:
+            await self._login_clave_ciudad() if locator_visible else self._login_miba()
+        except (LoginError, TimeoutError):
             try:
-                if locator_visible:
-                    await self._login_miba()
-                else:
-                    await self._login_clave_ciudad()
-            except LoginError:
-                raise
+                await self._login_miba() if locator_visible else self._login_clave_ciudad()
+            except LoginError as e:
+                raise LoginError from e
 
     async def _login_clave_ciudad(self) -> None:
         """
         Handles the Clave Ciudad login flow.
         """
         await self.page.wait_for_load_state("networkidle")
-        await expect(self.page.locator("input#cuit")).to_be_visible(timeout=180000)
-        await self.page.locator("input#cuit").fill(f"{self._cuit}")
+
+        cuit_input = self.page.locator("input#cuit")
+        
+        await expect(cuit_input).to_be_visible(timeout=180000)
+        await cuit_input.fill(f"{self._cuit}")
         await self.page.locator("input#clave").fill(f"{self._clave_fiscal}")
         await self.page.get_by_role("button", name="Ingresar").click()
-        if await self.page.locator(
-            "xpath=//div[contains(@class, 'msgError')]"
-        ).is_visible():
+
+        error_locator = self.page.locator("xpath=//div[contains(@class, 'msgError')]")
+        success_locator = self.page.get_by_role("heading", name="Búsqueda de aplicativos/")
+
+        try:
+            await expect(error_locator).to_be_visible(timeout=3000)
             raise LoginError(self.cliente)
-        await expect(
-            self.page.get_by_role("heading", name="Búsqueda de aplicativos/")
-        ).to_be_visible(timeout=180000)
+        except TimeoutError:
+            pass
+
+        try:
+            await expect(success_locator).to_be_visible(timeout=120000)
+        except TimeoutError as e:
+            raise LoginError(self.cliente) from e
 
     async def _login_miba(self) -> None:
         """
@@ -142,7 +146,6 @@ class Agip(Jurisdiccion):
         await self.page.wait_for_load_state("networkidle")
 
         await self._login_miba_check_login_errors()
-
         await self._login_miba_handle_permissions()
 
     async def _login_miba_check_login_errors(self):

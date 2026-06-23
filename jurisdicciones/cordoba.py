@@ -4,7 +4,13 @@ from datetime import datetime
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Playwright, async_playwright
 
-from jurisdicciones.jurisdiccion import ConsultarNotificacionesError, Jurisdiccion
+from jurisdicciones.jurisdiccion import (
+    ConsultarNotificacionesError,
+    DelegacionError,
+    Jurisdiccion,
+    LoginError,
+    LoginErrorAfip,
+)
 
 
 class Cordoba(Jurisdiccion):
@@ -83,6 +89,9 @@ class Cordoba(Jurisdiccion):
     ):
         try:
             return await super().AFIP_login(URL_AFIP_LOGIN, success_url=success_url)
+        except (LoginError, LoginErrorAfip) as e:
+            self.logger.error(f"Cordoba AFIP_login excepcion de error de Login: {e}")
+            raise DelegacionError(self.cliente) from e
         except TimeoutError:
             self.logger.warning("Cordoba AFIP_login excepcion de error de Timeout.")
 
@@ -182,10 +191,14 @@ class Cordoba(Jurisdiccion):
                     await self.page.click(pagination_locator)
                 except TimeoutError:
                     try:
-                        await self.page.goto("https://www.rentascordoba.gob.ar/mi-perfil/representado")
-                        
+                        await self.page.goto(
+                            "https://www.rentascordoba.gob.ar/mi-perfil/representado"
+                        )
+
                         await self.page.wait_for_load_state("load", timeout=90000)
-                        await self.page.wait_for_load_state("domcontentloaded", timeout=90000)
+                        await self.page.wait_for_load_state(
+                            "domcontentloaded", timeout=90000
+                        )
 
                         await self.page.wait_for_selector(
                             'text="Perfil"',
