@@ -5,19 +5,18 @@ import winshell
 
 
 def delete_zip_files_in_backup(directory):
-    for root, dirs, files in os.walk(directory):
+    for root, _, _ in os.walk(directory):
         if os.path.basename(root) == "Backup":
             zip_files = glob.glob(os.path.join(root, "*.zip"))
             for zip_file in zip_files:
                 try:
                     os.remove(zip_file)
-                    # print(f"Deleted: {zip_file}")
                 except Exception as e:
                     print(f"Error deleting {zip_file}: {e}")
 
 
 def delete_all_files_in_output(directory):
-    for root, dirs, files in os.walk(directory):
+    for root, _, files in os.walk(directory):
         if os.path.basename(root) == "Output":
             for file in files:
                 file_path = os.path.join(root, file)

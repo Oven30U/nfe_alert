@@ -87,13 +87,7 @@ class Cordoba(Jurisdiccion):
         URL_AFIP_LOGIN="https://auth.afip.gob.ar/contribuyente_/login.xhtml?action=SYSTEM&system=afip-gobcba",
         success_url="https://www.rentascordoba.gob.ar/",
     ):
-        try:
-            return await super().AFIP_login(URL_AFIP_LOGIN, success_url=success_url)
-        except (LoginError, LoginErrorAfip) as e:
-            self.logger.error(f"Cordoba AFIP_login excepcion de error de Login: {e}")
-            raise DelegacionError(self.cliente) from e
-        except TimeoutError:
-            self.logger.warning("Cordoba AFIP_login excepcion de error de Timeout.")
+        return await super().AFIP_login(URL_AFIP_LOGIN, success_url=success_url)
 
     async def adherir_servicio(self):
         """
@@ -131,6 +125,9 @@ class Cordoba(Jurisdiccion):
                         f"Cordoba Cartel de Actualmente esta consulta no arroja resultados: intento de recarga {limite_loop}."
                     )
                     await self.page.reload()
+            except DelegacionError as e:
+                self.logger.error(f"Cordoba: servicio pendiente de delegación: {e}")
+                raise e
             except Exception as e:
                 self.logger.warning(
                     f"Cordoba: Error no cargo representado: Recargando e intentando de nuevo... {e}"
@@ -149,8 +146,10 @@ class Cordoba(Jurisdiccion):
     async def realizar_representado(self):
         # Selector para el botón "Cambiar representado" basado en el CUIT
         button_selector = f"//p[text()='{self.cuit_cliente_input}']/ancestor::div[contains(@class, 'representados-list__body')]//button[span[text()='Cambiar representado']]"
-        # return
-        while True:
+        cambio_representado = False
+        retries = 3
+        cont = 0
+        while not cambio_representado:
             try:
                 await self.page.wait_for_load_state("load", timeout=90000)
                 await self.page.wait_for_load_state("domcontentloaded", timeout=90000)
@@ -178,7 +177,7 @@ class Cordoba(Jurisdiccion):
                     state="hidden",
                     timeout=90000,
                 )
-                break
+                cambio_representado = True
             except TimeoutError:
                 # Manejo de paginación si el elemento no se encuentra
                 pagination_locator = "//ul[@class='pagination']//li[@class='page-item active ng-star-inserted']/following-sibling::li[1]"
@@ -189,7 +188,7 @@ class Cordoba(Jurisdiccion):
                         timeout=12000,
                     )
                     await self.page.click(pagination_locator)
-                except TimeoutError:
+                except TimeoutError as e:
                     try:
                         await self.page.goto(
                             "https://www.rentascordoba.gob.ar/mi-perfil/representado"
@@ -205,16 +204,26 @@ class Cordoba(Jurisdiccion):
                             state="visible",
                             timeout=90000,
                         )
-                    except TimeoutError:
+                        cont += 1
+                        if cont + 1 == retries:
+                            raise DelegacionError(self.cliente) from e
+                    except TimeoutError as e:
                         self.logger.warning(
                             "No se encontró el representado ni la paginación."
                         )
-                        break
+                        raise ConsultarNotificacionesError(self.cliente, "No se encontró el representado ni la paginación.") from e
 
     async def consultar_notificaciones(self):
-        # raise ConsultarNotificacionesError("La página se encuentra caída", self.cliente)
         try:
             await self.AFIP_login()
+        except (LoginError, LoginErrorAfip) as e:
+            if LoginError.CREDENCIALES_ARCA in str(e):
+                self.logger.error(
+                    f"Cordoba AFIP_login excepcion de error de Login: {e}. Credenciales incorrectas."
+                )
+                raise LoginError(self.cliente, LoginError.CREDENCIALES_ARCA) from e
+            self.logger.error(f"Cordoba AFIP_login excepcion de error de Login: {e}")
+            raise LoginError(self.cliente) from e
         except Exception as e:
             self.logger.error(f"Cordoba El metodo de AFIP_login falló: {e}")
         try:
@@ -260,7 +269,6 @@ class Cordoba(Jurisdiccion):
             cont_fallos += 1
 
     async def buscar_notificacion(self):
-        # raise ConsultarNotificacionesError("La página se encuentra caída", self.cliente)
         try:
             await self.page.wait_for_load_state("load", timeout=60000)
             if self.page.locator('xpath="(//tbody)[1]"') is not None:
@@ -271,16 +279,16 @@ class Cordoba(Jurisdiccion):
                     try:
                         text_date = datetime.strptime(texto, "%d/%m/%Y")
                         fecha_desde_date = datetime.strptime(self.fecha_desde, "%d%m%Y")
+                        self.hay_notificacion = fecha_desde_date <= text_date
                     except ValueError:
                         self.logger.error(
                             "Cordoba Error: Fecha no está en el formato correcto"
                         )
                         self.hay_notificacion = False
-                        return
         except Exception as e:
             self.logger.error(f"Cordoba Error: {e}")
+            raise ConsultarNotificacionesError(self.cliente) from e
 
-        self.hay_notificacion = fecha_desde_date <= text_date
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
@@ -306,15 +314,17 @@ if __name__ == "__main__":
             fecha_hasta = os.getenv("FECHA_HASTA")
 
             client = os.getenv("TEST_CORDOBA_CLIENT")
-            cuit_Cordoba = os.getenv("TEST_CORDOBA_CUIT")
-            clave_fiscal_Cordoba = os.getenv("TEST_CORDOBA_CLAVE_FISCAL")
+            cuit_cordoba = os.getenv("TEST_CORDOBA_CUIT")
+            clave_fiscal_cordoba = os.getenv("TEST_CORDOBA_CLAVE_FISCAL")
             cuit_cliente_input = os.getenv("TEST_CORDOBA_CUIT_CLIENTE_INPUT")
+            client_folder = os.getenv("TEST_CORDOBA_CLIENT_FOLDER")
 
-            cordoba = await Cordoba.create(
+            cordoba: Cordoba = await Cordoba.create(
                 playwright,
                 client,
-                cuit_Cordoba,
-                clave_fiscal_Cordoba,
+                client_folder,
+                cuit_cordoba,
+                clave_fiscal_cordoba,
                 fecha_desde,
                 fecha_hasta,
                 cuit_cliente_input,

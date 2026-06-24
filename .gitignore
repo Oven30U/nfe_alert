@@ -2,6 +2,7 @@
 Estructura-robot/*
 
 __pycache__/
+.vscode/
 Documentación/estructura_input.xlsx
 
 *.pdf
@@ -17,7 +18,6 @@ git
 .idea
 
 *.db
-database.db
 .env
 .venv/
 .env_dev

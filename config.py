@@ -1,4 +1,6 @@
-jurisdiccion_clases = {
+from typing import Dict
+
+jurisdiccion_clases: Dict[str, str] = {
     "Nacional": "Nacional",
     "SICNEA": "Sicnea",
     "901 CABA": "Agip",

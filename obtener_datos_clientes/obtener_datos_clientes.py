@@ -1,10 +1,11 @@
 import datetime
 from datetime import timezone, timedelta
 import os
-from typing import Dict, List, Optional, Union
+from typing import Optional, List
 
 import pandas as pd
 from sqlalchemy.sql import func
+from sqlalchemy.orm import Session
 
 from logger import Logger
 from obtener_datos_clientes.db import SessionLocal
@@ -15,7 +16,6 @@ from obtener_datos_clientes.models import (
     ProcesamientosDiariosGlobal,
     MonitoreoBots,
 )
-from obtener_datos_clientes.query_data import query_data
 
 logger = Logger.get_logger()
 
@@ -67,7 +67,7 @@ class ProcesamientoGlobalManager:
             return nuevo_procesamiento
 
     @staticmethod
-    def finalizar_procesamiento(procesamiento, procesamiento_correcto=True):
+    def finalizar_procesamiento(procesamiento: ProcesamientosDiariosGlobal, procesamiento_correcto: bool = True):
         """Marca un procesamiento global como finalizado.
 
         Args:
@@ -90,7 +90,7 @@ class ProcesamientoGlobalManager:
                 print(f"Procesamiento {procesamiento.numero_procesamiento} {estado}.")
 
     @staticmethod
-    def finalizar_procesamiento_sin_clientes(procesamiento_id):
+    def finalizar_procesamiento_sin_clientes(procesamiento_id: int):
         """
         Marca un procesamiento global como finalizado cuando no hay clientes para procesar.
 
@@ -118,7 +118,7 @@ class CorreoManager:
     """Clase para gestionar el envío de correos."""
 
     @staticmethod
-    def enviar_correos(procesamiento):
+    def enviar_correos(procesamiento: ProcesamientosDiariosGlobal):
         """Envía correos a los clientes según el número de procesamiento."""
         with SessionLocal() as db:
             if procesamiento.numero_procesamiento == 3:
@@ -338,7 +338,7 @@ class ObtenerDatosClientes:
             return pd.DataFrame()
 
     def _verificar_documentacion_cliente(
-        self, db, cliente_id: int
+        self, db: Session, cliente_id: int
     ) -> Optional[Cliente]:
         """
         Verifica si un cliente tiene la documentación habilitada.
@@ -349,8 +349,8 @@ class ObtenerDatosClientes:
 
         Returns:
             Cliente: Objeto cliente si tiene documentación habilitada, None en caso contrario
-        """
-        cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+        """ 
+        cliente: Cliente | None = db.query(Cliente).filter(Cliente.id == cliente_id).first()
         if not cliente or not cliente.documentacion:
             logger.info(
                 f"Cliente {cliente_id} - {cliente.nombre} - excluido por no tener documentacion"
@@ -358,7 +358,7 @@ class ObtenerDatosClientes:
             return None
         return cliente
 
-    def _obtener_jurisdicciones_para_cliente(self, db, cliente_id: int) -> list:
+    def _obtener_jurisdicciones_para_cliente(self, db: Session, cliente_id: int) -> List[tuple[ClienteJurisdiccion, Jurisdiccion]]:
         """
         Obtiene las jurisdicciones configuradas para un cliente.
 
@@ -367,7 +367,7 @@ class ObtenerDatosClientes:
             cliente_id: ID del cliente
 
         Returns:
-            list: Lista de tuplas (ClienteJurisdiccion, Jurisdiccion)
+            List[tuple[ClienteJurisdiccion, Jurisdiccion]]: Lista de tuplas (ClienteJurisdiccion, Jurisdiccion)
         """
         return (
             db.query(ClienteJurisdiccion, Jurisdiccion)
@@ -381,7 +381,7 @@ class ObtenerDatosClientes:
         )
 
     def _agregar_jurisdicciones_a_data(
-        self, jurisdicciones: list, cliente_id: int, data: list
+        self, jurisdicciones: List[tuple[ClienteJurisdiccion, Jurisdiccion]], cliente_id: int, data: list
     ) -> None:
         """
         Agrega las jurisdicciones del cliente al listado de datos.
@@ -539,9 +539,6 @@ class ObtenerDatosClientes:
 
                 logger.info(f"Correos reemplazados por: {test_email}")
 
-            # Mantener la compatibilidad con el formato anterior de query_data
-            # Esto puede personalizarse según las necesidades específicas
-
             return df_result
 
         except Exception as e:
@@ -570,9 +567,9 @@ class ObtenerDatosClientes:
 
             # Convertir a números (0-6) los días configurados
             dias_config = [
-                int(d.strip())
+                int(str(d).strip())
                 for d in cliente.dias_ejecucion.split(separador)
-                if d.strip().isdigit()
+                if str(d).strip().isdigit()
             ]
 
             # Verificar si el día actual está en la configuración
@@ -705,7 +702,7 @@ class ObtenerDatosClientes:
 
         return df_result
 
-    def _debe_procesar_jurisdiccion_local(self, cliente_jurisdiccion) -> bool:
+    def _debe_procesar_jurisdiccion_local(self, cliente_jurisdiccion: ClienteJurisdiccion) -> bool:
         """
         Versión local de debe_procesar_jurisdiccion que no necesita conexión a DB.
         Solo para evaluación, no resetea fecha_login_error.
@@ -731,7 +728,7 @@ class ObtenerDatosClientes:
         # Error de login más reciente que la actualización de credenciales
         return False
 
-    def _resetear_errores_login_batch(self, db, cliente_jurisdicciones: list) -> None:
+    def _resetear_errores_login_batch(self, db: Session, cliente_jurisdicciones: List[ClienteJurisdiccion]) -> None:
         """
         Resetea fecha_login_error para múltiples registros en una sola operación.
 

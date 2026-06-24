@@ -11,12 +11,13 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional, Tuple, Union
-from logger import Logger
+from typing import List, Optional, Tuple
 
 from playwright.async_api import Page, Playwright
 
 from dotenv import load_dotenv
+
+from logger import Logger
 
 load_dotenv()
 
@@ -300,7 +301,7 @@ class Jurisdiccion(ABC):
                 ":has-text('Número de CUIL/CUIT incorrecto')"
             )
             if incorrect_login:
-                raise LoginErrorAfip(self.cliente, "Número de CUIL/CUIT incorrecto")
+                raise LoginErrorAfip(self.cliente, LoginErrorAfip.CREDENCIALES_ARCA)
 
 
             await self.page.get_by_text("Ingresar con Clave Fiscal ").wait_for(state="visible", timeout=18000)
@@ -316,14 +317,13 @@ class Jurisdiccion(ABC):
             )
 
             await self.page.get_by_role("button", name="Ingresar").click(timeout=18000)
-            # await self.page.wait_for_load_state("networkidle", timeout=180000)
             await self.page.wait_for_load_state("load", timeout=180000)
 
             error_locator = self.page.locator(
                 'form[name="F1"]:has-text("Clave o usuario incorrecto")'
             )
             if await error_locator.is_visible():
-                raise LoginErrorAfip(self.cliente)
+                raise LoginErrorAfip(self.cliente, LoginErrorAfip.CREDENCIALES_ARCA)
 
             # Verificar si aparece el mensaje de cambio de contraseña obligatorio
             password_change_locator = self.page.get_by_text(
@@ -621,14 +621,14 @@ class Jurisdiccion(ABC):
         try:
             await self.consultar_notificaciones()
             return None
-        except LoginError as e:
-            self.error = e
-            self.hay_notificacion = e.message
-            return "LoginError"
         except LoginErrorAfip as e:
             self.error = e
             self.hay_notificacion = e.message
             return "LoginErrorAfip"
+        except LoginError as e:
+            self.error = e
+            self.hay_notificacion = e.message
+            return "LoginError"
         except DelegacionError as e:
             self.error = e
             self.hay_notificacion = e.message

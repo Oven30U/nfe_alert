@@ -498,7 +498,7 @@ def send_email_smtp_test():
     Test manual para enviar el correo con contraseña del zip
     """
     from conectar_db import read_and_modify_html
-    from correo_cli import send_email_smtp
+    from mail_smtp import send_email_smtp
 
     # Lista de elementos para el cuarto atributo de read_and_modify_html
     elementos = list(
@@ -709,7 +709,8 @@ async def generic_test_from_db(
                             cj.password,  # clave_fiscal (usuario en ClienteJurisdiccion)
                             fecha_desde,
                             fecha_hasta,
-                            cliente.cuit,  # cuit_cliente_input (usando cuit del cliente como ejemplo; ajusta si hay campo específico)
+                            # cuit_cliente_input (usando cuit del cliente como ejemplo; ajusta si hay campo específico)
+                            cliente.cuit,
                             razon_social_cliente_input=None,  # Ajusta si hay dato en DB
                             texto_notificacion=None,  # Ajusta si hay dato en DB
                             headless=headless,
@@ -782,18 +783,13 @@ if __name__ == "__main__":
 
     # 3. Ejecutar un test por nombre:
     # asyncio.run(run_test_by_name('nacional', headless=False))
-    
+
     # 4. Ejecutar el test de email:
     # send_email_smtp_test()
 
     # 5. Ejecutar test desde DB pasando directamente la clase:
     # asyncio.run(test_jurisdiccion_from_db(EntreRios, headless=False))
-
-    # O usando generic_test_from_db directamente:
+    # # O usando generic_test_from_db directamente:
     # asyncio.run(generic_test_from_db(Cordoba, headless=False))
-
-    # O especificando el nombre de jurisdicción explícitamente:
+    # # O especificando el nombre de jurisdicción explícitamente:
     # asyncio.run(generic_test_from_db(Cordoba, jurisdiccion="CORDOBA", headless=False))
-
-    # Descomentar la línea correspondiente al test que se desea ejecutar
-    # pass

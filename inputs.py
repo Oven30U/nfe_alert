@@ -1,12 +1,12 @@
-import logging
 import os
+import logging
+from typing import Dict
 from datetime import datetime
 import pandas as pd
 from win32com.client import Dispatch
 from conectar_db import (
     get_clientes_ejecutados_hoy_with_retries,
 )
-from jurisdicciones.jurisdiccion import LoggedException
 from logger import Logger
 
 logger = Logger.get_logger()
@@ -17,15 +17,18 @@ EJECUTAR_CLIENTES_LISTA = (
 NOMBRE_ARCHIVO_CLIENTE = os.getenv("NOMBRE_ARCHIVO_CLIENTE", "Carga Jurisdicciones")
 PATH_ESTRUCTURA_ROBOT = os.getenv("PATH_ESTRUCTURA_ROBOT", "Estructura-robot")
 SHEET_ARCHIVO_CLIENTE = os.getenv("SHEET_ARCHIVO_CLIENTE", "Carga de datos")
-log_file_path = os.getenv("LOG_FILE_PATH", "bot.log")
-clientes_si_verificar_config = os.getenv("clientes_si_verificar_config", "").split(",")
+LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "bot.log")
+CLIENTES_SI_VERIFICAR_CONFIG = os.getenv("clientes_si_verificar_config", "").split(",")
 CLIENTES_CON_DOCUMENTACION = os.getenv("CLIENTES_CON_DOCUMENTACION", "").split(",")
 
 
-class InputException(LoggedException):
+class InputException(Exception):
     """Excepción lanzada por errores en la captura de los input."""
 
-    ...
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message
+        logger.error(f"InputException: {message}")
 
 
 def cargar_excels():
@@ -138,19 +141,14 @@ def cerrar_excel(nombres_archivos):
 
 
 def obtener_clientes(
-    # debug,
-    # ejecutar_todos_clientes,
-    # ejecutar_clientes_lista,
-    # sin_debug_ejecutar_ejecutar_lista,
-    # clientes_si_verificar_config,
-    jurisdiccion_clases,
+    jurisdiccion_clases: Dict[str, str],
 ):
     cerrar_excel(NOMBRE_ARCHIVO_CLIENTE)
 
     try:
         df_clientes = cargar_excels()
     except Exception as e:
-        raise InputException(f"No se pudo crear el df_clientes, {str(e)}")
+        raise InputException(f"No se pudo crear el df_clientes, {str(e)}") from e
 
     subset_cols = [
         col
@@ -175,15 +173,13 @@ def obtener_clientes(
             "Domingo",
         ]
         hoy = dias_semana_es[datetime.today().weekday()]
+
         # Filtrar las filas donde la columna "Día/s de ejecución" contenga el día de hoy
         df_clientes = df_clientes[
             df_clientes["Dia/s de ejecución"].str.contains(hoy, case=False, na=False)
         ]
 
         clientes_si_verificar = df_clientes["client_folder"].unique().tolist()
-        # clientes_no_verificar = []
-
-        # Todo: Ver que hacer en caso de faya de conexión del server
         try:
             clientes_pendientes_verificar = get_clientes_ejecutados_hoy_with_retries(
                 clientes_si_verificar
@@ -194,10 +190,10 @@ def obtener_clientes(
             )
             # clientes_pendientes_verificar = []
             clientes_pendientes_verificar = df_clientes
-            with open(log_file_path, "a") as log_file:
+            with open(LOG_FILE_PATH, "a") as log_file:
                 log_file.write(f"Exception: {str(e)}\n")
     else:
-        clientes_pendientes_verificar = clientes_si_verificar_config  # Si estamos en modo desarrollo, modificar los correos para los clientes de la lista predefinida
+        clientes_pendientes_verificar = CLIENTES_SI_VERIFICAR_CONFIG  # Si estamos en modo desarrollo, modificar los correos para los clientes de la lista predefinida
 
     if not df_clientes.empty:
         dev_mode = os.getenv("DEV_MODE", "False").lower()
@@ -206,7 +202,7 @@ def obtener_clientes(
                 "Modo desarrollo: Usando correo de prueba para los clientes predefinidos"
             )
             test_email = os.getenv(
-                "CORREO_RECEPTOR_TEST_MAIL", "amiriarte@deloitte.com"
+                "CORREO_RECEPTOR_TEST_MAIL", "rpa-tax-ar@deloitte.com"
             )
             df_clientes["To: Equipo Cliente"] = test_email
             df_clientes["CC: Equipo Deloitte"] = test_email
@@ -253,7 +249,7 @@ def obtener_clientes(
         df_clientes["cuit_cliente"] = df_clientes["cuit_cliente"].str.replace("-", "")
 
         df_clientes["Jurisdiccion"] = df_clientes["Jurisdiccion"].apply(
-            lambda x: x.strip()
+            lambda x: str(x).strip()
         )
         df_clientes["Jurisdiccion"] = df_clientes["Jurisdiccion"].replace(
             jurisdiccion_clases

@@ -121,7 +121,7 @@ class Agip(Jurisdiccion):
         success_locator = self.page.get_by_role("heading", name="Búsqueda de aplicativos/")
 
         try:
-            await expect(error_locator).to_be_visible(timeout=3000)
+            await error_locator.wait_for(state="visible", timeout=3000)
             raise LoginError(self.cliente)
         except TimeoutError:
             pass
@@ -379,6 +379,7 @@ async def main():
             fecha_desde,
             fecha_hasta,
             cuit_cliente_input,
+            cuit_cliente_input=cuit_cliente_input,
             headless=False,
         )
         await agip.procesar_jurisdiccion()
