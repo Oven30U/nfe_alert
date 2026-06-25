@@ -1,7 +1,6 @@
-import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright, Page
+from playwright.async_api import Playwright, Page
 
 from jurisdicciones.jurisdiccion import (
     Jurisdiccion,
@@ -455,32 +454,3 @@ def clean_texto_enlace(input_str: str) -> str:
     result = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
     result = result.replace("factura de credito electronica", "fce")
     return result
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_NACIONAL_CLIENT")
-        cuit_Nacional = os.getenv("TEST_NACIONAL_CUIT")
-        clave_fiscal_Nacional = os.getenv("TEST_NACIONAL_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_NACIONAL_CUIT_CLIENTE_INPUT")
-
-        nacional = await Nacional.create(
-            playwright,
-            client,
-            cuit_Nacional,
-            clave_fiscal_Nacional,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await nacional.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

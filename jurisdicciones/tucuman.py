@@ -1,9 +1,7 @@
-import os
 import re
 from datetime import datetime
-from typing import Optional
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, DelegacionError
 
@@ -117,9 +115,7 @@ class Tucuman(Jurisdiccion):
                 break
         else:
             # Si no se encontró el CUIT, lanza excepción de delegación (sin screenshot)
-            raise DelegacionError(
-                self.cliente
-            )
+            raise DelegacionError(self.cliente)
         
         # Esperar a que el botón "Confirmar" esté visible y hacer clic
         confirm_button = self.page.locator("text='Confirmar'")
@@ -358,32 +354,3 @@ class Tucuman(Jurisdiccion):
                     return False
         
         return False
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_TUCUMAN_CLIENT")
-        cuit_Tucuman = os.getenv("TEST_TUCUMAN_CUIT")
-        clave_fiscal_Tucuman = os.getenv("TEST_TUCUMAN_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_TUCUMAN_CUIT_CLIENTE_INPUT")
-
-        tucuman = await Tucuman.create(
-            playwright,
-            client,
-            client,  # client_folder
-            cuit_Tucuman,
-            clave_fiscal_Tucuman,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await tucuman.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

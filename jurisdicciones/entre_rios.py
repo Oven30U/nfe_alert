@@ -1,7 +1,6 @@
-import os
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, Page, TimeoutError as PlaywrightTimeoutError
 
-from jurisdicciones.jurisdiccion import Jurisdiccion
+from jurisdicciones.jurisdiccion import Jurisdiccion, DelegacionError
 
 
 class EntreRios(Jurisdiccion):
@@ -107,7 +106,7 @@ class EntreRios(Jurisdiccion):
         )
         await self.page.click("a.dropdown-item")
         popup_info = await self.page.wait_for_event("popup")
-        self.new_page = popup_info
+        self.new_page: Page = popup_info
         await self.new_page.wait_for_load_state("networkidle")
 
         # Si aparece el botón de cerrar modal, darle click
@@ -115,12 +114,14 @@ class EntreRios(Jurisdiccion):
             await self.new_page.click("button.close[data-dismiss='modal']")
 
         cuit_contribuyente = await self.formatear_cuit(self._cuit_cliente_input)
-        # await self.page.click(
-        #     f'xpath=//*[@id="textoFiltro"][contains(text(), "{cuit_contribuyente}")]'
-        # )
-        await self.new_page.locator(
-            f"xpath=//*[contains(text(), '{cuit_contribuyente}')]"
-        ).click()
+
+        try:
+            await self.new_page.locator(
+                f"xpath=//*[contains(text(), '{cuit_contribuyente}')]"
+            ).click()
+        except PlaywrightTimeoutError as e:
+            raise DelegacionError(self.cliente) from e
+
         await self.new_page.wait_for_load_state("load")
         await self.new_page.wait_for_load_state("domcontentloaded")
         await self.new_page.wait_for_load_state("networkidle")
@@ -169,30 +170,3 @@ class EntreRios(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_ENTRE_RIOS_CLIENT")
-        cuit_EntreRios = os.getenv("TEST_ENTRE_RIOS_CUIT")
-        clave_fiscal_EntreRios = os.getenv("TEST_ENTRE_RIOS_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_ENTRE_RIOS_CUIT_CLIENTE_INPUT")
-        entre_rios = await EntreRios.create(
-            playwright,
-            client,
-            cuit_EntreRios,
-            clave_fiscal_EntreRios,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await entre_rios.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

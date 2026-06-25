@@ -1,8 +1,7 @@
 import asyncio
-import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, Page
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
@@ -81,7 +80,7 @@ class SantiagoDelEstero(Jurisdiccion):
         await self.page.locator("//input[@id='vUSUPWD']").fill(f"{self._clave_fiscal}")
         await self.page.locator("//input[@value='Confirmar']").click()
         await self.page.wait_for_load_state("load", timeout=10000)
-        await self.page.wait_for_selector(
+        await self.page.wait_for_selector( #! TODO: Consultar si hay error de delegacion si no se ve
             "(//a[contains(text(),'Domicilio Fiscal Electrónico')])[1]", timeout=10000
         )
         await self.page.locator(
@@ -101,7 +100,7 @@ class SantiagoDelEstero(Jurisdiccion):
         self.logger.debug("Clic en botón realizado, esperando nuevo pop-up...")
 
         try:
-            new_page = await asyncio.wait_for(
+            new_page: Page = await asyncio.wait_for(
                 self.page.wait_for_event("popup"), timeout=5000
             )
             self.logger.debug("Popup detectado!")
@@ -120,10 +119,6 @@ class SantiagoDelEstero(Jurisdiccion):
             await self.page.wait_for_selector(
                 "//h3[normalize-space(.) = 'Bandeja de Entrada']", timeout=60000
             ) # !!! TODO : Modificar en el servidor
-            # await new_page.goto(
-            #     "https://dfe.dgrsantiago.gob.ar:8090/domicilioelectronico/faces/contribuyentes/bandejadentradacontribuyente.xhtml"
-            # )
-            # Actualizamos self.page para que el flujo continúe usando el nuevo pop-up
 
     async def buscar_notificacion(self):
         fechas_disposicion = await self.page.locator(
@@ -158,35 +153,3 @@ class SantiagoDelEstero(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-
-            client = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CLIENT")
-            cuit_SantiagoDelEstero = os.getenv("TEST_SANTIAGO_DEL_ESTERO_CUIT")
-            clave_fiscal_SantiagoDelEstero = os.getenv(
-                "TEST_SANTIAGO_DEL_ESTERO_CLAVE_FISCAL"
-            )
-            cuit_cliente_input = os.getenv(
-                "TEST_SANTIAGO_DEL_ESTERO_CUIT_CLIENTE_INPUT"
-            )
-
-            santiago_del_estero = await SantiagoDelEstero.create(
-                playwright,
-                client,
-                cuit_SantiagoDelEstero,
-                clave_fiscal_SantiagoDelEstero,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-                headless=False,
-            )
-            await santiago_del_estero.procesar_jurisdiccion()
-
-    asyncio.run(main())

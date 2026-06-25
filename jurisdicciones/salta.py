@@ -1,9 +1,4 @@
-import os
-from datetime import datetime
-
-# import requests
-# from playwright_stealth import stealth_async
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright
 
 from jurisdicciones.jurisdiccion import (
     Jurisdiccion,
@@ -384,30 +379,3 @@ class Salta(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-            client = os.getenv("TEST_SALTA_CLIENT")
-            cuit_Salta = os.getenv("TEST_SALTA_CUIT")
-            clave_fiscal_Salta = os.getenv("TEST_SALTA_CLAVE_FISCAL")
-            cuit_cliente_input = os.getenv("TEST_SALTA_CUIT_CLIENTE_INPUT")
-
-            salta = await Salta.create(
-                playwright,
-                client,
-                cuit_Salta,
-                clave_fiscal_Salta,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-                headless=False,
-            )
-            await salta.procesar_jurisdiccion()
-
-    asyncio.run(main())

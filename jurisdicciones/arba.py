@@ -1,7 +1,6 @@
-import os
 from datetime import datetime
 import asyncio
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright
 
 from jurisdicciones.jurisdiccion import (
     Jurisdiccion,
@@ -128,7 +127,7 @@ class Arba(Jurisdiccion):
         """
         await self._login()
 
-        await self.page.click("xpath=//span[contains(text(), 'DFE')]", timeout=60000)
+        await self.page.click("xpath=//span[contains(text(), 'DFE')]", timeout=60000) #! TODO: Consultar si hay error de delegacion si no se ve
         await self.page.wait_for_load_state("load")
 
         if await self.page.is_visible("text=Seleccione un rol", timeout=60000):
@@ -186,31 +185,3 @@ class Arba(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_ARBA_CLIENT")
-        cuit_Arba = os.getenv("TEST_ARBA_CUIT")
-        clave_fiscal_Arba = os.getenv("TEST_ARBA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_ARBA_CUIT_CLIENTE_INPUT")
-        client_folder = os.getenv("TEST_ARBA_CLIENT_FOLDER")
-
-        arba = await Arba.create(
-            playwright,
-            client,
-            client_folder,
-            cuit_Arba,
-            clave_fiscal_Arba,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await arba.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())

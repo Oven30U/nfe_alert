@@ -1,8 +1,6 @@
-import os
+from playwright.async_api import Playwright, TimeoutError as PlaywrightTimeoutError
 
-from playwright.async_api import Playwright, async_playwright
-
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError, DelegacionError
 
 
 class SanLuis(Jurisdiccion):
@@ -92,9 +90,14 @@ class SanLuis(Jurisdiccion):
         if await self.page.is_visible("text=Credenciales de conexión no válidas"):
             raise LoginError(self.cliente)
         await self.page.wait_for_load_state("networkidle")
-        await self.page.locator(
-            f"//td[b[contains(text(), '{self._cuit_cliente_input}')]]/following-sibling::td//button"
-        ).click()
+
+        try:
+            await self.page.locator(
+                f"//td[b[contains(text(), '{self._cuit_cliente_input}')]]/following-sibling::td//button"
+            ).click()
+        except PlaywrightTimeoutError as e:
+            raise DelegacionError(self.cliente) from e
+
         await self.page.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
@@ -147,31 +150,3 @@ class SanLuis(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-
-            client = os.getenv("TEST_SAN_LUIS_CLIENT")
-            cuit_SanLuis = os.getenv("TEST_SAN_LUIS_CUIT")
-            clave_fiscal_SanLuis = os.getenv("TEST_SAN_LUIS_CLAVE_FISCAL")
-            cuit_cliente_input = os.getenv("TEST_SAN_LUIS_CUIT_CLIENTE_INPUT")
-
-            san_luis = await SanLuis.create(
-                playwright,
-                client,
-                cuit_SanLuis,
-                clave_fiscal_SanLuis,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-                headless=False,
-            )
-            await san_luis.procesar_jurisdiccion()
-
-    asyncio.run(main())

@@ -1,5 +1,4 @@
-import os
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
@@ -114,30 +113,3 @@ class Misiones(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_MISIONES_CLIENT")
-        cuit_Misiones = os.getenv("TEST_MISIONES_CUIT")
-        clave_fiscal_Misiones = os.getenv("TEST_MISIONES_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_MISIONES_CUIT_CLIENTE_INPUT")
-        misiones = await Misiones.create(
-            playwright,
-            client,
-            cuit_Misiones,
-            clave_fiscal_Misiones,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await misiones.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

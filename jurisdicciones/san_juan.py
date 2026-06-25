@@ -1,9 +1,8 @@
-import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, Page, async_playwright
+from playwright.async_api import Playwright, Page, TimeoutError as PlaywrightTimeoutError
 
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError, DelegacionError
 
 
 class SanJuan(Jurisdiccion):
@@ -132,16 +131,16 @@ class SanJuan(Jurisdiccion):
         ):
             raise LoginError(self.cliente)
 
-        # if (await  self.page.is_visible("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]")):
-        #     await self.page.locator("//div[@class='modal-content']//span[contains(text(),'Iniciar con CUR')]").click()
-
-        # await self.page.wait_for_load_state("networkidle")
-        # await self.page.goto("https://rentas.dgrsj.gob.ar/Notificaciones/getListadoDeNotificaciones")
         await self.page.wait_for_load_state("networkidle")
         await self.page.locator(
             "(//button[contains(@class,'btn btn-primary bg-primary dropdown-toggle-split dropdown-toggle text-white')])[2]"
         ).click()
-        await self.page.locator(f"a:has(.text-muted:has-text('{self.cuit_cliente_input}')):visible").click()
+
+        try:
+            await self.page.locator(f"a:has(.text-muted:has-text('{self.cuit_cliente_input}')):visible").click()
+        except PlaywrightTimeoutError as e:
+            raise DelegacionError(self.cliente) from e
+
         if await self.page.is_visible(
             "//button[contains(@id,'btnMensajeAceptar')]", timeout=5000
         ):
@@ -174,31 +173,3 @@ class SanJuan(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-
-            client = os.getenv("TEST_SAN_JUAN_CLIENT")
-            cuit_SanJuan = os.getenv("TEST_SAN_JUAN_CUIT")
-            clave_fiscal_SanJuan = os.getenv("TEST_SAN_JUAN_CLAVE_FISCAL")
-            cuit_cliente_input = os.getenv("TEST_SAN_JUAN_CUIT_CLIENTE_INPUT")
-
-            san_juan = await SanJuan.create(
-                playwright,
-                client,
-                cuit_SanJuan,
-                clave_fiscal_SanJuan,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-                cuit_cliente_input=cuit_SanJuan,
-            )
-            await san_juan.procesar_jurisdiccion()
-
-    asyncio.run(main())

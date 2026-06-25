@@ -1,20 +1,6 @@
-import os
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
-
-# from datetime import datetime
-
-
-async def wait_for_selector_with_retry(page, selector, retries=3, timeout=30000):
-    for attempt in range(retries):
-        if await page.wait_for_selector(selector, timeout=timeout):
-            return
-        else:
-            if attempt < retries - 1:
-                continue
-            else:
-                raise
 
 
 class Chaco(Jurisdiccion):
@@ -93,25 +79,10 @@ class Chaco(Jurisdiccion):
             "https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/iniciocontribuyente",
             wait_until="networkidle",
         )
-        # # Minimizar la ventana del navegador usando la API de DevTools
-        # client = await self.page.context.new_cdp_session(self.page)
-        # window_info = await client.send('Browser.getWindowForTarget')
-        # window_id = window_info['windowId']
-        # await client.send('Browser.setWindowBounds', {
-        #     'windowId': window_id,
-        #     'bounds': {'windowState': 'minimized'}
-        # })
-
-        # await self.page.evaluate("window.moveTo(0, 0); window.resizeTo(0, 0);")
-        # await self.page.add_style_tag(
-        # content="*, *::before, *::after { transition: none !important; animation: none !important; }")
-        # await self.context.newPage({'viewport': {'width': 1280, 'height': 800}})
         await self.page.goto(
             "https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/iniciocontribuyente",
             wait_until="networkidle",
         )
-        # await self.page.wait_for_selector("#vCONCUIT")
-        # await wait_for_selector_with_retry(self.page, "#vCONCUIT")
         await self.page.locator("#vCONCUIT").fill(f"{self._cuit}")
         await self.page.locator("#vCONTRASENA").fill(f"{self._clave_fiscal}")
         await self.page.locator("//input[@name='BUTTON1']").click()
@@ -121,17 +92,6 @@ class Chaco(Jurisdiccion):
         await self.page.locator("//input[@name='BTNACEPTAR']").click()
         await self.page.wait_for_load_state("networkidle")
         await self.page.wait_for_load_state("load")
-        # max_retry = 3
-        # retry = 0
-        # while not await self.page.is_visible("//a[contains(text(), 'Mi Ventanilla')]") and retry < max_retry:
-        #     await self.page.locator("//input[@name='BTNACEPTAR']").click()
-        #     retry += 1
-        # await self.page.locator("//a[contains(text(), 'Mi Ventanilla')]").click()
-        # await self.page.wait_for_selector("//a[contains(text(), 'Avisos')]")
-        # await self.page.locator("//a[contains(text(), 'Avisos')]").click()
-        # https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?4DIYuQQKBgi01OQ3HlzQLKcqdGG8GOUC+DXfz/HUZVGImNMPi1vQi9WjdGcyGpPE
-        # https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?4DIYuQQKBgi01OQ3HlzQLKcqdGG8GOUC+DXfz/HUZVGImNMPi1vQi9WjdGcyGpPE
-        # https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?IHG7CHvg0lUSUr4E6VSOdtFhvggPU869hfJNFv5nLM8AuDif3N+XuysFAgIsNd80
         await self.page.goto(
             "https://atp-lb1.ecomchaco.com.ar/ATPWeb/servlet/notifica_miventanillaelectronicaadj?",
             wait_until="networkidle",
@@ -139,53 +99,14 @@ class Chaco(Jurisdiccion):
         await self.page.wait_for_load_state("networkidle")
 
     async def buscar_notificacion(self):
-        await self.page.is_visible("text=Avisos - Mi Ventanilla Electrónica")
+        await self.page.is_visible("text=Avisos - Mi Ventanilla Electrónica") #! TODO: Consultar si hay error de delegacion si no se ve
         filas = await self.page.locator(
             "//table[@id='Grid1ContainerTbl']//tbody//tr"
         ).all()
         return True if filas else False
-        # fecha_desde_dt = datetime.strptime(self.fecha_desde, "%d%m%Y")
-        # fecha_hasta_dt = datetime.strptime(self.fecha_hasta, "%d%m%Y")
-        # for cell in cells:
-        #     text = await cell.inner_text()
-        #     try:
-        #         cell_date = datetime.strptime(text, "%d/%m/%Y %H:%M")
-        #         if fecha_desde_dt <= cell_date <= fecha_hasta_dt:
-        #             return True
-        #     except ValueError:
-        #         continue
-        # return False
 
     async def tomar_screenshot(self):
         return await super().tomar_screenshot(self.page)
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-
-            client = os.getenv("TEST_CHACO_CLIENT")
-            cuit_Chaco = os.getenv("TEST_CHACO_CUIT")
-            clave_fiscal_Chaco = os.getenv("TEST_CHACO_CLAVE_FISCAL")
-            cuit_cliente_input = os.getenv("TEST_CHACO_CUIT_CLIENTE_INPUT")
-
-            chaco = await Chaco.create(
-                playwright,
-                client,
-                cuit_Chaco,
-                clave_fiscal_Chaco,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-                # headless=False
-            )
-            await chaco.procesar_jurisdiccion()
-
-    asyncio.run(main())

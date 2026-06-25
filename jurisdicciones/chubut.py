@@ -1,7 +1,6 @@
-import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
@@ -87,7 +86,7 @@ class Chubut(Jurisdiccion):
             raise LoginError(self.cliente)
 
     async def buscar_notificacion(self):
-        fechas_envio_comunicaciones = await self.page.locator(
+        fechas_envio_comunicaciones = await self.page.locator(      #! TODO: Consultar si hay error de delegacion si no se ve
             "//table[@id='actos_grid']//tr[@tabindex='-1']//td[3]"
         ).all()
         fechas_envio_fiscalizaciones = await self.page.locator(
@@ -123,30 +122,3 @@ class Chubut(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-
-            client = os.getenv("TEST_CHUBUT_CLIENT")
-            cuit_Chubut = os.getenv("TEST_CHUBUT_CUIT")
-            clave_fiscal_Chubut = os.getenv("TEST_CHUBUT_CLAVE_FISCAL")
-            cuit_cliente_input = os.getenv("TEST_CHUBUT_CUIT_CLIENTE_INPUT")
-
-            chubut = await Chubut.create(
-                playwright,
-                client,
-                cuit_Chubut,
-                clave_fiscal_Chubut,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-            )
-            await chubut.procesar_jurisdiccion()
-
-    asyncio.run(main())

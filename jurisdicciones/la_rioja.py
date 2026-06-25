@@ -1,7 +1,6 @@
-import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
@@ -96,7 +95,7 @@ class LaRioja(Jurisdiccion):
     async def buscar_notificacion(self):
         # frame = self.page.frames[0]
         frame = self.page.frame_locator('iframe[name="gxpea000098000025"]')
-        await frame.locator("//input[@title='Domicilio Fiscal Electrónico']").wait_for(
+        await frame.locator("//input[@title='Domicilio Fiscal Electrónico']").wait_for(  #! TODO: Consultar si hay error de delegacion si no se ve
             state="visible"
         )
         await frame.locator("//input[@title='Domicilio Fiscal Electrónico']").click()
@@ -125,31 +124,3 @@ class LaRioja(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_LA_RIOJA_CLIENT")
-        cuit_LaRioja = os.getenv("TEST_LA_RIOJA_CUIT")
-        clave_fiscal_LaRioja = os.getenv("TEST_LA_RIOJA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_LA_RIOJA_CUIT_CLIENTE_INPUT")
-
-        la_rioja = await LaRioja.create(
-            playwright,
-            client,
-            cuit_LaRioja,
-            clave_fiscal_LaRioja,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await la_rioja.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

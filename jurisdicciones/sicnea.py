@@ -1,13 +1,8 @@
-import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright, Frame, Page
+from playwright.async_api import Playwright, Frame, Page
 
 from jurisdicciones.jurisdiccion import DelegacionError, Jurisdiccion, LoginError
-
-# from logger import Logger
-
-# logger: Logger = Logger.get_logger()
 
 
 class Sicnea(Jurisdiccion):
@@ -212,7 +207,7 @@ class Sicnea(Jurisdiccion):
                     f"Client CUIT {self.cuit_cliente_input} not found in dropdown options. "
                     "Service may not be delegated properly."
                 )
-                raise LoginError(self.cliente, LoginError.PENDIENTE_DELEGACION)
+                raise DelegacionError(self.cliente)
 
             # Select client's CUIT from dropdown
             await self.new_page_2.select_option(
@@ -464,32 +459,3 @@ class Sicnea(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-            client = os.getenv("TEST_SICNEA_CLIENT")
-            client_folder = os.getenv("TEST_SICNEA_CLIENT_FOLDER")
-            cuit_sicnea = os.getenv("TEST_SICNEA_CUIT")
-            clave_fiscal_sicnea = os.getenv("TEST_SICNEA_CLAVE_FISCAL")
-            cuit_cliente_input = os.getenv("TEST_SICNEA_CUIT_CLIENTE_INPUT")
-
-            sicnea = await Sicnea.create(
-                playwright,
-                client,
-                client_folder,
-                cuit_sicnea,
-                clave_fiscal_sicnea,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-                headless=False,
-            )
-            await sicnea.procesar_jurisdiccion()
-
-    asyncio.run(main())

@@ -1,8 +1,7 @@
-import os
-from playwright.async_api import Playwright, async_playwright
 from datetime import datetime
+from playwright.async_api import Playwright, TimeoutError as PlaywrightTimeoutError
 
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError, DelegacionError
 
 
 class LaPampa(Jurisdiccion):
@@ -95,10 +94,15 @@ class LaPampa(Jurisdiccion):
         if await iframe.is_visible("text=PASSWORD INCORRECTO"):
             raise LoginError(self.cliente)
 
-        cuit_clic = self._cuit_cliente_input[:2] + "-" + self._cuit_cliente_input[2:]
-        await iframe.click(
-            f"//form[@id='FrmSeleccionEmpresa']//td[contains(text(),'{cuit_clic}')]/following-sibling::td[2]/input[@type='radio']"
-        )
+        cuit_click = self._cuit_cliente_input[:2] + "-" + self._cuit_cliente_input[2:]
+
+        try:
+            await iframe.click(
+                f"//form[@id='FrmSeleccionEmpresa']//td[contains(text(),'{cuit_click}')]/following-sibling::td[2]/input[@type='radio']"
+            )
+        except PlaywrightTimeoutError as e:
+            raise DelegacionError(self.cliente) from e
+
         await iframe.click("input#vConfirmar")
         await self.page.wait_for_load_state("networkidle")
         await iframe.locator('div#lblBandeja').wait_for(state='visible')
@@ -153,31 +157,3 @@ class LaPampa(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_LA_PAMPA_CLIENT")
-        cuit_LaPampa = os.getenv("TEST_LA_PAMPA_CUIT")
-        clave_fiscal_LaPampa = os.getenv("TEST_LA_PAMPA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_LA_PAMPA_CUIT_CLIENTE_INPUT")
-
-        la_pampa = await LaPampa.create(
-            playwright,
-            client,
-            cuit_LaPampa,
-            clave_fiscal_LaPampa,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await la_pampa.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

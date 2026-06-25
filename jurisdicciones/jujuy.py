@@ -1,7 +1,6 @@
-import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
@@ -155,31 +154,3 @@ class Jujuy(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-
-            client = os.getenv("TEST_JUJUY_CLIENT")
-            cuit_Jujuy = os.getenv("TEST_JUJUY_CUIT")
-            clave_fiscal_Jujuy = os.getenv("TEST_JUJUY_CLAVE_FISCAL")
-            cuit_cliente_input = os.getenv("TEST_JUJUY_CUIT_CLIENTE_INPUT")
-
-            jujuy = await Jujuy.create(
-                playwright,
-                client,
-                cuit_Jujuy,
-                clave_fiscal_Jujuy,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-                headless=False,
-            )
-            await jujuy.procesar_jurisdiccion()
-
-    asyncio.run(main())

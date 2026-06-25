@@ -1,10 +1,9 @@
-import os
 from datetime import datetime
 import re
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright
 
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+from jurisdicciones.jurisdiccion import Jurisdiccion
 
 
 class Corrientes(Jurisdiccion):
@@ -92,7 +91,7 @@ class Corrientes(Jurisdiccion):
         await self.page.get_by_role("button", name="Ingresar").click()
         await self.page.wait_for_load_state("networkidle")
         await self.page.wait_for_selector("text=Domicilio Fiscal Electrónico")
-        await (
+        await (     #! TODO: Consultar si hay error de delegacion si no se ve
             self.page.locator("div")
             .filter(has_text=re.compile(r"^DFEDomicilio Fiscal Electrónico$"))
             .nth(1)
@@ -127,31 +126,3 @@ class Corrientes(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-
-            client = os.getenv("TEST_CORRIENTES_CLIENT")
-            cuit_Corrientes = os.getenv("TEST_CORRIENTES_CUIT")
-            clave_fiscal_Corrientes = os.getenv("TEST_CORRIENTES_CLAVE_FISCAL")
-            cuit_cliente_input = os.getenv("TEST_CORRIENTES_CUIT_CLIENTE_INPUT")
-
-            corrientes = await Corrientes.create(
-                playwright,
-                client,
-                cuit_Corrientes,
-                clave_fiscal_Corrientes,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-                headless=False,
-            )
-            await corrientes.procesar_jurisdiccion()
-
-    asyncio.run(main())

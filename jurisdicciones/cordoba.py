@@ -1,8 +1,6 @@
-import os
 from datetime import datetime
 
-from playwright._impl._errors import TimeoutError
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, TimeoutError as PlaywrightTimeoutError
 
 from jurisdicciones.jurisdiccion import (
     ConsultarNotificacionesError,
@@ -106,7 +104,7 @@ class Cordoba(Jurisdiccion):
                 timeout=90000,
             )
             await self.page.wait_for_load_state("load", timeout=900000)
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             self.logger.info("Cordoba: Botón 'Adherir' no apareció, continuando.")
         except Exception as e:
             self.logger.error(f"Cordoba: Error al adherir servicio: {e}")
@@ -178,7 +176,7 @@ class Cordoba(Jurisdiccion):
                     timeout=90000,
                 )
                 cambio_representado = True
-            except TimeoutError:
+            except PlaywrightTimeoutError:
                 # Manejo de paginación si el elemento no se encuentra
                 pagination_locator = "//ul[@class='pagination']//li[@class='page-item active ng-star-inserted']/following-sibling::li[1]"
                 try:
@@ -188,7 +186,7 @@ class Cordoba(Jurisdiccion):
                         timeout=12000,
                     )
                     await self.page.click(pagination_locator)
-                except TimeoutError as e:
+                except PlaywrightTimeoutError as e:
                     try:
                         await self.page.goto(
                             "https://www.rentascordoba.gob.ar/mi-perfil/representado"
@@ -207,7 +205,7 @@ class Cordoba(Jurisdiccion):
                         cont += 1
                         if cont + 1 == retries:
                             raise DelegacionError(self.cliente) from e
-                    except TimeoutError as e:
+                    except PlaywrightTimeoutError as e:
                         self.logger.warning(
                             "No se encontró el representado ni la paginación."
                         )
@@ -292,10 +290,9 @@ class Cordoba(Jurisdiccion):
         return self.hay_notificacion
 
     async def tomar_screenshot(self):
-        # raise TimeoutError("La página se encuentra caída")
         try:
             await self.page.wait_for_load_state("networkidle", timeout=60000)
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             self.logger.warning(
                 "Cordoba Tiempo de espera superado, se toma screenshot igualmente"
             )
@@ -303,32 +300,3 @@ class Cordoba(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-
-            client = os.getenv("TEST_CORDOBA_CLIENT")
-            cuit_cordoba = os.getenv("TEST_CORDOBA_CUIT")
-            clave_fiscal_cordoba = os.getenv("TEST_CORDOBA_CLAVE_FISCAL")
-            cuit_cliente_input = os.getenv("TEST_CORDOBA_CUIT_CLIENTE_INPUT")
-            client_folder = os.getenv("TEST_CORDOBA_CLIENT_FOLDER")
-
-            cordoba: Cordoba = await Cordoba.create(
-                playwright,
-                client,
-                client_folder,
-                cuit_cordoba,
-                clave_fiscal_cordoba,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-            )
-            await cordoba.procesar_jurisdiccion()
-
-    asyncio.run(main())

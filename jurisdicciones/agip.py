@@ -1,7 +1,6 @@
-import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, TimeoutError, async_playwright, expect
+from playwright.async_api import Playwright, TimeoutError as PlaywrightTimeoutError, expect
 
 from jurisdicciones.jurisdiccion import (
     ConsultarNotificacionesError,
@@ -98,7 +97,7 @@ class Agip(Jurisdiccion):
 
         try:
             await self._login_clave_ciudad() if locator_visible else self._login_miba()
-        except (LoginError, TimeoutError):
+        except (LoginError, PlaywrightTimeoutError):
             try:
                 await self._login_miba() if locator_visible else self._login_clave_ciudad()
             except LoginError as e:
@@ -111,7 +110,7 @@ class Agip(Jurisdiccion):
         await self.page.wait_for_load_state("networkidle")
 
         cuit_input = self.page.locator("input#cuit")
-        
+
         await expect(cuit_input).to_be_visible(timeout=180000)
         await cuit_input.fill(f"{self._cuit}")
         await self.page.locator("input#clave").fill(f"{self._clave_fiscal}")
@@ -123,12 +122,12 @@ class Agip(Jurisdiccion):
         try:
             await error_locator.wait_for(state="visible", timeout=3000)
             raise LoginError(self.cliente)
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             pass
 
         try:
             await expect(success_locator).to_be_visible(timeout=120000)
-        except TimeoutError as e:
+        except PlaywrightTimeoutError as e:
             raise LoginError(self.cliente) from e
 
     async def _login_miba(self) -> None:
@@ -174,9 +173,13 @@ class Agip(Jurisdiccion):
         try:
             await self._login()
 
-            await self.page.select_option(
-                "select[name='cuit_representado']", f"{self._cuit_cliente_input}"
-            )
+            try:
+                await self.page.select_option(
+                    "select[name='cuit_representado']", f"{self._cuit_cliente_input}"
+                )
+            except PlaywrightTimeoutError as e:
+                raise DelegacionError(self.cliente) from e
+
             await self.page.type(
                 'xpath=//*[@id="filtro_app"]', "Domicilio Fiscal Electrónico", delay=1
             )
@@ -200,10 +203,7 @@ class Agip(Jurisdiccion):
                 if await nueva_cuenta_link.is_visible():
                     await nueva_cuenta_link.click()
                 else:
-                    raise DelegacionError(
-                        self.cliente,
-                        "Servicio pendiente de delegación",
-                    )
+                    raise DelegacionError(self.cliente)
                 await self.page.wait_for_load_state("networkidle")
                 await self.page.wait_for_selector(
                     "p.text-razonsocial", state="visible", timeout=60000
@@ -245,7 +245,7 @@ class Agip(Jurisdiccion):
             )
             # Si aparece, proceder con la lógica de lb.agip.gob.ar
             return await self._buscar_en_lb_agip()
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             # Si no aparece el h3 en 1 minuto, proceder con la lógica de portal-cct
             if "//portal-cct" in self.page.url:
                 return await self._buscar_en_portal_cct()
@@ -359,33 +359,3 @@ class Agip(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_AGIP_CLIENT")
-        cuit_Agip = os.getenv("TEST_AGIP_CUIT")
-        clave_fiscal_Agip = os.getenv("TEST_AGIP_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_AGIP_CUIT_CLIENTE_INPUT")
-
-        agip = await Agip.create(
-            playwright,
-            client,
-            cuit_Agip,
-            clave_fiscal_Agip,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            cuit_cliente_input=cuit_cliente_input,
-            headless=False,
-        )
-        await agip.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

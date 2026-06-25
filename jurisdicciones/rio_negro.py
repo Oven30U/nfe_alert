@@ -1,9 +1,8 @@
-import os
 from datetime import datetime
 
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, TimeoutError as PlaywrightTimeoutError
 
-from jurisdicciones.jurisdiccion import Jurisdiccion
+from jurisdicciones.jurisdiccion import Jurisdiccion, DelegacionError
 
 
 class RioNegro(Jurisdiccion):
@@ -98,23 +97,22 @@ class RioNegro(Jurisdiccion):
             except Exception as e:
                 break
 
-
-
-
     async def consultar_notificaciones(self):
         await self.AFIP_login(
             rio_negro_success_url="https://siatwagencia.rionegro.gov.ar/rn/Extranet/index.php"
         )
         await self.page.wait_for_load_state("domcontentloaded")
         await self.page.wait_for_selector('xpath=//select[@id="cuit_opera"]')
-        await self.page.select_option(
-            'xpath=//select[@id="cuit_opera"]', str(self._cuit_cliente_input)
-        )
+
+        try:
+            await self.page.select_option(
+                'xpath=//select[@id="cuit_opera"]', str(self._cuit_cliente_input)
+            )
+        except PlaywrightTimeoutError as e:
+            raise DelegacionError(self.cliente) from e
+
         await self.page.click("#btn_ingresar")
         await self.page.wait_for_load_state("networkidle")
-        # popup_aceptar_button = self.page.get_by_text("ACEPTAR")
-        # if await popup_aceptar_button.is_visible():
-        #     await popup_aceptar_button.click()
         await self._click_on_aceptar_popup()
 
     async def buscar_notificacion(self):
@@ -265,30 +263,3 @@ class RioNegro(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-        client = os.getenv("TEST_RIO_NEGRO_CLIENT")
-        cuit_RioNegro = os.getenv("TEST_RIO_NEGRO_CUIT")
-        clave_fiscal_RioNegro = os.getenv("TEST_RIO_NEGRO_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_RIO_NEGRO_CUIT_CLIENTE_INPUT")
-
-        rio_negro = await RioNegro.create(
-            playwright,
-            client,
-            cuit_RioNegro,
-            clave_fiscal_RioNegro,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        await rio_negro.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

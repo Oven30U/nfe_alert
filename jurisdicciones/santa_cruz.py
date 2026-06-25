@@ -1,12 +1,6 @@
-import os
-from playwright._impl._errors import TimeoutError
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, TimeoutError as PlaywrightTimeoutError
 
-from jurisdicciones.jurisdiccion import (
-    Jurisdiccion,
-    LoginError,
-    ConsultarNotificacionesError,
-)
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 
 class SantaCruz(Jurisdiccion):
@@ -101,7 +95,7 @@ class SantaCruz(Jurisdiccion):
             await self.page.wait_for_selector(
                 "//li[@id='id_li_100282']//a[@class='nav-link nav-toggle']", timeout=30000
             )
-        except TimeoutError as exc:
+        except PlaywrightTimeoutError as exc:
             # Capturar screenshot del error de login antes de lanzar la excepción
             error_screenshot_path = f"Estructura-robot/{self.client_folder}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_error_login.png"
             try:
@@ -116,8 +110,6 @@ class SantaCruz(Jurisdiccion):
             # Verificar el tipo de error específico
             if await self.page.wait_for_selector("//div[@class='bootbox-body']"):
                 raise LoginError(self.cliente, "Credenciales inválidas") from exc
-            # else:
-            #     raise LoginError(self.cliente, "Credenciales inválidas") from exc
 
     async def buscar_notificacion(self):
         """Busca notificaciones, comunicaciones y contacto fiscal electronico sin leer. Falta relevar caso en donde existan notificaciones."""
@@ -180,32 +172,3 @@ class SantaCruz(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_SANTA_CRUZ_CLIENT")
-        cuit_SantaCruz = os.getenv("TEST_SANTA_CRUZ_CUIT")
-        clave_fiscal_SantaCruz = os.getenv("TEST_SANTA_CRUZ_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_SANTA_CRUZ_CUIT_CLIENTE_INPUT")
-
-        santa_cruz = await SantaCruz.create(
-            playwright,
-            client,
-            cuit_SantaCruz,
-            clave_fiscal_SantaCruz,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await santa_cruz.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

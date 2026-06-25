@@ -1,14 +1,7 @@
 import re
-import os
 from typing import Optional
 
-from playwright.async_api import (
-    Playwright,
-    async_playwright,
-    Page,
-    expect,
-    TimeoutError as PlaywrightTimeoutError,
-)
+from playwright.async_api import Playwright, Page, expect, TimeoutError as PlaywrightTimeoutError
 
 from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError, DelegacionError
 
@@ -208,8 +201,8 @@ class Neuquen(Jurisdiccion):
     ):
         """Tomar screenshots en la jurisdicción de Neuquen, incluso en caso de error."""
         # Normalizar fechas para el nombre del archivo
-        self.fecha_desde = self.fecha_desde.replace("/", "")
-        self.fecha_hasta = self.fecha_hasta.replace("/", "")
+        self.fecha_desde = str(self.fecha_desde).replace("/", "")
+        self.fecha_hasta = str(self.fecha_hasta).replace("/", "")
 
         # Verificar si hubo un error de login o consulta
         if hasattr(self, "error") and self.error is not None:
@@ -305,31 +298,3 @@ class Neuquen(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-        client = os.getenv("TEST_NEUQUEN_CLIENT")
-        cuit_Neuquen = os.getenv("TEST_NEUQUEN_CUIT")
-        clave_fiscal_Neuquen = os.getenv("TEST_NEUQUEN_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_NEUQUEN_CUIT_CLIENTE_INPUT")
-
-        neuquen = await Neuquen.create(
-            playwright,
-            client,
-            cuit_Neuquen,
-            clave_fiscal_Neuquen,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-        )
-        # await neuquen.AFIP_login()
-        await neuquen.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

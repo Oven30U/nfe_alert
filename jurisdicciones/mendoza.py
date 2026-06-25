@@ -1,12 +1,9 @@
-import os
 import time
-from playwright._impl._errors import TimeoutError
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import Playwright, TimeoutError as PlaywrightTimeoutError
 
 from jurisdicciones.jurisdiccion import (
     Jurisdiccion,
     LoginError,
-    ConsultarNotificacionesError,
 )
 
 
@@ -95,7 +92,7 @@ class Mendoza(Jurisdiccion):
                     "text=expirad", timeout=timeout_ms
                 ):
                     raise LoginError(self.cliente, LoginError.CREDENCIALES_EXPIRADAS)
-            except TimeoutError:
+            except PlaywrightTimeoutError:
                 # No apareció la indicación de expirado en el corto plazo; seguimos
                 pass
             except LoginError:
@@ -112,7 +109,7 @@ class Mendoza(Jurisdiccion):
                 )
                 self.logger.info("Usuario ya ha iniciado sesión")
                 return True
-            except TimeoutError:
+            except PlaywrightTimeoutError:
                 self.logger.info(
                     "No se detectó 'Cerrar Sesión' en la página - usuario no logueado"
                 )
@@ -199,25 +196,13 @@ class Mendoza(Jurisdiccion):
                 else:
                     raise
 
-        # if await self.is_logged_in():
-        #     self.logger.info("Sesión ya iniciada. Saltando proceso de inicio de sesión.")
-        # else:
-        #     self.logger.info(
-        #         "No se ha iniciado sesión. Iniciando proceso de inicio de sesión."
-        #     )
         await self.perform_login()
-
-        # await self.page.wait_for_load_state("domcontentloaded")
-        # await self.page.fill("#cuit", f"{self._cuit}")
-        # await self.page.fill("#password", f"{self._clave_fiscal}")
-        # await self.page.locator("#ingresar").click()
-        # await self.page.wait_for_load_state("domcontentloaded")
 
         try:
             await self.page.wait_for_selector(
                 '//a[contains(text(), "Cerrar Sesión")]', timeout=30000
             )
-        except TimeoutError as exc:
+        except PlaywrightTimeoutError as exc:
             # Capturar screenshot del error de login antes de lanzar la excepción
             error_screenshot_path = f"Estructura-robot/{self.client_folder}/Output/{self.nombre}_{self.cliente}_{self.fecha_desde}_{self.fecha_hasta}_{self.hora_actual}_error_login.png"
             try:
@@ -319,32 +304,3 @@ class Mendoza(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-async def main():
-    async with async_playwright() as playwright:
-        fecha_desde = os.getenv("FECHA_DESDE")
-        fecha_hasta = os.getenv("FECHA_HASTA")
-
-        client = os.getenv("TEST_MENDOZA_CLIENT")
-        cuit_Mendoza = os.getenv("TEST_MENDOZA_CUIT")
-        clave_fiscal_Mendoza = os.getenv("TEST_MENDOZA_CLAVE_FISCAL")
-        cuit_cliente_input = os.getenv("TEST_MENDOZA_CUIT_CLIENTE_INPUT")
-
-        mendoza = await Mendoza.create(
-            playwright,
-            client,
-            cuit_Mendoza,
-            clave_fiscal_Mendoza,
-            fecha_desde,
-            fecha_hasta,
-            cuit_cliente_input,
-            headless=False,
-        )
-        await mendoza.procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

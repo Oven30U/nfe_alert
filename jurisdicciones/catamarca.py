@@ -1,14 +1,9 @@
-import os
-import logging
 import re
-from datetime import datetime
 from typing import Optional
 
-from playwright.async_api import Playwright, async_playwright, Page
-from CloudflareBypasser import CloudflareBypasser
-from DrissionPage import ChromiumPage
+from playwright.async_api import Playwright, Page
 
-from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError, DelegacionError
 
 
 class Catamarca(Jurisdiccion):
@@ -114,7 +109,7 @@ class Catamarca(Jurisdiccion):
                 break
         if not selected:
             # Si no se encuentra la opción para el CUIT del cliente, levantar LoginError indicando delegación pendiente
-            raise LoginError(self.cliente, LoginError.PENDIENTE_DELEGACION)
+            raise DelegacionError(self.cliente)
         await self.page.get_by_role("button", name="Domicilio Fiscal").click()
         # Esperar a que se abra la nueva pestaña y usarla como la página activa
         async with self.page.expect_popup() as page1_info:
@@ -182,31 +177,3 @@ class Catamarca(Jurisdiccion):
 
     async def procesar_jurisdiccion(self):
         return await super().procesar_jurisdiccion()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        async with async_playwright() as playwright:
-            fecha_desde = os.getenv("FECHA_DESDE")
-            fecha_hasta = os.getenv("FECHA_HASTA")
-
-            client = os.getenv("TEST_CATAMARCA_CLIENT")
-            cuit_Catamarca = os.getenv("TEST_CATAMARCA_CUIT")
-            clave_fiscal_Catamarca = os.getenv("TEST_CATAMARCA_CLAVE_FISCAL")
-            cuit_cliente_input = os.getenv("TEST_CATAMARCA_CUIT_CLIENTE_INPUT")
-
-            catamarca = await Catamarca.create(
-                playwright,
-                client,
-                cuit_Catamarca,
-                clave_fiscal_Catamarca,
-                fecha_desde,
-                fecha_hasta,
-                cuit_cliente_input,
-                headless=False,
-            )
-            await catamarca.procesar_jurisdiccion()
-
-    asyncio.run(main())
