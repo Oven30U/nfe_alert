@@ -115,8 +115,6 @@ class Arba(Jurisdiccion):
                 self.cliente,
             )
 
-        await self.page.wait_for_load_state("load")
-
     async def consultar_notificaciones(self) -> None:
         """
         Query notifications from ARBA website.
