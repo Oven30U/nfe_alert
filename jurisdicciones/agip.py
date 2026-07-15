@@ -191,6 +191,16 @@ class Agip(Jurisdiccion):
             if await self.page.is_visible(selector_servicio_dfe):
                 await self.page.click(selector_servicio_dfe, timeout=5000)
             else:
+                try:
+                    combo = self.page.locator("select[name='cuit_representado']")
+                    await combo.select_option(self._cuit_cliente_input)
+                    await expect(combo).to_have_value(self._cuit_cliente_input)
+                except AssertionError as e:
+                    self.logger.error(
+                        f"El combo no quedó seleccionado con el CUIT esperado. Error: {e}"
+                    )
+                    raise DelegacionError(self.cliente)
+
                 await self.page.fill('xpath=//*[@id="filtro_app"]', "")
                 await self.page.type(
                     'xpath=//*[@id="filtro_app"]',
