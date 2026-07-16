@@ -267,22 +267,54 @@ class Cordoba(Jurisdiccion):
             cont_fallos += 1
 
     async def buscar_notificacion(self):
+        """
+        Busca notificaciones no leídas en la tabla de Rentas Córdoba dentro del
+        rango de fechas configurado en `self.fecha_desde`.
+
+        - Espera a que la página termine de cargar.
+        - Convierte `self.fecha_desde` (formato 'ddmmyyyy') a objeto `datetime`.
+        - Recorre todos los elementos `tbody` de la tabla y extrae la fecha
+            del primer renglón (columna 5) de cada `tbody`.
+        - Si la fecha del registro está dentro del rango (>= `fecha_desde`)
+            y el `tbody` contiene la clase `noleida`, marca
+            `self.hay_notificacion` como `True` y finaliza la búsqueda.
+
+        Returns
+        bool: `True` si se encontró al menos una notificación no leída dentro del
+            rango de fechas; `False` en caso contrario.
+
+        Raises
+        ConsultarNotificacionesError: Si ocurre cualquier excepción durante la búsqueda
+            (se registra el error y se relanza la excepción con `self.cliente`).
+        """
         try:
             await self.page.wait_for_load_state("load", timeout=60000)
-            if self.page.locator('xpath="(//tbody)[1]"') is not None:
-                fecha_disposicion = self.page.locator("xpath=//tbody[1]/tr[1]/td[5]")
-                # if fecha_disposicion is not None:
-                if await fecha_disposicion.count() > 0:
-                    texto = await fecha_disposicion.inner_text()
-                    try:
-                        text_date = datetime.strptime(texto, "%d/%m/%Y")
-                        fecha_desde_date = datetime.strptime(self.fecha_desde, "%d%m%Y")
-                        self.hay_notificacion = fecha_desde_date <= text_date
-                    except ValueError:
-                        self.logger.error(
-                            "Cordoba Error: Fecha no está en el formato correcto"
-                        )
-                        self.hay_notificacion = False
+
+            self.hay_notificacion = False
+            fecha_desde_date = datetime.strptime(self.fecha_desde, "%d%m%Y")
+            tbodies = self.page.locator("//tbody")
+            cantidad_tbodies = await tbodies.count()
+
+            for i in range(cantidad_tbodies):
+                tbody = tbodies.nth(i)
+                fecha_locator = tbody.locator("xpath=./tr[1]/td[5]")
+                if await fecha_locator.count() == 0:
+                    continue
+
+                try:
+                    texto_fecha = (await fecha_locator.inner_text()).strip()
+                    text_date = datetime.strptime(texto_fecha, "%d/%m/%Y")
+                except ValueError:
+                    self.logger.warning(f"Cordoba: Fecha inválida '{texto_fecha}'")
+                    continue
+
+                # Solo se evalúan registros dentro del rango
+                if fecha_desde_date <= text_date:
+                    clases = await tbody.get_attribute("class") or ""
+                    if "noleida" in clases.split():
+                        self.hay_notificacion = True
+                        break
+
         except Exception as e:
             self.logger.error(f"Cordoba Error: {e}")
             raise ConsultarNotificacionesError(self.cliente) from e
