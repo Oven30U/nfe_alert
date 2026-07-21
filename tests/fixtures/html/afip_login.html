@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>AFIP Fake</title></head>
+<body>
+  <div id="step1">
+    <input type="number" aria-label="CUIT" id="cuit-input" />
+    <button type="button" id="btn-siguiente">Siguiente</button>
+  </div>
+
+  <div id="step2" style="display:none">
+    <span>Ingresar con Clave Fiscal</span>
+    <div id="captcha" style="display:none"></div>
+    <label for="clave-input">TU CLAVE</label>
+    <input type="password" id="clave-input" />
+    <button type="button" id="btn-ingresar">Ingresar</button>
+  </div>
+
+  <form name="F1" id="form-error" style="display:none">
+    <span>Clave o usuario incorrecto</span>
+  </form>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const scenario = params.get("scenario") || "hang";
+
+    document.getElementById("btn-siguiente").addEventListener("click", () => {
+      document.getElementById("step1").style.display = "none";
+      document.getElementById("step2").style.display = "block";
+    });
+
+    document.getElementById("btn-ingresar").addEventListener("click", () => {
+      if (scenario === "success") {
+        document.title = "Bienvenido a AFIP";
+        document.getElementById("step2").style.display = "none";
+      } else if (scenario === "credenciales") {
+        document.getElementById("step2").style.display = "none";
+        document.getElementById("form-error").style.display = "block";
+      }
+      // scenario === "hang": no se hace nada; la página nunca confirma
+      // éxito ni muestra un error de credenciales explícito, simulando un
+      // portal caído/lento durante el login.
+    });
+  </script>
+</body>
+</html>

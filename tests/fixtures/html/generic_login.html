@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Portal Fake</title></head>
+<body>
+  <h1>Portal de prueba (fixture de test, no es un sitio real)</h1>
+  <div id="app">Cargando...</div>
+  <script>
+    // Simula 3 escenarios controlados por ?scenario=success|credenciales|timeout
+    const params = new URLSearchParams(window.location.search);
+    const scenario = params.get("scenario") || "timeout";
+    const app = document.getElementById("app");
+
+    if (scenario === "success") {
+      app.innerHTML = '<div id="login-exitoso">Bienvenido al portal</div>';
+    } else if (scenario === "credenciales") {
+      app.innerHTML = '<div class="error-credenciales">Usuario o clave incorrecta</div>';
+    }
+    // scenario === "timeout": no se modifica nada; queda "Cargando..." para
+    // siempre, simulando un portal caído/lento que nunca confirma ni éxito
+    // ni error de credenciales.
+  </script>
+</body>
+</html>

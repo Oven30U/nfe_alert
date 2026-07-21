@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>AGIP Clave Ciudad Fake</title></head>
+<body>
+  <input id="cuit" />
+  <input id="clave" type="password" />
+  <button type="button" id="btn-ingresar">Ingresar</button>
+
+  <div class="msgError" style="display:none">Usuario o clave incorrecta</div>
+  <h1 id="heading-exito" style="display:none">Búsqueda de aplicativos/servicios</h1>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const scenario = params.get("scenario") || "hang";
+
+    document.getElementById("btn-ingresar").addEventListener("click", () => {
+      if (scenario === "credenciales") {
+        document.querySelector(".msgError").style.display = "block";
+      } else if (scenario === "success") {
+        document.getElementById("heading-exito").style.display = "block";
+      }
+      // scenario === "hang": no pasa nada, simulando que AGIP no respondió.
+    });
+  </script>
+</body>
+</html>
