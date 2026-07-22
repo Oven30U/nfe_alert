@@ -116,6 +116,20 @@ class DelegacionError(LoggedException):
         super().__init__(cliente, message or self.DEFAULT_MESSAGE)
 
 
+class RepresentadoNoDisponible(LoggedException):
+    """Excepción lanzada cuando el representado parece seleccionado pero no
+    resulta estar disponible/visible en la interfaz tras la acción de selección.
+
+    Esta excepción debe usarse para distinguir un problema de disponibilidad
+    del representado de errores de delegación o login.
+    """
+
+    DEFAULT_MESSAGE = "Representado no disponible después de la selección"
+
+    def __init__(self, cliente: str, message: Optional[str] = None) -> None:
+        super().__init__(cliente, message or self.DEFAULT_MESSAGE)
+
+
 class Jurisdiccion(ABC):
     """
     Clase base abstracta para representar una jurisdicción.
@@ -633,6 +647,10 @@ class Jurisdiccion(ABC):
             self.error = e
             self.hay_notificacion = e.message
             return "DelegacionError"
+        except RepresentadoNoDisponible as e:
+            self.error = e
+            self.hay_notificacion = e.message
+            return "RepresentadoNoDisponible"
         except ConsultarNotificacionesError as e:
             self.error = e
             self.hay_notificacion = e.message

@@ -62,6 +62,7 @@ class ClienteProcessor:
         self.socio_responsable: str = self.obtener_socio()
         self.zip_path: str = None
         self.zip_name: str = None
+        self.pdf_path: str = None
 
         if "ZIP_Password" in group.columns:
             self.zip_password = group["ZIP_Password"].iloc[0]

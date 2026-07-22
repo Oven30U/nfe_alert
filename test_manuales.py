@@ -6,6 +6,10 @@ import sys
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 
+# Ensure project root is first on sys.path so local modules (e.g. logger.py)
+# are preferred over similarly-named packages installed in the environment.
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
 from logger import Logger
 from database import get_session
 from obtener_datos_clientes.models import (
@@ -779,7 +783,7 @@ if __name__ == "__main__":
 
     # 2. Ejecutar un test con múltiples iteraciones:
     # asyncio.run(salta_test(headless=False, iterations=15))
-    asyncio.run(cordoba_test(headless=False, iterations=15))
+    asyncio.run(nacional_test(headless=False, iterations=15))
 
     # 3. Ejecutar un test por nombre:
     # asyncio.run(run_test_by_name('nacional', headless=False))

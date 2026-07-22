@@ -1,0 +1,1 @@
+from .test_manuales import nacional_test

@@ -1,4 +1,6 @@
 from datetime import datetime
+import re
+import unicodedata
 
 from playwright.async_api import Playwright, Page
 
@@ -7,9 +9,8 @@ from jurisdicciones.jurisdiccion import (
     LoginErrorAfip,
     ConsultarNotificacionesError,
     DelegacionError,
+    RepresentadoNoDisponible,
 )
-
-import unicodedata
 
 
 class Nacional(Jurisdiccion):
@@ -62,7 +63,7 @@ class Nacional(Jurisdiccion):
         headless=True,
         filtro_fce=True,  # Valor por defecto True
     ):
-        self = await super().create(
+        self: Nacional = await super().create(
             playwright,
             "Nacional",
             "Nacional",
@@ -108,17 +109,7 @@ class Nacional(Jurisdiccion):
             await self._click_boton_cerrar()
             await self._click_recordar_mas_tarde()
             await self.new_page.click('text=" Comunicaciones de mis representados "')
-            # await self.new_page.click("#d-select-81")
-            # await self.new_page.click(
-            #     "//div[@id='d-select-89']//span[@class='d-select__content user-select-none']",
-            
-            
-            #     timeout=10000
-            # )
-            # await self.new_page.click(
-            #     "//div[@id='d-select-89']//span[@class='d-select__placeholder'][normalize-space()='Seleccionar']",
-            #     timeout=10000
-            # )
+
             await self.new_page.locator('#select-representados + .input-group').click()
             await self._seleccionar_cuit_cliente()
             await self.page.wait_for_load_state("networkidle")
@@ -168,8 +159,6 @@ class Nacional(Jurisdiccion):
 
             await self.new_page.click('//*[@id="collapse-filtros-root"]/div/div[3]/button', timeout=5000)
             await self.new_page.select_option("select[name='filtroEstado']", "No Leída", timeout=5000)
-
-            # await completar_fechas(self.new_page, self.fecha_desde, self.fecha_hasta)
         except (LoginErrorAfip, DelegacionError) as e:
             raise
         except Exception as e:
@@ -196,12 +185,76 @@ class Nacional(Jurisdiccion):
                 # Cambiar para usar el mensaje por defecto de DelegacionError
                 raise DelegacionError(self.cliente)
 
-            await self.new_page.click(selector)
-            self.logger.debug(
-                f"CUIT {self.cuit_cliente_input} seleccionada correctamente en ARCA"
-            )
+            # Obtener el texto completo del botón antes de hacer click
+            try:
+                raw_text = (await self.new_page.locator(selector).inner_text()).strip()
+            except Exception:
+                raw_text = ""
+
+            # Normalizar espacios
+            raw_text = " ".join(raw_text.split())
+
+            # Extraer el nombre de la empresa antes de ' - <cuit>' si existe
+            m = re.search(r"\s-\s*[\d\.\-\s]+$", raw_text)
+            if m:
+                company_name = raw_text[: m.start()].strip()
+            else:
+                # Si no se encuentra el patrón, usar todo el texto disponible
+                company_name = raw_text
+
+            # Función local para normalizar texto (quita acentos y espacios extras)
+            def _norm(s: str) -> str:
+                nfkd = unicodedata.normalize("NFKD", s or "")
+                no_diac = "".join([c for c in nfkd if not unicodedata.combining(c)])
+                return " ".join(no_diac.split()).lower().strip()
+
+            normalized_expected = _norm(company_name)
+
+            # Intentar seleccionar y validar hasta 3 veces
+            max_attempts = 3
+            validation_ok = False
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    await self.new_page.click(selector, timeout=5000)
+
+                    await self.page.wait_for_load_state("networkidle")
+                    await self._click_boton_cerrar()
+
+                    # Intentar obtener el texto del representado activo (valida que esté delegado correctamente)
+                    try:
+                        active_selector = "a.nav-link.active .selected-represented span"
+                        await self.new_page.wait_for_selector(active_selector, timeout=3000)
+                        if await self.new_page.locator(active_selector).count() > 0:
+                            active_text = (
+                                await self.new_page.locator(active_selector).first.inner_text()
+                            ).strip()
+                        else:
+                            active_text = ""
+                    except Exception:
+                        active_text = ""
+
+                    normalized_active = _norm(active_text)
+
+                    # Validar: aceptar si el texto activo contiene el nombre esperado
+                    if normalized_expected and normalized_expected in normalized_active:
+                        validation_ok = True
+                        break
+
+                    # Si no validó, registrar e intentar de nuevo
+                    self.logger.warning(
+                        f"Intento {attempt}: representado seleccionado pero no validado (esperado='{company_name}', activo='{active_text}')"
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Intento {attempt} fallo al intentar seleccionar: {e}")
+
+            if not validation_ok:
+                # Tomar evidencia y lanzar excepción específica
+                self.logger.error(
+                    f"Representado {self.cuit_cliente_input} seleccionado pero no disponible/visible en la página tras {max_attempts} intentos"
+                )
+                raise RepresentadoNoDisponible(self.cliente)
         except Exception as e:
-            if isinstance(e, DelegacionError):
+            if isinstance(e, DelegacionError) or isinstance(e, RepresentadoNoDisponible):
                 raise
             self.logger.error(
                 f"Error al seleccionar CUIT {self.cuit_cliente_input}: {e}"
@@ -234,12 +287,9 @@ class Nacional(Jurisdiccion):
             )
 
     async def buscar_notificacion(self):
-        # Use a single selector to get all notification links
-        # all_links_selector = "xpath=//div[contains(@class, 'list-group')]//div[@id='notificaciones-bandeja-tab']/following-sibling::div"
-
         selector1 = "xpath=//div[@id='notificaciones-bandeja-tab'] | //div[@id='notificaciones-bandeja-tab']/following-sibling::div[1]"
         selector2 = "xpath=//div[contains(@class, 'list-group')]/a"
-        
+
         contador_filtro_hay_notificacion = 0
         todos_screenshots_exitosos = True
 
@@ -261,9 +311,6 @@ class Nacional(Jurisdiccion):
                 await self.new_page.wait_for_load_state("load")
                 await self.new_page.wait_for_load_state("domcontentloaded")
 
-            
-            
-            
             # Process each link
             for enlace in enlaces:
                 try:
@@ -439,7 +486,7 @@ class Nacional(Jurisdiccion):
             await self.new_page.wait_for_selector('text="Cerrar"', timeout=5000)
             await self.new_page.click('text="Cerrar"')
             self.logger.debug("Botón 'Cerrar' encontrado y clickeado")
-        except Exception as e:
+        except Exception:
             self.logger.debug(
                 "No se encontró botón 'Cerrar' o no fue necesario clickearlo"
             )
