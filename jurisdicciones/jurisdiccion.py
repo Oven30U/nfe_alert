@@ -685,7 +685,8 @@ class Jurisdiccion(ABC):
                 )
 
                 # Lista de tipos de error que no requieren screenshot
-                errores_sin_screenshot = ["DelegacionError"]
+                # errores_sin_screenshot = ["DelegacionError"]
+                errores_sin_screenshot = [] #!
 
                 if error_type in errores_sin_screenshot:
                     self.logger.info(

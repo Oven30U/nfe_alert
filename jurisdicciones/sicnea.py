@@ -36,6 +36,9 @@ class Sicnea(Jurisdiccion):
             headless,
         )
         self.cuit_cliente_input = str(cuit_cliente_input)
+        self.frame = None
+        self.new_page = None
+        self.new_page_2 = None
 
     @classmethod
     async def create(
@@ -88,10 +91,28 @@ class Sicnea(Jurisdiccion):
             "input#buscadorInput",
             "SICNEA - Gestion de comunicacion y notificacion electronica aduanera",
         )
-        # Click en la opción de DFE desplegada
-        await self.page.click("a.dropdown-item")
+
+        # Valido que aparezca el resultado de búsqueda
+        try:
+            # Si no encontró resultados, lanzo excepción
+            if await self.page.get_by_text("No encontramos resultados").first.is_visible(timeout=1000):
+                raise DelegacionError(self.cliente)
+
+            dropdown = "a.dropdown-item"
+            await self.page.wait_for_selector(
+                dropdown,
+                timeout=2000,
+            )
+            # Click en la opción de DFE desplegada
+            await self.page.click(dropdown)
+        except Exception:
+            self.logger.error(
+                "No se encontró el resultado de búsqueda para SICNEA en AFIP"
+            )
+            raise DelegacionError(self.cliente)
+
         popup_info = await self.page.wait_for_event("popup")
-        self.new_page = popup_info
+        self.new_page: Page = popup_info
         await self.new_page.wait_for_load_state("networkidle")
 
         # Obtener todas las páginas abiertas en el contexto del navegador
@@ -167,7 +188,7 @@ class Sicnea(Jurisdiccion):
                 f"Client CUIT {self.cuit_cliente_input} not found in dropdown options. "
                 "Service may not be delegated properly."
             )
-            raise DelegacionError(self.cliente, LoginError.PENDIENTE_DELEGACION)
+            raise DelegacionError(self.cliente)
         return True
 
     async def _get_datos_conexion_frame(self, page: Page) -> Frame | None:
@@ -217,12 +238,12 @@ class Sicnea(Jurisdiccion):
                 f"Successfully selected client CUIT: {self.cuit_cliente_input}"
             )
 
-        except LoginError:
+        except DelegacionError:
             # Re-raise login errors without wrapping
             raise
         except Exception as e:
             self.logger.error(f"Error selecting client CUIT: {str(e)}")
-            raise LoginError(self.cliente, f"Failed to select client CUIT: {str(e)}")
+            raise DelegacionError(self.cliente)
 
     async def _handle_ingresar_button(self) -> None:
         """
@@ -330,7 +351,8 @@ class Sicnea(Jurisdiccion):
         try:
             self.fecha_desde = self.fecha_desde.replace("/", "")
             self.fecha_hasta = self.fecha_hasta.replace("/", "")
-            await self.frame.wait_for_selector("input#btnBuscar")
+            if self.frame is not None:
+                await self.frame.wait_for_selector("input#btnBuscar")
             await super().tomar_screenshot(self.new_page_2, nombre_extra="_enviadas")
 
             # Inicialización correcta con valor booleano
