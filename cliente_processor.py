@@ -16,6 +16,7 @@ from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
 from obtener_datos_clientes.db import SessionLocal
 from obtener_datos_clientes.models import ProcesamientosDiariosGlobal
+from jurisdicciones.jurisdiccion import Jurisdiccion
 
 logger = Logger.get_logger()
 
@@ -374,7 +375,7 @@ class ClienteProcessor:
 
     async def ejecutar_jurisdicciones(
         self,
-        instances: list,
+        instances: list[Jurisdiccion],
         saltadas_por_dependencia: Optional[list] = None,
         login_error_nacional: Optional[str] = None,
         jurisdicciones_con_error_login: Optional[list] = None,
@@ -413,7 +414,7 @@ class ClienteProcessor:
         )
         semaforo = asyncio.Semaphore(cantidad_jurisdicciones_concurrentes)
 
-        async def procesar_con_limite(instance):
+        async def _procesar_con_limite(instance: Jurisdiccion):
             async with semaforo:
                 try:
                     return await instance.procesar_jurisdiccion()
@@ -431,13 +432,14 @@ class ClienteProcessor:
 
         if instancias_a_procesar:
             resultados_paralelos = await asyncio.gather(
-                *[procesar_con_limite(instance) for instance in instancias_a_procesar]
+                *[_procesar_con_limite(instance) for instance in instancias_a_procesar]
             )
             resultados.extend(list(resultados_paralelos))
 
         # Añadir jurisdicciones saltadas por dependencia
         if saltadas_por_dependencia:
             for instance, error_type in saltadas_por_dependencia:
+                instance: Jurisdiccion
                 # Determinar el mensaje de notificación según el tipo de error
                 if error_type == "LoginErrorAfip":
                     from jurisdicciones.jurisdiccion import LoginErrorAfip
@@ -580,16 +582,21 @@ class ClienteProcessor:
         for _, error_row in errores.iterrows():
             jurisdiction = error_row["Nombre"]
             error_type = error_row["Error"]
+            notificacion = error_row["Notificacion"]
 
             # Evitar reintento para ciertos tipos de error
             tipos_error_sin_reintento = [
                 "LoginError",
                 "LoginErrorAfip",
-                "DelegacionError",
+            ]s
+
+            tipos_notificaciones_sin_reintento = [
+                "Credenciales inválidas",
             ]
-            if error_type in tipos_error_sin_reintento:
+
+            if error_type in tipos_error_sin_reintento and notificacion in tipos_notificaciones_sin_reintento:
                 logger.info(
-                    f"Saltando reintento de {jurisdiction} porque es un {error_type}"
+                    f"Saltando reintento de {jurisdiction} | '{notificacion}' | {error_type}"
                 )
                 continue
 
@@ -597,7 +604,7 @@ class ClienteProcessor:
             row = self.group[self.group["Jurisdiccion"] == jurisdiction].iloc[0]
 
             for intento in range(LIMITES_REINTENTO):
-                instance = await self.crear_instancia_jurisdiccion(
+                instance: Jurisdiccion = await self.crear_instancia_jurisdiccion(
                     playwright, row, jurisdiction, retry=True
                 )
                 resultado = await instance.procesar_jurisdiccion()

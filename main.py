@@ -13,6 +13,7 @@ from config import jurisdiccion_clases
 from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
 from logger import Logger
+from jurisdicciones.jurisdiccion import Jurisdiccion
 from obtener_datos_clientes.db import SessionLocal
 from obtener_datos_clientes.obtener_datos_clientes import (
     Cliente,
@@ -239,7 +240,7 @@ class ProcesamientoManager:
     async def ejecutar_y_reintentar(
         self,
         processor: ClienteProcessor,
-        instances: list,
+        instances: list[Jurisdiccion],
         saltadas_por_dependencia: list,
         login_error_nacional: Optional[str],
         playwright,

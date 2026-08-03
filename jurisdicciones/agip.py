@@ -95,13 +95,22 @@ class Agip(Jurisdiccion):
         if locator_visible:
             await clave_ciudad_locator.click()
 
+        primary_login_method = (
+            self._login_clave_ciudad if locator_visible else self._login_miba
+        )
+        fallback_login_method = (
+            self._login_miba if locator_visible else self._login_clave_ciudad
+        )
+
         try:
-            await self._login_clave_ciudad() if locator_visible else self._login_miba()
-        except (LoginError, PlaywrightTimeoutError):
+            await primary_login_method()
+            return
+        except (LoginError, PlaywrightTimeoutError) as primary_error:
             try:
-                await self._login_miba() if locator_visible else self._login_clave_ciudad()
-            except LoginError as e:
-                raise LoginError from e
+                await fallback_login_method()
+                return
+            except (LoginError, PlaywrightTimeoutError) as fallback_error:
+                raise primary_error from fallback_error
 
     async def _login_clave_ciudad(self) -> None:
         """
@@ -116,6 +125,7 @@ class Agip(Jurisdiccion):
         await self.page.locator("input#clave").fill(f"{self._clave_fiscal}")
         await self.page.get_by_role("button", name="Ingresar").click()
 
+        cambio_clave_selector = self.page.get_by_text("Cambio de Clave", exact=False)
         error_locator = self.page.locator("xpath=//div[contains(@class, 'msgError')]")
         success_locator = self.page.get_by_role("heading", name="Búsqueda de aplicativos/")
 
@@ -126,9 +136,17 @@ class Agip(Jurisdiccion):
             pass
 
         try:
+            await cambio_clave_selector.wait_for(state="visible", timeout=3000)
+            raise LoginError(self.cliente)
+        except PlaywrightTimeoutError:
+            pass
+
+        try:
             await expect(success_locator).to_be_visible(timeout=120000)
         except PlaywrightTimeoutError as e:
-            raise LoginError(self.cliente) from e
+            if await error_locator.is_visible():
+                raise LoginError(self.cliente) from e
+            raise
 
     async def _login_miba(self) -> None:
         """
@@ -142,7 +160,12 @@ class Agip(Jurisdiccion):
         )
         await self.page.locator("input[name*='pass']").fill(f"{self._clave_fiscal}")
         await self.page.get_by_role("button", name="Iniciar sesión").click()
-        await self.page.wait_for_load_state("networkidle")
+
+        try:
+            await self.page.wait_for_load_state("networkidle")
+        except PlaywrightTimeoutError:
+            await self._login_miba_check_login_errors()
+            raise
 
         await self._login_miba_check_login_errors()
         await self._login_miba_handle_permissions()
@@ -172,13 +195,7 @@ class Agip(Jurisdiccion):
     async def consultar_notificaciones(self):
         try:
             await self._login()
-
-            try:
-                await self.page.select_option(
-                    "select[name='cuit_representado']", f"{self._cuit_cliente_input}"
-                )
-            except PlaywrightTimeoutError as e:
-                raise DelegacionError(self.cliente) from e
+            await self._seleccionar_cuit_representado()
 
             await self.page.type(
                 'xpath=//*[@id="filtro_app"]', "Domicilio Fiscal Electrónico", delay=1
@@ -237,6 +254,31 @@ class Agip(Jurisdiccion):
                 self.cliente, f"Error al consultar notificaciones: {str(e)}"
             ) from e
 
+    async def _seleccionar_cuit_representado(self) -> None:
+        try:
+            combo_selector = "select[name='cuit_representado']"
+            combo = self.page.locator(combo_selector)
+
+            await expect(combo).to_be_visible(timeout=120000)
+
+            cuit_representado_disponible = await combo.evaluate(
+                """(element, cuit) =>
+                    Array.from(element.options || []).some(
+                        option => String(option.value).trim() === String(cuit).trim()
+                    )
+                """,
+                self._cuit_cliente_input,
+            )
+            if not cuit_representado_disponible:
+                raise DelegacionError(self.cliente)
+        
+            await self.page.select_option(combo_selector, f"{self._cuit_cliente_input}")
+        except (AssertionError, PlaywrightTimeoutError) as e:
+            raise ConsultarNotificacionesError(
+                self.cliente,
+                "Error al seleccionar CUIT representado por timeout en AGIP",
+            ) from e
+
     async def buscar_notificacion(self) -> bool:
         """
         Busca notificaciones en la tabla de mensajes de AGIP.
@@ -247,8 +289,49 @@ class Agip(Jurisdiccion):
         """
         await self.page.wait_for_load_state("networkidle")
 
+        es_portal_cct = "//portal-cct" in self.page.url
+        # Si no es portal-ctt, valido el cuit de esta forma
+        if not es_portal_cct:
+            try:
+                cuit = self.page.locator(
+                    "//span[contains(normalize-space(),'CUIT:')]/following-sibling::strong[1]"
+                )
+
+                cuit_actual = (await cuit.inner_text()).strip()
+                if cuit_actual != self._cuit_cliente_input:
+                    raise DelegacionError(
+                        f"CUIT esperado: {self._cuit_cliente_input}. "
+                        f"CUIT encontrado: {cuit_actual}"
+                    )
+
+            except Exception as e:
+                self.logger.error(
+                    f"AGIP: El CUIT representado en la página no coincide con el esperado. {e}"
+                )
+                # Lanzo error para reintentar después
+                raise DelegacionError(self.cliente) from e
+        # Si es el portal-cct, lo valido de esta otra forma
+        else:
+            try:
+                cuit_actual = (await self.page.locator(
+                    "//p[contains(@class,'text-razonsocial')]/strong")
+                    .inner_text()).replace("-","").strip()
+
+                if cuit_actual != self._cuit_cliente_input:
+                    raise DelegacionError(
+                        f"CUIT esperado: {self._cuit_cliente_input}. "
+                        f"CUIT obtenido: {cuit_actual}"
+                    )
+            except Exception as e:
+                self.logger.error(
+                    f"AGIP: El CUIT representado en el portal-cct no coincide con el esperado. {e}"
+                )
+                # Lanzo error para reintentar después
+                raise DelegacionError(self.cliente) from e
+
         # Intentar esperar por el locator h3 durante 1 minuto
         try:
+            
             await self.page.wait_for_load_state("networkidle")
             await self.page.locator("h3:has-text('Notificaciones Recibidas')").wait_for(
                 state="visible", timeout=60000
@@ -257,7 +340,7 @@ class Agip(Jurisdiccion):
             return await self._buscar_en_lb_agip()
         except PlaywrightTimeoutError:
             # Si no aparece el h3 en 1 minuto, proceder con la lógica de portal-cct
-            if "//portal-cct" in self.page.url:
+            if es_portal_cct:
                 return await self._buscar_en_portal_cct()
             else:
                 self.logger.debug(
