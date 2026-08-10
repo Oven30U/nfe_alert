@@ -107,6 +107,8 @@ class Agip(Jurisdiccion):
             return
         except (LoginError, PlaywrightTimeoutError) as primary_error:
             try:
+                await self.page.goto("https://claveciudad.agip.gob.ar/")
+                await self.page.wait_for_load_state("domcontentloaded")
                 await fallback_login_method()
                 return
             except (LoginError, PlaywrightTimeoutError) as fallback_error:
@@ -227,18 +229,21 @@ class Agip(Jurisdiccion):
                 nueva_cuenta_link = self.page.get_by_role(
                     "link", name="Nueva Cuenta Corriente"
                 )
-                if await nueva_cuenta_link.is_visible():
+                try:
+                    await nueva_cuenta_link.wait_for(
+                        state="visible", timeout=120000
+                    )
                     await nueva_cuenta_link.click()
-                else:
+                except PlaywrightTimeoutError:
                     raise DelegacionError(self.cliente)
                 await self.page.wait_for_load_state("networkidle")
                 await self.page.wait_for_selector(
-                    "p.text-razonsocial", state="visible", timeout=60000
+                    "p.text-razonsocial", state="visible", timeout=120000
                 )
                 await self.page.goto("https://portal-cct.agip.gob.ar/DFE")
                 await self.page.wait_for_selector(
                     "xpath=//th[contains(., 'CUIT Representado')]",
-                    timeout=10000,
+                    timeout=60000,
                     state="visible",
                 )
                 await self.page.wait_for_load_state("networkidle")
@@ -287,10 +292,33 @@ class Agip(Jurisdiccion):
         1. Existe alguna fila que contenga 's/Notificar'
         2. La fecha de esa fila es posterior o igual a self.fecha_desde
         """
-        await self.page.wait_for_load_state("networkidle")
+        await self.page.wait_for_load_state("domcontentloaded")
 
         es_portal_cct = "//portal-cct" in self.page.url
-        # Si no es portal-ctt, valido el cuit de esta forma
+        try:
+            if es_portal_cct:
+                await self.page.wait_for_selector(
+                    "xpath=//th[contains(., 'CUIT Representado')]",
+                    timeout=60000,
+                    state="visible",
+                )
+                await self.page.wait_for_selector(
+                    "xpath=//tbody/tr/td[2]", timeout=60000, state="visible"
+                )
+            else:
+                await self.page.locator(
+                    "h3:has-text('Notificaciones Recibidas')"
+                ).wait_for(state="visible", timeout=60000)
+                await self.page.wait_for_selector(
+                    "table#tablaMensajes", state="visible", timeout=30000
+                )
+        except PlaywrightTimeoutError:
+            self.logger.debug(
+                "AGIP: No se pudo confirmar la pantalla de notificaciones a tiempo"
+            )
+            return False
+
+        # Si no es portal-cct, valido el cuit de esta forma
         if not es_portal_cct:
             try:
                 cuit = self.page.locator(
@@ -329,24 +357,10 @@ class Agip(Jurisdiccion):
                 # Lanzo error para reintentar después
                 raise DelegacionError(self.cliente) from e
 
-        # Intentar esperar por el locator h3 durante 1 minuto
-        try:
-            
-            await self.page.wait_for_load_state("networkidle")
-            await self.page.locator("h3:has-text('Notificaciones Recibidas')").wait_for(
-                state="visible", timeout=60000
-            )
-            # Si aparece, proceder con la lógica de lb.agip.gob.ar
-            return await self._buscar_en_lb_agip()
-        except PlaywrightTimeoutError:
-            # Si no aparece el h3 en 1 minuto, proceder con la lógica de portal-cct
-            if es_portal_cct:
-                return await self._buscar_en_portal_cct()
-            else:
-                self.logger.debug(
-                    "AGIP: No se encontró el locator esperado ni portal-cct en URL"
-                )
-                return False
+        if es_portal_cct:
+            return await self._buscar_en_portal_cct()
+
+        return await self._buscar_en_lb_agip()
 
     async def _buscar_en_lb_agip(self) -> bool:
         """Busca notificaciones en la tabla de lb.agip.gob.ar."""

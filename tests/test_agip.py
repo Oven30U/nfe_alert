@@ -66,6 +66,7 @@ async def agip_batch_test(
         os.environ["TEST_AGIP_CLAVE_FISCAL"] = clave
         os.environ["TEST_AGIP_CUIT_CLIENTE_INPUT"] = cuit
 
+        print("Ejecutando test para cliente: ", client_folder)
         # Ejecutar el test para este cliente
         await agip_test(
             headless=headless, iterations=iterations, enable_tracing=enable_tracing, trace_dir=trace_dir
