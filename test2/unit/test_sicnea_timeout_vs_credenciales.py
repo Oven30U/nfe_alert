@@ -1,5 +1,8 @@
 """
-Test de regresión (known_issue) para jurisdicciones/sicnea.py::_select_cuit_from_dropdown.
+Tests para jurisdicciones/sicnea.py::_select_cuit_from_dropdown.
+
+ACTUALIZADO (rama nfe_alert_agip_agosto): el manejo de excepciones de este
+método cambió respecto de la versión original que se auditó primero. Antes:
 
     try:
         dropdown = await self.new_page_2.query_selector(dropdown_selector)
@@ -7,16 +10,35 @@ Test de regresión (known_issue) para jurisdicciones/sicnea.py::_select_cuit_fro
     except LoginError:
         raise
     except Exception as e:
-        self.logger.error(f"Error selecting client CUIT: {str(e)}")
         raise LoginError(self.cliente, f"Failed to select client CUIT: {str(e)}")
 
-Cualquier excepción durante la selección del CUIT en el dropdown (timeout
-de Playwright esperando el frame/select, por ejemplo) se reempaqueta como
-`LoginError` -- aunque el problema real no tenga nada que ver con
-credenciales, sino con un timeout técnico durante un paso posterior al
-login (selección de la empresa delegada).
+Ahora:
 
-No se modifica sicnea.py.
+    try:
+        dropdown = await self.new_page_2.query_selector(dropdown_selector)
+        ...
+        if self.cuit_cliente_input not in options:
+            raise DelegacionError(self.cliente)
+        ...
+    except DelegacionError:
+        raise
+    except Exception as e:
+        raise DelegacionError(self.cliente)
+
+Qué se arregló: el hallazgo original (un `DelegacionError` legítimo -- CUIT
+no encontrado en el dropdown -- se reempaquetaba como `LoginError`, perdiendo
+la distinción entre "no delegado" y "credenciales inválidas") está
+resuelto: ahora un `DelegacionError` real se propaga como tal.
+
+Qué sigue sin resolverse (dev lo tiene identificado, no es urgente):
+cualquier OTRA excepción durante este paso -- por ejemplo, un timeout de
+Playwright buscando el dropdown, que no tiene nada que ver con delegación
+-- también se envuelve como `DelegacionError` ahora, en vez de cómo un
+error técnico. Es la misma ambigüedad "timeout vs. clasificación
+específica" que ya vimos en Agip/Salta/Neuquen, sólo que la categoría a la
+que cae cambió de LoginError a DelegacionError.
+
+No se modifica sicnea.py desde acá.
 """
 from unittest.mock import AsyncMock, MagicMock
 
@@ -24,7 +46,7 @@ import pytest
 
 from jurisdicciones.jurisdiccion import DelegacionError, LoginError
 
-pytestmark = [pytest.mark.unit, pytest.mark.known_issue, pytest.mark.asyncio]
+pytestmark = [pytest.mark.unit, pytest.mark.asyncio]
 
 
 @pytest.fixture
@@ -40,42 +62,37 @@ def sicnea_instance():
     return instance
 
 
-async def test_timeout_en_query_selector_se_clasifica_como_login_error(sicnea_instance):
+@pytest.mark.known_issue
+async def test_timeout_en_query_selector_se_clasifica_como_delegacion_error(sicnea_instance):
     """Un timeout de Playwright buscando el dropdown (nada que ver con
-    credenciales) hoy termina siendo un LoginError."""
+    delegación ni con credenciales) hoy termina siendo un DelegacionError.
+    Antes del fix de sicnea.py caía en LoginError; sigue siendo una
+    clasificación incorrecta, sólo que cambió de categoría. Dev: no
+    prioritario por ahora."""
     new_page_2 = MagicMock()
     new_page_2.query_selector = AsyncMock(side_effect=TimeoutError("frame no responde"))
     sicnea_instance.new_page_2 = new_page_2
 
-    with pytest.raises(LoginError) as exc_info:
+    with pytest.raises(DelegacionError) as exc_info:
         await sicnea_instance._select_cuit_from_dropdown()
 
-    assert not isinstance(exc_info.value, DelegacionError)
-    assert "Failed to select client CUIT" in str(exc_info.value)
+    assert not isinstance(exc_info.value, LoginError)
 
 
-async def test_cuit_no_delegado_tambien_termina_envuelto_como_login_error(sicnea_instance):
+async def test_cuit_no_delegado_se_propaga_como_delegacion_error(sicnea_instance):
     """
-    ⚠️ Segundo hallazgo en el mismo método: `DelegacionError` NO hereda de
-    `LoginError` (son excepciones hermanas, no padre-hijo). El
-    `except LoginError: raise` de arriba por lo tanto NO atrapa un
-    `DelegacionError` interno -- cae al `except Exception` genérico y
-    termina reempaquetado como `LoginError` con el mensaje de
-    "Servicio pendiente de delegación" adentro del texto, en vez de
-    propagarse como el `DelegacionError` que en realidad es.
-
-    Comportamiento actual (no es el ideal, documentado acá): se pierde la
-    distinción entre "no está delegado" y "credenciales inválidas" -- ambos
-    terminan siendo un LoginError.
-    """
+    ✅ Confirma el fix: cuando el CUIT del cliente no está entre las
+    opciones del dropdown (no está delegado), la excepción se propaga
+    limpiamente como `DelegacionError` -- ya no se reempaqueta como
+    `LoginError`. Si este test empieza a fallar, es porque sicnea.py volvió
+    a envolver este caso mal; no debería tocarse sin avisar."""
     new_page_2 = MagicMock()
     dropdown = MagicMock()
     dropdown.evaluate = AsyncMock(return_value=["20000000001", "20000000002"])
     new_page_2.query_selector = AsyncMock(return_value=dropdown)
     sicnea_instance.new_page_2 = new_page_2
 
-    with pytest.raises(LoginError) as exc_info:
+    with pytest.raises(DelegacionError) as exc_info:
         await sicnea_instance._select_cuit_from_dropdown()
 
-    assert not isinstance(exc_info.value, DelegacionError)
-    assert "delegaci" in str(exc_info.value).lower()
+    assert str(exc_info.value) == DelegacionError.DEFAULT_MESSAGE

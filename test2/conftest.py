@@ -303,3 +303,34 @@ def pytest_configure(config):
     if metadata is not None:
         metadata["Proyecto testeado (REPO_ROOT)"] = str(REPO_ROOT)
         metadata["DATABASE_URL de test"] = os.environ.get("DATABASE_URL", "")
+
+
+# --------------------------------------------------------------------------
+# Seguridad: bajo ninguna circunstancia un test debe enviar un mail real.
+# Esta suite mockea el envío explícitamente donde corresponde, pero como
+# defensa en profundidad se bloquea acá también, a nivel global y para
+# TODOS los tests (autouse), cualquier intento de abrir una conexión SMTP
+# real o de llamar a la función de envío de la app si no fue mockeada.
+# Si un test necesita "enviar mail", tiene que mockear explícitamente lo
+# que use (smtplib.SMTP, o la función enviar_correo de la app) ANTES de
+# que corra este fixture, o el intento va a levantar RuntimeError.
+# --------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def _bloquear_envio_de_mail_real(monkeypatch):
+    import smtplib
+
+    def _bloqueado(*args, **kwargs):
+        raise RuntimeError(
+            "Intento de conexión SMTP real durante un test (bloqueado por "
+            "conftest.py). Si tu test necesita mail, mockealo explícitamente."
+        )
+
+    monkeypatch.setattr(smtplib, "SMTP", _bloqueado)
+    monkeypatch.setattr(smtplib, "SMTP_SSL", _bloqueado)
+
+    for modulo in ("mail", "mail_smtp"):
+        try:
+            mod = __import__(modulo)
+        except ImportError:
+            continue
+        monkeypatch.setattr(mod, "enviar_correo", _bloqueado, raising=False)

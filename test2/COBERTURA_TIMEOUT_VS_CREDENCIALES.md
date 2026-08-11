@@ -9,7 +9,7 @@ No se modificó ningún archivo de `jurisdicciones/`.
 
 | Categoría | Jurisdicciones | Test |
 |---|---|---|
-| 🔴 **Riesgo confirmado** (timeout/excepción genérica → `LoginError` por diseño) | Agip, Salta, Sicnea, Neuquen | Test dedicado por archivo (`test_<clase>_timeout_vs_credenciales.py` / `test_e2e_agip_known_issue.py`), reproduce el escenario exacto y confirma el bug |
+| 🔴 **Riesgo confirmado** (timeout/excepción genérica → `LoginError` por diseño) — **Salta y Neuquen confirmados EN VIVO el 11/08 contra portales reales**, Agip también confirmado en vivo previamente. Sicnea: bug de clasificación de timeout sigue igual (LoginError), pero el bug de DelegacionError-mal-envuelta ya se resolvió. | Agip, Salta, Sicnea, Neuquen | Test dedicado por archivo (`test_<clase>_timeout_vs_credenciales.py` / `test_e2e_agip_known_issue.py`), reproduce el escenario exacto y confirma el bug |
 | 🟢 **Patrón seguro** (chequeo inmediato `is_visible`/`count`, no bloquea ni convierte timeouts en `LoginError`) | Arba, Chaco, Chubut, Formosa, Jujuy, LaPampa, LaRioja, Misiones, SanJuan, SanLuis | Cubiertas por el test genérico parametrizado |
 | 🟢 **Delegan en `AFIP_login` de la clase base** (no agregan su propio riesgo) | Corrientes, EntreRios, RioNegro, Catamarca, SantiagoDelEstero, Tucuman, Cordoba, Nacional | Cubiertas por el test genérico parametrizado |
 | ⭐ **Referencia / ya usa el mecanismo correcto** | Mendoza (`clasificar_fallo_login`) | Cubierta por el test genérico + tests previos de `clasificar_fallo_login` |
@@ -37,14 +37,21 @@ Los 4 archivos ya están corridos y validados: **27 passed** en conjunto.
 
 1. **`neuquen.py::login_neuquen_afip`** tiene el mismo patrón que agip/salta/sicnea:
    `except Exception: ... raise LoginError(self.cliente, LoginError.SERVICIO_NO_DISPONIBLE)`
-   sobre CUALQUIER excepción no clasificada previamente (confirmado con test, no en vivo).
+   sobre CUALQUIER excepción no clasificada previamente. **ACTUALIZACIÓN
+   11/08: confirmado también EN VIVO** contra el portal real de Neuquen
+   (`e2e_live/test_e2e_live_todas_las_jurisdicciones.py::test_login_y_consulta_real[Neuquen]`
+   falló exactamente por esto: un timeout esperando "Bandeja de Mensajes -
+   Notificaciones" se reportó como `LoginError`, no como error técnico).
 
-2. **`sicnea.py::_select_cuit_from_dropdown`** tiene un bug adicional, distinto al de timeout:
-   `DelegacionError` no hereda de `LoginError`, así que el
-   `except LoginError: raise` de ese método NO la atrapa — cae al
-   `except Exception` genérico y **un `DelegacionError` legítimo también
-   termina reempaquetado como `LoginError`**. Se pierde la distinción entre
-   "no está delegado" y "credenciales inválidas" en SICNEA específicamente.
+2. ~~`sicnea.py::_select_cuit_from_dropdown` tiene un bug adicional...~~
+   **RESUELTO (confirmado 11/08).** El dev cambió el método para que
+   capture explícitamente `except DelegacionError: raise` antes del
+   `except Exception` genérico, así que ahora un `DelegacionError`
+   legítimo (CUIT no delegado) se propaga como tal y ya no se reempaqueta
+   como `LoginError`. Tests actualizados en
+   `unit/test_sicnea_timeout_vs_credenciales.py` para reflejar el nuevo
+   comportamiento (dejaron de ser `known_issue`, ahora son regresión
+   confirmada).
 
 ## Qué NO cubre esto (por si se sigue iterando)
 

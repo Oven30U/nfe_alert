@@ -145,3 +145,11 @@ en base a la revisión manual, se espera que la mayoría pase, que los
 los bugs de arriba), y que
 `test_login_lanza_error_si_ambos_metodos_fallan` aparezca en rojo (bug #1)
 hasta que se corrija `agip.py`.
+
+## Notas operativas confirmadas en corridas reales (Windows, Agip/Nacional/Sicena)
+
+- **No agregues `test2/__init__.py`** (los de `unit/`, `integration/`, `smoke/`, `e2e_live/` sí van, no los toques). Si `test2/` tiene su propio `__init__.py`, pytest intenta importar `conftest.py` como parte de un paquete que incluye el nombre de la carpeta del checkout (ej. `nfe_alert_Nacional.test2.conftest`), lo cual explota con `ModuleNotFoundError: No module named 'nfe_alert_Nacional'` porque esa carpeta no está pensada para importarse como paquete Python.
+- Corré pytest apuntando explícitamente a la carpeta, no a secas: `pytest test2 -v --html=reports\reporte_resultados.html --self-contained-html` (parado en la raíz del checkout). Así carga `test2\pytest.ini` correctamente y no colecciona los scripts viejos sueltos del repo (`test_manuales.py`, `tests\test_connection.py`), que no son tests de pytest y tiran `ERROR` de fixture faltante si se cuelan.
+- Si instalás `pytest-asyncio` desde `requirements-test.txt` y tenés otro paquete que pide una versión más nueva (ej. `taxteclib>=1.2.0`), corré después `pip install "pytest-asyncio>=1.2.0"` para que quede en una versión que le sirva a ambos.
+- `$env:RUN_LIVE_E2E` y `$env:PATH_CREDENCIALES_XLSM` quedan seteados mientras no cierres la terminal de PowerShell — hacé `Remove-Item Env:\RUN_LIVE_E2E -ErrorAction SilentlyContinue` antes de una corrida que no debería incluir `e2e_live`, para no confundir qué contiene cada reporte.
+- Confirmado en las 3 ramas (Agip/Nacional/Sicena, que son checkouts idénticos): **103-104 passed en la suite mockeada** (1 failed = bug real de `agip.py::_login`, 4 xfailed = known issues documentados) y, contra los portales reales (`e2e_live`), **125+ passed / 2 failed** (Sicnea y Salta, ambos por bugs ya documentados en este archivo). Si en algún momento una rama te da un resultado distinto a las otras, es señal de que se desincronizaron — investigalo.

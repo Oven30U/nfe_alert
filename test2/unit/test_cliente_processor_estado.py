@@ -7,9 +7,17 @@ Puntos clave que se verifican:
    del conteo de "errores técnicos", pero SÍ cuenta LoginTimeoutError como
    error técnico (es decir: un timeout de portal debe seguir generando alerta
    operativa, en vez de desaparecer silenciosamente).
-2. `reintentar_errores` NO reintenta LoginError/LoginErrorAfip/DelegacionError,
-   pero SÍ debe reintentar LoginTimeoutError (un timeout amerita otro intento,
-   una credencial inválida no).
+2. `reintentar_errores` NO reintenta LoginError/LoginErrorAfip, pero SÍ debe
+   reintentar LoginTimeoutError y DelegacionError.
+
+   NOTA (actualizado tras cambio en cliente_processor.py, rama
+   nfe_alert_agip_agosto): `DelegacionError` dejó de estar en la lista de
+   "no reintentar" -- ahora, aunque una jurisdicción tire DelegacionError,
+   el procesamiento se reintenta igual. Antes de este cambio, DelegacionError
+   estaba en el mismo grupo que LoginError/LoginErrorAfip (no se reintentaba).
+   `_hay_errores_en_resultados` NO cambió: DelegacionError sigue sin contar
+   como error técnico ahí (son cosas distintas: una decide si se alerta al
+   final, la otra si se reintenta en el momento).
 """
 import asyncio
 from unittest.mock import AsyncMock
@@ -87,11 +95,13 @@ class TestHayErroresEnResultados:
 class TestReintentarErrores:
     @pytest.mark.parametrize(
         "error_tipo",
-        ["LoginError", "LoginErrorAfip", "DelegacionError"],
+        ["LoginError", "LoginErrorAfip"],
     )
-    def test_no_reintenta_errores_de_credenciales_o_delegacion(
+    def test_no_reintenta_errores_de_credenciales(
         self, estructura_robot_tmp, df_cliente_factory, monkeypatch, error_tipo
     ):
+        """LoginError/LoginErrorAfip siguen sin reintentarse: si las
+        credenciales están mal, reintentar no va a cambiar nada."""
         processor = _make_processor(estructura_robot_tmp, df_cliente_factory)
         df_final = pd.DataFrame(
             {
@@ -121,6 +131,37 @@ class TestReintentarErrores:
                 "Notificacion": ["Timeout esperando confirmación de login"],
                 "Screenshot": ["No se realizó Screenshot"],
                 "Error": ["LoginTimeoutError"],
+            }
+        )
+
+        instancia_reintento = AsyncMock()
+        instancia_reintento.procesar_jurisdiccion = AsyncMock(
+            return_value=("Chaco", None, "Se realizó Screenshot", None)
+        )
+        crear_instancia_mock = AsyncMock(return_value=instancia_reintento)
+        monkeypatch.setattr(processor, "crear_instancia_jurisdiccion", crear_instancia_mock)
+
+        resultado = asyncio.run(
+            processor.reintentar_errores(playwright=None, df_final=df_final)
+        )
+
+        crear_instancia_mock.assert_awaited()
+        fila = resultado.loc[resultado["Nombre"] == "Chaco"].iloc[0]
+        assert pd.isna(fila["Error"])  # se resolvió en el reintento
+
+    def test_reintenta_delegacion_error(
+        self, estructura_robot_tmp, df_cliente_factory, monkeypatch
+    ):
+        """ACTUALIZADO (rama nfe_alert_agip_agosto): DelegacionError ahora SÍ
+        se reintenta -- antes era parte del grupo "no reintentar" junto con
+        LoginError/LoginErrorAfip, ese comportamiento cambió a propósito."""
+        processor = _make_processor(estructura_robot_tmp, df_cliente_factory)
+        df_final = pd.DataFrame(
+            {
+                "Nombre": ["Chaco"],
+                "Notificacion": ["Servicio pendiente de delegación"],
+                "Screenshot": ["No se realizó Screenshot"],
+                "Error": ["DelegacionError"],
             }
         )
 
