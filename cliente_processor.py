@@ -588,7 +588,7 @@ class ClienteProcessor:
             tipos_error_sin_reintento = [
                 "LoginError",
                 "LoginErrorAfip",
-            ]s
+            ]
 
             tipos_notificaciones_sin_reintento = [
                 "Credenciales inválidas",
