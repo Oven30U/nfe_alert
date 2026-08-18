@@ -105,6 +105,9 @@ class Salta(Jurisdiccion):
                 await self._seleccionar_cuit_asociado()
                 return
 
+        except DelegacionError:
+            # Re-lanzar DelegacionError sin modificaciones
+            raise
         except Exception:
             # Si no aparece el selector de CUITs, no es un error
             self.logger.debug(
@@ -131,9 +134,7 @@ class Salta(Jurisdiccion):
                 self.logger.warning(
                     f"SALTA: Detectada URL de inicio sin delegación: {self.page.url}"
                 )
-                raise DelegacionError(
-                    self.cliente,
-                )
+                raise DelegacionError(self.cliente)
             else:
                 raise LoginErrorAfip(
                     self.cliente, "No se pudo verificar el login exitoso en AFIP"
@@ -161,10 +162,7 @@ class Salta(Jurisdiccion):
                 self.logger.error(
                     f"SALTA: CUIT cliente {self.cuit_cliente_input} no encontrado en CUITs asociados"
                 )
-                raise DelegacionError(
-                    self.cliente,
-                    f"CUIT {self.cuit_cliente_input} no está delegado en el servicio",
-                )
+                raise DelegacionError(self.cliente)
 
             # Seleccionar el CUIT cliente
             await self.page.select_option(
@@ -189,14 +187,10 @@ class Salta(Jurisdiccion):
             if any(
                 keyword in str(e) for keyword in ["cuitAsociados", "option", "select"]
             ):
-                raise DelegacionError(
-                    self.cliente, f"Error al acceder a CUITs asociados: {str(e)}"
-                )
+                raise DelegacionError(self.cliente)
             else:
                 # Para otros errores, mantener como error de login
-                raise LoginErrorAfip(
-                    self.cliente, f"Error en proceso de selección: {str(e)}"
-                )
+                raise LoginErrorAfip(self.cliente)
 
     async def _click_ingresar_button(self) -> None:
         """
