@@ -16,7 +16,7 @@ from mail import enviar_correo
 from mapa_plot import crear_mapa, crear_mapa_argentina
 from obtener_datos_clientes.db import SessionLocal
 from obtener_datos_clientes.models import ProcesamientosDiariosGlobal
-from jurisdicciones.jurisdiccion import Jurisdiccion
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 
 logger = Logger.get_logger()
 
@@ -507,6 +507,10 @@ class ClienteProcessor:
         # Verificar si hay errores de login
         login_errors = df_final[
             df_final["Error"].isin(["LoginError", "LoginErrorAfip"])
+            & ~(
+                (df_final["Error"] == "LoginError")
+                & (df_final["Notificacion"] == LoginError.SERVICIO_NO_DISPONIBLE)
+            )
         ]
 
         if login_errors.empty:

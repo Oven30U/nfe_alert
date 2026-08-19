@@ -87,7 +87,6 @@ class Agip(Jurisdiccion):
         """
         await self.page.goto("https://claveciudad.agip.gob.ar/")
         await self.page.wait_for_load_state("networkidle")
-
         clave_ciudad_locator = self.page.locator(
             "xpath=//div[contains(@class, 'clave-ciudad-info')]/a[contains(text(), 'Clave Ciudad')]"
         )
