@@ -13,7 +13,7 @@ from config import jurisdiccion_clases
 from functions.delete_backs import delete_zip_files_in_backup
 from inputs import obtener_clientes
 from logger import Logger
-from jurisdicciones.jurisdiccion import Jurisdiccion
+from jurisdicciones.jurisdiccion import Jurisdiccion, LoginError
 from obtener_datos_clientes.db import SessionLocal
 from obtener_datos_clientes.obtener_datos_clientes import (
     Cliente,
@@ -361,13 +361,19 @@ class ProcesamientoManager:
             df_filtrado = df_final.copy()
 
         # Errores que NO se consideran técnicos
-        errores_excluidos = ["LoginError", "LoginErrorAfip", "DelegacionError"]
+        errores_excluidos = ["LoginErrorAfip", "DelegacionError"]
 
         # Verificar si hay errores técnicos
         if "Error" in df_filtrado.columns:
             errores_tecnicos = df_filtrado[
                 df_filtrado["Error"].notna()
                 & ~df_filtrado["Error"].isin(errores_excluidos)
+                & ~(
+                    (df_filtrado["Error"] == "LoginError")
+                    & (
+                        df_filtrado["Mensaje"] == LoginError.SERVICIO_NO_DISPONIBLE
+                    )
+                )
             ]
             return len(errores_tecnicos) > 0
 

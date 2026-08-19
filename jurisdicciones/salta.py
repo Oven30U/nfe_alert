@@ -262,7 +262,7 @@ class Salta(Jurisdiccion):
             
             # Esperar específicamente al selector de logout con un timeout razonable
             await self.page.wait_for_selector(
-                "#enviaLogout", timeout=15000, state="visible"
+                "#enviaLogout", timeout=30000, state="visible"
             )
             self.logger.debug("SALTA: Login exitoso, se encontró el selector de logout")
         except Exception as e:
