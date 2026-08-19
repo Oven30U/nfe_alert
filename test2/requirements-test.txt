@@ -1,0 +1,15 @@
+# Dependencias EXTRA para correr esta suite, además de las que ya necesita
+# la propia app (pyproject.toml / uv.lock de nfe_alert): sqlalchemy,
+# pandas, playwright, python-dotenv, etc. Ese entorno de la app tiene que
+# estar instalado igual para poder correr nfe_alert en producción, así que
+# no se repite acá.
+#
+# Instalar con el mismo intérprete/venv donde ya está instalado nfe_alert:
+#   pip install -r requirements-test.txt
+#
+# (Si todavía no instalaste las dependencias de la app: desde la carpeta
+# nfe_alert/ correspondiente, `uv sync` o `pip install -e .` primero.)
+
+pytest>=8.0,<9
+pytest-asyncio>=0.23
+pytest-html>=4.1,<5
